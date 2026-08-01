@@ -1,0 +1,6 @@
+{
+  "name": "Community App KWT SORGUM",
+  "description": "Aplikasi Komunitas Kelompok Wanita Tani Sorgum - Beranda, Agenda, Informasi, Pengumuman, Forum Diskusi, dan Dashboard Desa SCM",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
