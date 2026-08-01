@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
+import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 
 interface AdminPortalViewProps {
   currentUser: UserProfile;
@@ -172,6 +173,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // Modal States
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<InfoArticle | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'pengumuman' | 'agenda' } | null>(null);
+  const [previewArticle, setPreviewArticle] = useState<InfoArticle | null>(null);
   
   // New Article Form
   const [artTitle, setArtTitle] = useState('');
@@ -179,6 +182,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [artSummary, setArtSummary] = useState('');
   const [artContent, setArtContent] = useState('');
   const [artImage, setArtImage] = useState('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200');
+  const [artGallery, setArtGallery] = useState<string[]>([]);
 
   // Announcement Modal State
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -263,12 +267,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   };
 
   const handleDeleteAgenda = (id: string, title: string) => {
-    if (confirm(`Yakin ingin menghapus agenda "${title}"?`)) {
-      const updated = agendaList.filter(a => a.id !== id);
-      setAgendaList(updated);
-      if (onUpdateAgendas) onUpdateAgendas(updated);
-      showToast(`Agenda "${title}" berhasil dihapus.`);
-    }
+    setDeleteConfirmModal({ id, title, type: 'agenda' });
   };
 
   // Filtered Agendas
@@ -290,7 +289,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setArtCategory('Budidaya');
     setArtSummary('');
     setArtContent('');
-    setArtImage('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200');
+    setArtImage('');
+    setArtGallery([]);
     setIsArticleModalOpen(true);
   };
 
@@ -301,15 +301,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setArtSummary(art.summary);
     setArtContent(art.content ? art.content.join('\n\n') : art.summary);
     setArtImage(art.image);
+    setArtGallery(art.gallery || []);
     setIsArticleModalOpen(true);
   };
 
   const handleDeleteArticle = (id: string, title: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus artikel "${title}"?`)) {
-      const updated = articles.filter(a => a.id !== id);
-      onUpdateArticles(updated);
-      showToast(`Artikel "${title}" berhasil dihapus.`);
-    }
+    setDeleteConfirmModal({ id, title, type: 'artikel' });
   };
 
   const handleSaveArticle = (e: React.FormEvent) => {
@@ -325,7 +322,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             category: artCategory,
             summary: artSummary || artTitle,
             content: artContent ? artContent.split('\n\n') : [artSummary],
-            image: artImage
+            image: artImage,
+            gallery: artGallery.length > 0 ? artGallery : undefined
           };
         }
         return a;
@@ -340,6 +338,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         timeAgo: 'Baru saja',
         date: new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         image: artImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200',
+        gallery: artGallery.length > 0 ? artGallery : undefined,
         summary: artSummary || artTitle,
         content: artContent ? artContent.split('\n\n') : [artSummary],
         author: {
@@ -373,11 +372,25 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   };
 
   const handleDeleteAnnouncement = (id: string, title: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus pengumuman "${title}"?`)) {
-      const updated = announcements.filter(a => a.id !== id);
-      onUpdateAnnouncements(updated);
+    setDeleteConfirmModal({ id, title, type: 'pengumuman' });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirmModal) return;
+    const { id, title, type } = deleteConfirmModal;
+    if (type === 'artikel') {
+      onUpdateArticles(articles.filter(a => a.id !== id));
+      showToast(`Artikel "${title}" berhasil dihapus.`);
+    } else if (type === 'pengumuman') {
+      onUpdateAnnouncements(announcements.filter(a => a.id !== id));
       showToast(`Pengumuman "${title}" berhasil dihapus.`);
+    } else if (type === 'agenda') {
+      const updated = agendaList.filter(a => a.id !== id);
+      setAgendaList(updated);
+      if (onUpdateAgendas) onUpdateAgendas(updated);
+      showToast(`Agenda "${title}" berhasil dihapus.`);
     }
+    setDeleteConfirmModal(null);
   };
 
   const handleSaveAnnouncement = (e: React.FormEvent) => {
@@ -622,7 +635,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
               >
                 <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>+ Tambah Informasi Baru</span>
+                <span>Tambah Informasi Baru</span>
               </button>
             </div>
 
@@ -721,7 +734,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <td className="py-4 px-5">
                             <div className="flex items-center justify-center gap-2">
                               <button
-                                onClick={() => onSelectArticle(art)}
+                                onClick={() => setPreviewArticle(art)}
                                 title="Lihat Artikel"
                                 className="p-1.5 rounded-lg text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
                               >
@@ -795,7 +808,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
               >
                 <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>+ Buat Pengumuman Baru</span>
+                <span>Buat Pengumuman Baru</span>
               </button>
             </div>
 
@@ -956,7 +969,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
               >
                 <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>+ Tambah Agenda Baru</span>
+                <span>Tambah Agenda Baru</span>
               </button>
             </div>
 
@@ -1244,17 +1257,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               ))}
             </div>
 
-            {/* Bottom Dark Green Banner */}
-            <div className="bg-[#2C4219] text-white p-8 rounded-3xl shadow-lg relative overflow-hidden mt-8">
-              <div className="relative z-10 max-w-2xl space-y-2">
-                <h3 className="font-title font-extrabold text-xl text-white">
-                  Membangun Kedaulatan Pangan Mandiri
-                </h3>
-                <p className="text-xs text-gray-200 leading-relaxed font-medium">
-                  Moderasi Anda membantu menjaga kualitas pertukaran ilmu antar petani sorgum di ekosistem KWT Sorgum.
-                </p>
-              </div>
-            </div>
+
 
           </div>
         )}
@@ -1741,9 +1744,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       {/* MODAL: Tambah / Edit Informasi */}
       {isArticleModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
+              <h3 className="font-title font-extrabold text-xl text-[#2C4219]">
                 {editingArticle ? 'Sunting Informasi' : 'Tambah Informasi Baru'}
               </h3>
               <button
@@ -1754,79 +1757,188 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSaveArticle} className="space-y-4 text-xs font-medium">
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Judul Informasi</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Teknik Pemupukan Organik Sorgum"
-                  value={artTitle}
-                  onChange={(e) => setArtTitle(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
+            <form onSubmit={handleSaveArticle} className="space-y-5 text-xs font-medium">
+              {/* Row 1: Judul + Kategori side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Judul Informasi</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Teknik Pemupukan Organik Sorgum"
+                    value={artTitle}
+                    onChange={(e) => setArtTitle(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Kategori</label>
+                  <select
+                    value={artCategory}
+                    onChange={(e) => setArtCategory(e.target.value as any)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  >
+                    <option value="Budidaya">Budidaya</option>
+                    <option value="Inovasi">Inovasi</option>
+                    <option value="Panen">Panen</option>
+                    <option value="Pengetahuan">Pengetahuan</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Kategori</label>
-                <select
-                  value={artCategory}
-                  onChange={(e) => setArtCategory(e.target.value as any)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+              {/* Row 2: Upload Gambar */}
+              <div className="space-y-2">
+                <label className="block font-bold text-[#2C4219]">Gambar Header</label>
+                <div className="flex gap-4 items-start">
+                                  {/* Preview — only show when image exists */}
+                  {artImage && (
+                    <div className="w-32 h-24 rounded-xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] flex items-center justify-center shrink-0 overflow-hidden">
+                      <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  {/* File input area */}
+                  <div className="flex-1 space-y-2">
+                    <label
+                      htmlFor="artImageUpload"
+                      className="flex flex-col items-center justify-center w-full h-24 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
+                    >
+                      <svg className="w-6 h-6 text-[#2C4219] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span className="text-[11px] font-bold text-[#2C4219]">Klik untuk upload foto</span>
+                      <span className="text-[10px] text-[#433A30]/60 mt-0.5">PNG, JPG (maks. 5MB)</span>
+                      <input
+                        id="artImageUpload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setArtImage(ev.target?.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                    {artImage && (
+                      <button
+                        type="button"
+                        onClick={() => setArtImage('')}
+                        className="text-[10px] font-semibold text-rose-500 hover:text-rose-700"
+                      >
+                        Hapus Foto
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2b: Gambar Gallery (multi-upload) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-[#2C4219]">
+                    Gambar Gallery <span className="text-[#433A30]/50 font-normal">(Opsional — tampil sebagai slideshow di detail artikel)</span>
+                  </label>
+                  {artGallery.length > 0 && (
+                    <button type="button" onClick={() => setArtGallery([])} className="text-[10px] font-semibold text-rose-500 hover:text-rose-700">
+                      Hapus Semua
+                    </button>
+                  )}
+                </div>
+
+                {/* Existing gallery thumbnails */}
+                {artGallery.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {artGallery.map((img, idx) => (
+                      <div key={idx} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-[#E6E1D5] shrink-0">
+                        <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setArtGallery(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload area */}
+                <label
+                  htmlFor="artGalleryUpload"
+                  className="flex flex-col items-center justify-center w-full h-20 rounded-xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
                 >
-                  <option value="Budidaya">Budidaya</option>
-                  <option value="Inovasi">Inovasi</option>
-                  <option value="Panen">Panen</option>
-                  <option value="Pengetahuan">Pengetahuan</option>
-                </select>
+                  <svg className="w-5 h-5 text-[#2C4219] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span className="text-[11px] font-bold text-[#2C4219]">
+                    {artGallery.length > 0 ? `${artGallery.length} foto dipilih — klik untuk tambah lagi` : 'Klik untuk upload beberapa foto sekaligus'}
+                  </span>
+                  <span className="text-[10px] text-[#433A30]/60 mt-0.5">PNG, JPG — bisa pilih lebih dari 1 file</span>
+                  <input
+                    id="artGalleryUpload"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach((file: File) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          setArtGallery(prev => [...prev, ev.target?.result as string]);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
               </div>
 
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">URL Gambar Header (Unsplash/Direct Link)</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={artImage}
-                  onChange={(e) => setArtImage(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Ringkasan Singkat (Summary)</label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Ringkasan singkat artikel..."
-                  value={artSummary}
-                  onChange={(e) => setArtSummary(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Isi Lengkap Artikel (Pisahkan Paragraf dengan Enter 2 kali)</label>
-                <textarea
-                  rows={5}
-                  required
-                  placeholder="Tulis artikel selengkapnya di sini..."
-                  value={artContent}
-                  onChange={(e) => setArtContent(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
+              {/* Row 3: Ringkasan + Isi side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Ringkasan Singkat</label>
+                  <textarea
+                    rows={5}
+                    required
+                    placeholder="Ringkasan singkat artikel..."
+                    value={artSummary}
+                    onChange={(e) => setArtSummary(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] resize-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Isi Lengkap Artikel</label>
+                  <textarea
+                    rows={5}
+                    required
+                    placeholder={"Tulis artikel selengkapnya di sini...\n\n(Pisahkan paragraf dengan Enter 2x)"}
+                    value={artContent}
+                    onChange={(e) => setArtContent(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] resize-none"
+                  />
+                </div>
               </div>
 
               <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsArticleModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#E6E1D5] text-[#7A7062] font-bold"
+                  className="px-5 py-2.5 rounded-xl border border-[#E6E1D5] text-[#7A7062] font-bold text-xs hover:bg-[#FAF6EE] transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2C4219] text-white font-title font-bold shadow-md hover:bg-[#1E2E11]"
+                  className="px-6 py-2.5 rounded-xl bg-[#2C4219] text-white font-title font-bold text-xs shadow-md hover:bg-[#1E2E11] transition-colors"
                 >
                   {editingArticle ? 'Simpan Perubahan' : 'Publikasikan Informasi'}
                 </button>
@@ -2177,6 +2289,72 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Hapus Utas</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========== MODAL: Preview Artikel (tampil di dalam admin) ========== */}
+      <ArticleDetailModal
+        article={previewArticle}
+        onClose={() => setPreviewArticle(null)}
+      />
+
+      {/* ========== MODAL: Konfirmasi Hapus (Artikel / Pengumuman / Agenda) ========== */}
+      {deleteConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95">
+
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-title font-bold text-base text-[#2C4219]">
+                    Hapus {deleteConfirmModal.type === 'artikel' ? 'Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Pengumuman' : 'Agenda'}
+                  </h3>
+                  <p className="text-xs text-[#7A7062]">Tindakan ini tidak dapat dibatalkan</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDeleteConfirmModal(null)}
+                className="p-1 rounded-lg hover:bg-[#FAF6EE] text-[#7A7062] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Detail item */}
+            <div className="bg-[#FAF6EE] p-3.5 rounded-xl border border-[#E6E1D5] space-y-1">
+              <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">
+                {deleteConfirmModal.type === 'artikel' ? 'Judul Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Judul Pengumuman' : 'Judul Agenda'}
+              </p>
+              <p className="font-bold text-xs text-[#2C4219] line-clamp-2">
+                "{deleteConfirmModal.title}"
+              </p>
+              <p className="text-[11px] text-rose-700 font-medium pt-2 border-t border-[#E6E1D5]">
+                Data yang dihapus tidak bisa dikembalikan.
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                onClick={() => setDeleteConfirmModal(null)}
+                className="w-full py-2.5 rounded-xl border-2 border-[#2C4219] text-[#2C4219] font-bold text-xs hover:bg-[#2C4219]/5 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ya, Hapus</span>
               </button>
             </div>
 

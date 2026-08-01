@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Announcement } from '../../types';
 import {
   ArrowLeft,
@@ -11,9 +11,6 @@ import {
   Users,
   Clock,
   User,
-  CheckCircle2,
-  ClipboardList,
-  XCircle,
 } from 'lucide-react';
 
 interface AnnouncementDetailViewProps {
@@ -32,27 +29,6 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
   announcement: ann,
   onBack,
 }) => {
-  const [registered, setRegistered] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  const hasEvent = !!ann.eventDate;
-
-  const handleRegister = () => {
-    setShowConfirm(true);
-  };
-
-  const handleConfirm = () => {
-    setShowConfirm(false);
-    setRegistered(true);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 4000);
-  };
-
-  const handleCancelRegistration = () => {
-    setRegistered(false);
-  };
-
   return (
     <div className="pb-16 animate-fadeInUp">
 
@@ -66,17 +42,6 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
         </span>
         Kembali ke Pengumuman
       </button>
-
-      {/* Success Toast */}
-      {showSuccess && (
-        <div className="fixed top-5 right-5 z-50 bg-[#2C4219] text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 animate-fadeInUp">
-          <CheckCircle2 className="w-5 h-5 text-[#A8B774] shrink-0" />
-          <div>
-            <p className="font-bold text-sm">Pendaftaran Berhasil!</p>
-            <p className="text-xs text-white/70">Anda telah terdaftar sebagai peserta.</p>
-          </div>
-        </div>
-      )}
 
       {/* Main Card */}
       <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-sm overflow-hidden">
@@ -182,82 +147,6 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
               <p>
                 <strong>Catatan:</strong> {ann.note}
               </p>
-            </div>
-          )}
-
-          {/* ── REGISTRATION SECTION ── */}
-          {hasEvent && (
-            <div className="border-t border-[#E6E1D5] pt-5 mt-2">
-              <div className="flex items-center gap-2 mb-4">
-                <ClipboardList className="w-5 h-5 text-[#2C4219]" />
-                <h2 className="font-title font-extrabold text-base text-[#2C4219]">Pendaftaran Peserta</h2>
-              </div>
-
-              {registered ? (
-                /* Already registered */
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-8 h-8 text-green-500 shrink-0" />
-                    <div>
-                      <p className="font-bold text-green-800 text-sm">Anda Telah Terdaftar</p>
-                      <p className="text-xs text-green-700/80 mt-0.5">
-                        Harap hadir tepat waktu sesuai jadwal yang tertera.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleCancelRegistration}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 bg-white rounded-xl px-3 py-2 transition-all shrink-0"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Batalkan Pendaftaran
-                  </button>
-                </div>
-              ) : showConfirm ? (
-                /* Confirmation dialog */
-                <div className="bg-[#FAF6EE] border border-[#E6E1D5] rounded-2xl p-5 space-y-4">
-                  <p className="text-sm font-semibold text-[#2C4219]">Konfirmasi Pendaftaran</p>
-                  <p className="text-sm text-[#433A30]/70 leading-relaxed">
-                    Anda akan mendaftar sebagai peserta kegiatan{' '}
-                    <strong className="text-[#2C4219]">{ann.title}</strong> pada{' '}
-                    <strong className="text-[#2C4219]">{ann.eventDate}</strong>
-                    {ann.location && (
-                      <> di <strong className="text-[#2C4219]">{ann.location}</strong></>
-                    )}.
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleConfirm}
-                      className="flex-1 bg-[#2C4219] hover:bg-[#3d5a23] text-white text-sm font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow-md"
-                    >
-                      Ya, Daftarkan Saya
-                    </button>
-                    <button
-                      onClick={() => setShowConfirm(false)}
-                      className="flex-1 bg-white border border-[#E6E1D5] hover:border-[#A8B774] text-[#433A30] text-sm font-bold py-3 rounded-xl transition-all"
-                    >
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Register button */
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#FAF6EE] rounded-2xl p-5">
-                  <div>
-                    <p className="text-sm font-semibold text-[#2C4219]">Belum terdaftar sebagai peserta</p>
-                    <p className="text-xs text-[#433A30]/60 mt-0.5">
-                      Klik tombol untuk mendaftar dan konfirmasi kehadiran Anda.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleRegister}
-                    className="shrink-0 flex items-center gap-2 bg-[#2C4219] hover:bg-[#3d5a23] text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95"
-                  >
-                    <ClipboardList className="w-4 h-4" />
-                    Daftar Sekarang
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>

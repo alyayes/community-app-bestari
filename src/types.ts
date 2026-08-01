@@ -1,4 +1,4 @@
-export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'diskusi' | 'dashboard';
+export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'diskusi' | 'dashboard' | 'profil';
 
 export interface UserProfile {
   id: string;

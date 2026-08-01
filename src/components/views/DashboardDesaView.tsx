@@ -255,7 +255,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         </div>
       </div>
 
-      {/* Community Members Table - Satisfies Task 7.3 & Admin 6.3 (View Data Community / Anggota) */}
+      {/* Community Members Table - Task 7.3 & Admin 6.3 */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
         <h3 className="font-title font-bold text-base text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
         
@@ -293,6 +293,76 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Production Data Table - Task 7.4 & Admin 6.4 */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
+        <div className="flex items-center gap-2">
+          <Layers className="w-5 h-5 text-[#2C4219]" />
+          <h3 className="font-title font-bold text-base text-[#2C4219]">Data Produksi Tepung Sorgum</h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-[#FAF6EE] text-[#2C4219] font-title font-bold border-b border-[#E6E1D5]">
+                <th className="p-3 rounded-l-xl">Kode Batch</th>
+                <th className="p-3">Tanggal Produksi</th>
+                <th className="p-3">Asal Blok</th>
+                <th className="p-3">Volume Input (kg)</th>
+                <th className="p-3">Output Tepung (kg)</th>
+                <th className="p-3">Rendemen</th>
+                <th className="p-3">Jenis Produk</th>
+                <th className="p-3 rounded-r-xl">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E6E1D5]">
+              {[
+                { batch: 'PRD-2026-001', date: '02 Juli 2026', block: 'Blok D', inputKg: 800, outputKg: 620, rendemen: '77.5%', type: 'Tepung Halus Premium', status: 'Terdistribusi', statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                { batch: 'PRD-2026-002', date: '15 Juli 2026', block: 'Blok A', inputKg: 1200, outputKg: 930, rendemen: '77.5%', type: 'Premix Bebas Gluten', status: 'Terdistribusi', statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                { batch: 'PRD-2026-003', date: '28 Juli 2026', block: 'Blok D', inputKg: 900, outputKg: 695, rendemen: '77.2%', type: 'Tepung Kasar (Grade B)', status: 'Stok Gudang', statusColor: 'bg-amber-50 text-amber-800 border-amber-200' },
+                { batch: 'PRD-2026-004', date: '05 Agustus 2026', block: 'Blok A', inputKg: 1500, outputKg: 1160, rendemen: '77.3%', type: 'Tepung Halus Premium', status: 'Dalam Proses', statusColor: 'bg-blue-50 text-blue-800 border-blue-200' },
+                { batch: 'PRD-2026-005', date: '10 Agustus 2026', block: 'Blok B', inputKg: 600, outputKg: 0, rendemen: '-', type: 'Premix Bebas Gluten', status: 'Antrian', statusColor: 'bg-[#FAF6EE] text-[#433A30] border-[#E6E1D5]' },
+              ].map((row, idx) => (
+                <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                  <td className="p-3 font-bold text-[#2C4219]">{row.batch}</td>
+                  <td className="p-3 text-[#433A30]">{row.date}</td>
+                  <td className="p-3 font-semibold text-[#2C4219]">{row.block}</td>
+                  <td className="p-3 text-[#433A30]">{row.inputKg.toLocaleString('id-ID')} kg</td>
+                  <td className="p-3 font-bold text-[#2C4219]">{row.outputKg > 0 ? `${row.outputKg.toLocaleString('id-ID')} kg` : '—'}</td>
+                  <td className="p-3 text-[#433A30]">{row.rendemen}</td>
+                  <td className="p-3 text-[#433A30]">{row.type}</td>
+                  <td className="p-3">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${row.statusColor}`}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Summary row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#E6E1D5]">
+          <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Batch</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">5</p>
+          </div>
+          <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Input</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">5.000 kg</p>
+          </div>
+          <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Output</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">3.405 kg</p>
+          </div>
+          <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
+            <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Rata-rata Rendemen</p>
+            <p className="font-title font-extrabold text-lg text-[#A8B774]">77.4%</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
