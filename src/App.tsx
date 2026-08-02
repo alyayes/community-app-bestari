@@ -326,6 +326,7 @@ export function App() {
             <AgendaView
               events={events}
               onAddEvent={handleAddEvent}
+              searchQuery={searchQuery}
             />
           )}
 
@@ -334,6 +335,7 @@ export function App() {
               articles={articles}
               selectedArticle={selectedArticle}
               onSelectArticle={handleSelectArticle}
+              searchQuery={searchQuery}
             />
           )}
 
@@ -348,6 +350,7 @@ export function App() {
                 announcements={announcements}
                 selectedAnnouncement={selectedAnnouncement}
                 onSelectAnnouncement={handleSelectAnnouncement}
+                searchQuery={searchQuery}
               />
             )
           )}

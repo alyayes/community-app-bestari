@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
     informasi: 'Pusat Informasi & Pengetahuan',
     pengumuman: 'Pengumuman Resmi',
     diskusi: 'Diskusi & Komunitas',
-    dashboard: 'Data Sorgum (Integrasi SCM)',
+    dashboard: 'Data Sorgum',
     profil: 'Profil Anggota KWT'
   };
 
@@ -57,17 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Side: Global Search, Date, Notifications, Profile */}
         <div className="flex items-center gap-2.5 sm:gap-4">
-          {/* Search Bar */}
-          <div className="relative hidden md:block w-48 lg:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#433A30]/70" />
-            <input
-              type="text"
-              placeholder="Cari artikel, diskusi..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#E6E1D5] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#433A30] placeholder-[#433A30]/50 focus:outline-none focus:border-[#2C4219] focus:ring-1 focus:ring-[#2C4219]"
-            />
-          </div>
+
 
           {/* Date Indicator */}
           <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#433A30]">

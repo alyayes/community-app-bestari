@@ -41,17 +41,6 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Banner */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#2C4219] text-white">INTEGRASI SCM</span>
-            <h2 className="font-title font-bold text-lg text-[#2C4219]">Data Sorgum (View Only - Integrasi App SCM)</h2>
-          </div>
-
-        </div>
-      </div>
-
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-2">

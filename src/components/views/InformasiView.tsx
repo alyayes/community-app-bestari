@@ -13,23 +13,25 @@ interface InformasiViewProps {
   articles: InfoArticle[];
   selectedArticle: InfoArticle | null;
   onSelectArticle: (article: InfoArticle | null) => void;
+  searchQuery?: string;
 }
 
 export const InformasiView: React.FC<InformasiViewProps> = ({
   articles,
   selectedArticle,
-  onSelectArticle
+  onSelectArticle,
+  searchQuery = ''
 }) => {
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [localSearch, setLocalSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
-  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
 
   const categories = ['Semua', 'Panen', 'Inovasi', 'Budidaya', 'Pengetahuan'];
 
+  const activeSearch = localSearch || searchQuery;
   const filteredArticles = articles.filter(art => {
-    const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          art.summary.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = art.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
+                          art.summary.toLowerCase().includes(activeSearch.toLowerCase());
     if (selectedCategory === 'Semua') return matchesSearch;
     return matchesSearch && art.category?.toLowerCase() === selectedCategory.toLowerCase();
   });
@@ -185,43 +187,36 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
 
   return (
     <div className="space-y-8 pb-12 w-full">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
-            Pusat Informasi & Artikel
-          </h1>
-
+      {/* Unified Category Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                selectedCategory === cat
+                  ? 'bg-[#2C4219] text-white shadow-xs'
+                  : 'bg-white text-[#433A30] hover:bg-[#FAF6EE] border border-[#E6E1D5]'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         {/* Search Bar */}
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full sm:w-80 md:w-[380px] shrink-0">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#433A30]/50" />
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             placeholder="Cari artikel atau topik..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-xs text-[#433A30] placeholder:text-[#433A30]/50 focus:outline-none focus:border-[#2C4219] transition-colors shadow-2xs"
           />
         </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-              selectedCategory === cat
-                ? 'bg-[#2C4219] text-white shadow-xs'
-                : 'bg-white text-[#433A30] hover:bg-[#FAF6EE] border border-[#E6E1D5]'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
       </div>
 
       {/* Article Grid */}

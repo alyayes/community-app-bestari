@@ -13,6 +13,7 @@ interface PengumumanViewProps {
   announcements: Announcement[];
   selectedAnnouncement: Announcement | null;
   onSelectAnnouncement: (announcement: Announcement) => void;
+  searchQuery?: string;
 }
 
 const categoryIcon = (cat: string) => {
@@ -25,49 +26,54 @@ const categoryIcon = (cat: string) => {
 export const PengumumanView: React.FC<PengumumanViewProps> = ({
   announcements,
   onSelectAnnouncement,
+  searchQuery = ''
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'Semua' | 'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA'>('Semua');
 
+  const activeSearch = localSearch || searchQuery;
   const filteredAnnouncements = announcements.filter((ann) => {
     const matchesTab = activeTab === 'Semua' || ann.category === activeTab;
     const matchesSearch =
-      ann.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ann.summary.toLowerCase().includes(searchTerm.toLowerCase());
+      ann.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
+      ann.summary.toLowerCase().includes(activeSearch.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
   return (
     <div className="space-y-5 pb-16">
 
-      {/* SEARCH BAR */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#433A30]/50" />
-        <input
-          type="text"
-          placeholder="Cari pengumuman..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white border border-[#E6E1D5] rounded-2xl pl-11 pr-4 py-3 text-sm text-[#433A30] placeholder-[#433A30]/40 focus:outline-none focus:border-[#2C4219] shadow-xs"
-        />
-      </div>
+      {/* UNIFIED TOP FILTER & SEARCH BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* CATEGORY FILTER TABS */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {(['Semua', 'PENTING', 'HASIL PANEN', 'INFORMASI ANGGOTA'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`
+                px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all
+                ${activeTab === tab
+                  ? 'bg-[#2C4219] text-white shadow-sm'
+                  : 'bg-white text-[#433A30] border border-[#E6E1D5] hover:border-[#A8B774]'}
+              `}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-      {/* CATEGORY FILTER TABS */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-        {(['Semua', 'PENTING', 'HASIL PANEN', 'INFORMASI ANGGOTA'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`
-              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all
-              ${activeTab === tab
-                ? 'bg-[#2C4219] text-white shadow-sm'
-                : 'bg-white text-[#433A30] border border-[#E6E1D5] hover:border-[#A8B774]'}
-            `}
-          >
-            {tab}
-          </button>
-        ))}
+        {/* SEARCH BAR */}
+        <div className="relative w-full sm:w-80 md:w-[380px] shrink-0">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#433A30]/50" />
+          <input
+            type="text"
+            placeholder="Cari pengumuman..."
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            className="w-full bg-white border border-[#E6E1D5] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#433A30] placeholder-[#433A30]/40 focus:outline-none focus:border-[#2C4219] shadow-2xs"
+          />
+        </div>
       </div>
 
       {/* COUNT */}

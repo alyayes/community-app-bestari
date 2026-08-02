@@ -24,9 +24,10 @@ import {
 interface AgendaViewProps {
   events: AgendaEvent[];
   onAddEvent: (event: AgendaEvent) => void;
+  searchQuery?: string;
 }
 
-export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent }) => {
+export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent, searchQuery = '' }) => {
   // Primary selected event (defaulting to Workshop Pengolahan Tepung Sorgum or first event)
   const defaultSelected = events.find(e => e.id === 'ev_10') || events[0];
   const [selectedEvent, setSelectedEvent] = useState<AgendaEvent>(defaultSelected);
@@ -34,7 +35,6 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent }) =>
   // View mode switcher: 'kalender' | 'daftar'
   const [viewMode, setViewMode] = useState<'kalender' | 'daftar'>('kalender');
   const [calendarGranularity, setCalendarGranularity] = useState<'hari' | 'minggu' | 'bulan'>('bulan');
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [remindedEvents, setRemindedEvents] = useState<Record<string, boolean>>({});
   const [registeredEvents, setRegisteredEvents] = useState<Record<string, boolean>>({
     ev_10: true
@@ -53,14 +53,19 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent }) =>
   const [newDesc, setNewDesc] = useState('');
   const [newOrganizer, setNewOrganizer] = useState('Tim KWT Sorgum');
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+
   const categoriesList = ['Semua', 'WORKSHOP KREATIF', 'WORKSHOP', 'PANEN BERSAMA', 'PELATIHAN UMKM', 'RAPAT RUTIN'];
 
-  // Filtered list based on search term
+  // Filtered list based on search term and category
+  const activeSearch = searchTerm || searchQuery;
   const filteredEvents = events.filter(e => {
-    const matchesSearch = e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          e.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          e.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    const matchesSearch = e.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
+                          (e.location && e.location.toLowerCase().includes(activeSearch.toLowerCase())) ||
+                          (e.organizer && e.organizer.toLowerCase().includes(activeSearch.toLowerCase()));
+    const matchesCat = selectedCategory === 'Semua' || e.category?.toUpperCase() === selectedCategory.toUpperCase();
+    return matchesSearch && matchesCat;
   });
 
   const toggleReminder = (eventId: string) => {
@@ -124,65 +129,56 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent }) =>
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">
-      {/* HEADER BAR WITH TITLE, VIEW SWITCHER & SEARCH */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-title font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] tracking-tight">
-            Agenda & Kalender Kegiatan KWT Sorgum
-          </h1>
-
+      {/* UNIFIED TOP CONTROL BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* View Toggle Buttons */}
+        <div className="bg-[#FAF6EE] p-1 rounded-2xl border border-[#E6E1D5] flex items-center gap-1 shadow-2xs self-start sm:self-auto">
+          <button
+            onClick={() => setViewMode('kalender')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
+              ${viewMode === 'kalender' 
+                ? 'bg-white text-[#2C4219] shadow-2xs' 
+                : 'text-[#433A30]/70 hover:text-[#2C4219]'}
+            `}
+          >
+            <Grid className="w-4 h-4 text-[#2C4219]" />
+            <span>Kalender</span>
+          </button>
+          <button
+            onClick={() => setViewMode('daftar')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
+              ${viewMode === 'daftar' 
+                ? 'bg-white text-[#2C4219] shadow-2xs' 
+                : 'text-[#433A30]/70 hover:text-[#2C4219]'}
+            `}
+          >
+            <List className="w-4 h-4 text-[#2C4219]" />
+            <span>Daftar</span>
+          </button>
         </div>
 
-        {/* CONTROLS: VIEW MODE TOGGLE & SEARCH */}
-        <div className="flex items-center gap-3 self-start md:self-auto flex-wrap sm:flex-nowrap">
-          {/* View Toggle Buttons */}
-          <div className="bg-[#FAF6EE] p-1 rounded-2xl border border-[#E6E1D5] flex items-center gap-1 shadow-2xs">
-            <button
-              onClick={() => setViewMode('kalender')}
-              className={`
-                px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all
-                ${viewMode === 'kalender' 
-                  ? 'bg-white text-[#2C4219] shadow-2xs' 
-                  : 'text-[#433A30]/70 hover:text-[#2C4219]'}
-              `}
-            >
-              <Grid className="w-3.5 h-3.5 text-[#2C4219]" />
-              <span>Kalender</span>
-            </button>
-            <button
-              onClick={() => setViewMode('daftar')}
-              className={`
-                px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all
-                ${viewMode === 'daftar' 
-                  ? 'bg-white text-[#2C4219] shadow-2xs' 
-                  : 'text-[#433A30]/70 hover:text-[#2C4219]'}
-              `}
-            >
-              <List className="w-3.5 h-3.5 text-[#2C4219]" />
-              <span>Daftar</span>
-            </button>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative w-full sm:w-56">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#433A30]/50" />
+        {/* Right Section: Search Bar & Add Agenda Button */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-80 md:w-[380px]">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#433A30]/50" />
             <input
               type="text"
               placeholder="Cari agenda..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-[#E6E1D5] rounded-2xl pl-9 pr-3 py-1.5 text-xs text-[#433A30] placeholder-[#433A30]/50 focus:outline-none focus:border-[#2C4219] shadow-2xs"
+              className="w-full bg-white border border-[#E6E1D5] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[#433A30] placeholder-[#433A30]/50 focus:outline-none focus:border-[#2C4219] shadow-2xs"
             />
           </div>
 
-          {/* Add Agenda Button */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-3 py-1.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 shrink-0"
+            className="px-5 py-2.5 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 shrink-0"
             title="Tambah Agenda Baru"
           >
-            <Plus className="w-3.5 h-3.5 text-[#A8B774]" />
-            <span className="hidden sm:inline">Tambah</span>
+            <Plus className="w-4 h-4 text-[#A8B774]" />
+            <span>Tambah Agenda</span>
           </button>
         </div>
       </div>
@@ -448,10 +444,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, onAddEvent }) =>
             {categoriesList.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setSearchTerm(cat === 'Semua' ? '' : cat)}
+                onClick={() => setSelectedCategory(cat)}
                 className={`
                   px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all
-                  ${(searchTerm === '' && cat === 'Semua') || searchTerm === cat
+                  ${selectedCategory === cat
                     ? 'bg-[#2C4219] text-white shadow-2xs'
                     : 'bg-white text-[#433A30] border border-[#E6E1D5] hover:bg-[#FAF6EE]'}
                 `}
