@@ -38,7 +38,7 @@ import {
   X,
   ShieldCheck,
   Server,
-  Sparkles,
+  Layers,
   ArrowRight,
   Calendar,
   MapPin,
@@ -574,20 +574,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Filtering data
   const filteredArticles = articles.filter(art => {
-    const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      art.summary.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = categoryFilter === 'Semua' || art.category?.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesSearch = (art.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (art.summary || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = categoryFilter === 'Semua' || (art.category || '').toLowerCase() === categoryFilter.toLowerCase();
     return matchesSearch && matchesCat;
   });
 
-  const filteredAnnouncements = announcements.filter(ann => {
-    return ann.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ann.summary.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAnnouncements = (announcements || []).filter(ann => {
+    return (ann.title || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (ann.summary || '').toLowerCase().includes((searchQuery || '').toLowerCase());
   });
 
   const filteredThreads = threads.filter(thr => {
-    return thr.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      thr.authorName.toLowerCase().includes(searchQuery.toLowerCase());
+    return (thr.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (thr.authorName || '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // Analytics chart data for Admin Dashboard (Fokus Informasi & Komunitas)
@@ -680,6 +680,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <span>Dashboard</span>
             </button>
 
+            {/* Nav: Kelola Agenda */}
+            <button
+              onClick={() => setActiveTab('agenda')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                }`}
+            >
+              <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
+              <span>Kelola Agenda</span>
+            </button>
+
             {/* Nav: Kelola Informasi */}
             <button
               onClick={() => setActiveTab('informasi')}
@@ -702,18 +714,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             >
               <Megaphone className={`w-4 h-4 ${activeTab === 'pengumuman' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Pengumuman</span>
-            </button>
-
-            {/* Nav: Kelola Agenda */}
-            <button
-              onClick={() => setActiveTab('agenda')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Agenda</span>
             </button>
 
             {/* Nav: Kelola Diskusi */}
@@ -747,7 +747,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
-              <Sparkles className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
+              <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Konten</span>
             </button>
           </nav>
@@ -966,13 +966,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
                 <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL AKTIF</p>
-                <p className="font-title font-black text-2xl text-[#2C4219]">{announcements.length}</p>
-                <p className="text-[11px] text-emerald-700 font-bold">{announcements.filter(a => a.category === 'HASIL PANEN' || a.category === 'INFORMASI ANGGOTA').length} info anggota</p>
+                <p className="font-title font-black text-2xl text-[#2C4219]">{(announcements || []).length}</p>
+                <p className="text-[11px] text-emerald-700 font-bold">{(announcements || []).filter(a => a.category === 'HASIL PANEN' || a.category === 'INFORMASI ANGGOTA').length} info anggota</p>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
                 <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN MENDESAK</p>
-                <p className="font-title font-black text-2xl text-rose-700">{announcements.filter(a => a.category === 'MENDESAK' || (a as any).isUrgent).length}</p>
+                <p className="font-title font-black text-2xl text-rose-700">{(announcements || []).filter(a => a.category === 'MENDESAK' || (a as any).isUrgent).length}</p>
                 <p className="text-[11px] text-[#7A7062] font-semibold">Perlu perhatian segera</p>
               </div>
 
@@ -987,8 +987,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <Server className="w-4 h-4 text-[#A8B774]" />
                   <p className="text-[10px] font-bold text-[#A8B774] uppercase tracking-wider">TOTAL KATEGORI</p>
                 </div>
-                <p className="font-title font-bold text-base text-white">{new Set(announcements.map(a => a.category)).size} Jenis</p>
-                <p className="text-[10px] text-gray-300">Dari {announcements.length} pengumuman aktif</p>
+                <p className="font-title font-bold text-base text-white">{new Set((announcements || []).map(a => a.category)).size} Jenis</p>
+                <p className="text-[10px] text-gray-300">Dari {(announcements || []).length} pengumuman aktif</p>
               </div>
             </div>
 
@@ -1006,58 +1006,66 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {filteredAnnouncements.map((ann) => {
-                      const isPinned = pinnedIds.includes(ann.id);
-                      return (
-                        <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                          <td className="py-4 px-5">
-                            <div>
-                              <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
-                              <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
-                              {ann.category}
-                            </span>
-                          </td>
-                          <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
-                            {ann.postedTime || 'Hari ini'}
-                          </td>
-                          <td className="py-4 px-5 whitespace-nowrap">
-                            {isPinned ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
-                                <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
-                                <span>Dipin di Atas</span>
+                    {filteredAnnouncements.length > 0 ? (
+                      filteredAnnouncements.map((ann) => {
+                        const isPinned = pinnedIds.includes(ann.id);
+                        return (
+                          <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                            <td className="py-4 px-5">
+                              <div>
+                                <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
+                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
+                                {ann.category}
                               </span>
-                            ) : (
-                              <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
-                                Normal
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => handleTogglePinAnnouncement(ann.id)}
-                                title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
-                                className={`p-1.5 rounded-lg transition-colors ${isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
-                                  }`}
-                              >
-                                <Pin className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
-                                title="Hapus Pengumuman"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
+                              {ann.postedTime || 'Hari ini'}
+                            </td>
+                            <td className="py-4 px-5 whitespace-nowrap">
+                              {isPinned ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
+                                  <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
+                                  <span>Dipin di Atas</span>
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
+                                  Normal
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-5">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleTogglePinAnnouncement(ann.id)}
+                                  title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
+                                  className={`p-1.5 rounded-lg transition-colors ${isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
+                                    }`}
+                                >
+                                  <Pin className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
+                                  title="Hapus Pengumuman"
+                                  className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-[#7A7062] font-semibold text-xs">
+                          Belum ada pengumuman
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

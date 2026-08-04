@@ -101,11 +101,11 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
         {/* Content Container */}
         <div className="relative z-10 px-6 md:px-8 pt-2 pb-6 flex flex-col items-start justify-start gap-3 w-full">
           <div className="space-y-2 max-w-2xl">
-            <h2 className="font-title font-bold text-2xl md:text-3xl text-white leading-tight drop-shadow-sm">
+            <h2 className="font-title font-bold text-xl md:text-2xl text-white leading-tight drop-shadow-sm">
               Selamat Datang Kembali, {currentUser.name}!
             </h2>
             <p className="text-sm text-[#E2E8D5] leading-relaxed drop-shadow-xs">
-              {BANNER_SLIDES[activeSlide].desc}
+              {BANNER_SLIDES[0].desc}
             </p>
           </div>
         </div>

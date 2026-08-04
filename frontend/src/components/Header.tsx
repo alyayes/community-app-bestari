@@ -112,11 +112,11 @@ export const Header: React.FC<HeaderProps> = ({
               title="Notifikasi"
             >
               <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
+              {unreadCount > 0 ? (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#572E4A] text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse shadow-xs">
                   {unreadCount}
                 </span>
-              )}
+              ) : null}
             </button>
 
             {/* Notifications Dropdown */}

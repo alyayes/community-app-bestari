@@ -166,7 +166,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
         {/* Left Hero Text */}
         <div className="relative z-10 my-auto py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
-          <h2 className="font-title font-extrabold text-3xl sm:text-4xl lg:text-5xl text-white leading-tight drop-shadow-md">
+          <h2 className="font-title font-extrabold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
             {cmsData?.loginTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.loginTitle.replace('\\n', '<br />') }} />
             ) : (
@@ -189,30 +189,21 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
       {/* RIGHT PANEL: Login Form (50% split, centered) */}
       <div className="w-full md:w-1/2 bg-[#FAF6EE] p-6 sm:p-10 lg:p-16 flex flex-col justify-center items-center min-h-screen">
-        <div className="max-w-xl w-full space-y-7 sm:space-y-8 my-auto">
+        <div className="max-w-sm w-full space-y-7 sm:space-y-8 my-auto">
 
           {/* Form Header */}
-          <div className="space-y-3 pb-2 border-b border-[#E6E1D5]">
-            <h1 className="font-title font-extrabold text-3xl sm:text-4xl lg:text-5xl text-[#2C4219]">
+          <div>
+            <h1 className="font-title font-extrabold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
               Masuk Akun
             </h1>
-            <p className="text-sm sm:text-base text-[#433A30] font-medium">
-              Belum punya akun?{' '}
-              <button
-                type="button"
-                onClick={onGoToRegister}
-                className="font-extrabold text-[#2C4219] underline hover:text-[#1E2E11]"
-              >
-                Daftar di sini
-              </button>
-            </p>
+          </div>
 
             {/* Role Type Selector Tabs */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => handleSelectType('member')}
-                className={`py-3.5 px-4 rounded-2xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all ${accountType === 'member'
+                className={`py-2.5 px-4 rounded-xl border-2 font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 transition-all ${accountType === 'member'
                     ? 'border-[#2C4219] bg-[#2C4219] text-white shadow-md'
                     : 'border-[#E6E1D5] bg-white text-[#433A30] hover:bg-[#FAF6EE]'
                   }`}
@@ -224,7 +215,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectType('admin')}
-                className={`py-3.5 px-4 rounded-2xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all ${accountType === 'admin'
+                className={`py-2.5 px-4 rounded-xl border-2 font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 transition-all ${accountType === 'admin'
                     ? 'border-[#2C4219] bg-[#2C4219] text-white shadow-md'
                     : 'border-[#E6E1D5] bg-white text-[#433A30] hover:bg-[#FAF6EE]'
                   }`}
@@ -233,7 +224,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <span>Admin Portal</span>
               </button>
             </div>
-          </div>
 
           {errorMsg && (
             <div className="p-4 rounded-2xl bg-[#C53030]/10 border border-[#C53030]/30 text-[#C53030] text-sm font-semibold flex items-center gap-2.5 shadow-sm">
@@ -243,7 +233,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           )}
 
           {/* SIMPLIFIED LOGIN FORM */}
-          <form onSubmit={handleSubmit} className="space-y-5 text-sm">
+          <form onSubmit={handleSubmit} className="space-y-5 text-xs">
 
             {/* Field 1: Email */}
             <div className="space-y-1.5">
@@ -257,9 +247,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   placeholder="Contoh: anggota@kwtsorgum.id"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-4 pl-12 rounded-2xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-base focus:outline-none focus:border-[#2C4219] transition-all shadow-xs placeholder:text-[#433A30]/50 placeholder:font-normal"
+                  className="w-full p-3 pl-10 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all shadow-xs placeholder:text-[#433A30]/50 placeholder:font-normal"
                 />
-                <Mail className="w-5 h-5 text-[#433A30]/70 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-[#433A30]/70 absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
             </div>
 
@@ -272,7 +262,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <button
                   type="button"
                   onClick={() => showToast('Silakan hubungi sekretariat KWT atau ketua kelompok di Balai Desa untuk mereset kata sandi Anda.', 'info')}
-                  className="text-xs text-[#2C4219] hover:underline font-extrabold"
+                  className="text-[10px] text-[#2C4219] hover:underline font-extrabold"
                 >
                   Lupa kata sandi?
                 </button>
@@ -285,16 +275,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   placeholder="Masukkan kata sandi Anda..."
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full p-4 pl-12 pr-12 rounded-2xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-base focus:outline-none focus:border-[#2C4219] transition-all shadow-xs placeholder:text-[#433A30]/50 placeholder:font-normal"
+                  className="w-full p-3 pl-10 pr-10 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all shadow-xs placeholder:text-[#433A30]/50 placeholder:font-normal"
                 />
-                <Lock className="w-5 h-5 text-[#433A30]/70 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-[#433A30]/70 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[#433A30]/70 hover:text-[#2C4219]"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-[#433A30]/70 hover:text-[#2C4219]"
                   title="Lihat kata sandi"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -303,13 +293,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-lg flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-70 mt-2 border-2 border-[#A8B774]"
+              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-70 mt-2 border-2 border-[#A8B774]"
             >
               {isLoading ? (
                 <span>Memverifikasi Akun...</span>
               ) : (
                 <>
-                  <LogIn className="w-6 h-6 text-[#A8B774]" />
+                  <LogIn className="w-5 h-5 text-[#A8B774]" />
                   <span>Masuk</span>
                 </>
               )}
@@ -317,12 +307,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </form>
 
           {/* Bottom Redirect Option */}
-          <div className="text-center text-sm sm:text-base text-[#433A30] font-medium pt-2 border-t border-[#E6E1D5]">
+          <div className="text-center text-xs sm:text-sm text-[#433A30] font-medium pt-2 border-t border-[#E6E1D5]">
             Belum memiliki akun KWT Sorgum?{' '}
             <button
               type="button"
               onClick={onGoToRegister}
-              className="font-extrabold text-[#2C4219] underline hover:text-[#1E2E11] ml-1"
+              className="font-extrabold text-[#2C4219] hover:text-[#1E2E11] ml-1"
             >
               Daftar Akun Baru
             </button>

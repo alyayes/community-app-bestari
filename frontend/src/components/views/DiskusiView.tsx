@@ -1431,7 +1431,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
               <div className="text-center w-full relative">
                 <div className="relative inline-block max-w-full px-8">
-                  <h3 className="font-title font-bold text-xl text-[#2C4219] line-clamp-2 leading-tight">
+                  <h3 className="font-title font-bold text-base text-[#2C4219] line-clamp-2 leading-tight">
                     {activeThread.title}
                   </h3>
                   {activeThread.authorName === currentUser.name && (
@@ -1477,7 +1477,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                         {member.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[#433A30] truncate flex items-center gap-2">
+                        <p className="text-xs font-medium text-[#433A30] truncate flex items-center gap-2">
                           {member}
                           {member === currentUser.name && <span className="text-[10px] text-[#2C4219]/70 font-normal">(Anda)</span>}
                           {member === activeThread.authorName && <span className="text-[10px] bg-[#2C4219]/10 text-[#2C4219] px-2 py-0.5 rounded-full font-bold border border-[#2C4219]/20">Admin</span>}

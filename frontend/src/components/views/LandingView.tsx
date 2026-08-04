@@ -161,39 +161,39 @@ export const LandingView: React.FC<LandingViewProps> = ({
         <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6 my-auto pt-10">
 
           {/* MAIN HEADLINE */}
-          <h1 className="font-title font-extrabold text-3xl sm:text-5xl lg:text-6xl tracking-tight leading-tight drop-shadow-lg">
+          <h1 className="font-title font-extrabold text-2xl sm:text-4xl lg:text-5xl tracking-tight leading-tight drop-shadow-lg">
             {cmsData?.landingTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.landingTitle.replace('\\n', '<br className="hidden sm:inline" />') }} />
             ) : (
               <>
-                Bersama Menanam, <br className="hidden sm:inline" />
+                Menanam Bersama, <br className="hidden sm:inline" />
                 <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
-                  Bersama Sejahtera
+                  Tumbuh Bersama
                 </span>
               </>
             )}
           </h1>
 
           {/* SUBHEADLINE */}
-          <p className="max-w-3xl mx-auto text-base sm:text-lg lg:text-xl text-gray-100 font-medium leading-relaxed drop-shadow-md">
-            {cmsData?.landingDesc || 'KWT Melati Sorgum menghubungkan ibu-ibu petani sorgum dalam satu wadah digital: kelola hasil panen, agendakan kegiatan gotong royong, dan perluas jangkauan pasar olahan pangan lokal.'}
+          <p className="max-w-3xl mx-auto text-xs sm:text-sm lg:text-base text-gray-100 font-medium leading-relaxed drop-shadow-md">
+            {cmsData?.landingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
           </p>
 
           {/* TWO ENLARGED CTA BUTTONS WITH MICRO-INTERACTIONS */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
             <button
               onClick={onGoToRegister}
-              className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
+              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
             >
-              <UserPlus className="w-6 h-6 text-[#A8B774]" />
+              <UserPlus className="w-5 h-5 text-[#A8B774]" />
               <span>Daftar Sekarang</span>
             </button>
 
             <button
               onClick={onGoToLogin}
-              className="w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-extrabold text-base sm:text-lg flex items-center justify-center gap-3 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
+              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
             >
-              <LogIn className="w-6 h-6 text-[#A8B774]" />
+              <LogIn className="w-5 h-5 text-[#A8B774]" />
               <span>Masuk Akun</span>
             </button>
           </div>

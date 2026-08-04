@@ -15,8 +15,8 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       cms = await prisma.cms.create({
         data: {
           id: 'global',
-          landingTitle: 'Bersama Menanam, Bersama Sejahtera',
-          landingDesc: 'KWT Melati Sorgum menghubungkan ibu-ibu petani sorgum dalam satu wadah digital: kelola hasil panen, agendakan kegiatan gotong royong, dan perluas jangkauan pasar olahan pangan lokal.',
+          landingTitle: 'Menanam Bersama,\\nTumbuh Bersama',
+          landingDesc: 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.',
           landingImages: [
             {
               url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1920',
