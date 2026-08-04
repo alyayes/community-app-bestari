@@ -565,7 +565,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const matchesSearch = (art.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (art.summary || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = categoryFilter === 'Semua' || (art.category || '').toLowerCase() === categoryFilter.toLowerCase();
-    return matchesSearch && matchesCat;
+    const matchesStatus = statusFilter === 'Semua' || ((art as any).status || 'Published') === statusFilter;
+    return matchesSearch && matchesCat && matchesStatus;
   });
 
   const filteredAnnouncements = (announcements || []).filter(ann => {
