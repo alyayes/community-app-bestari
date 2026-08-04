@@ -197,6 +197,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [artContent, setArtContent] = useState('');
   const [artImage, setArtImage] = useState('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200');
   const [artGallery, setArtGallery] = useState<string[]>([]);
+  const [artStatus, setArtStatus] = useState<'Draft' | 'Published'>('Published');
 
   // Announcement Modal State
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -420,6 +421,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setArtContent(art.content ? art.content.join('\n\n') : art.summary);
     setArtImage(art.image);
     setArtGallery(art.gallery || []);
+    setArtStatus((art as any).status || 'Published');
     setIsArticleModalOpen(true);
   };
 
@@ -438,6 +440,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       content: artContent ? artContent.split('\n\n') : [artSummary],
       image: artImage,
       gallery: artGallery.length > 0 ? artGallery : undefined,
+      status: artStatus,
     };
 
     try {
@@ -861,9 +864,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             {art.author?.name || 'Admin Alya'}
                           </td>
                           <td className="py-4 px-5 whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold text-[10px] border border-emerald-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                              <span>Published</span>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] border ${(art as any).status === 'Draft' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${(art as any).status === 'Draft' ? 'bg-amber-600' : 'bg-emerald-600'}`} />
+                              <span>{(art as any).status || 'Published'}</span>
                             </span>
                           </td>
                           <td className="py-4 px-5">

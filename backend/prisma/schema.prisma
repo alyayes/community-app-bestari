@@ -53,6 +53,7 @@ model Artikel {
   authorRole       String?  @map("author_role")
   authorAvatar     String?  @db.Text @map("author_avatar")
   location         String?
+  status           String   @default("Draft")  // Draft | Published
   participantsCount Int?    @map("participants_count")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
