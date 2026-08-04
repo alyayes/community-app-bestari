@@ -30,6 +30,7 @@ function toArticle(a: any) {
     },
     location: a.location || '',
     participantsCount: a.participantsCount || 0,
+    status: a.status || 'Published',
   };
 }
 
