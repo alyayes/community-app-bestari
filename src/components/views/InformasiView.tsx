@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InfoArticle } from '../../types';
 import { 
   Search, 
@@ -6,7 +6,12 @@ import {
   ArrowRight, 
   ChevronDown, 
   User, 
-  Layers 
+  Layers,
+  Download,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 
 interface InformasiViewProps {
@@ -25,6 +30,20 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
   const [localSearch, setLocalSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
+
+  // Reset activeImageIdx when selected article changes
+  useEffect(() => {
+    setActiveImageIdx(0);
+  }, [selectedArticle]);
+
+  // Auto transition banner slides every 5 seconds
+  useEffect(() => {
+    if (!selectedArticle || !selectedArticle.gallery || selectedArticle.gallery.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveImageIdx((prev) => (prev + 1) % selectedArticle.gallery!.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [selectedArticle]);
 
   const categories = ['Semua', 'Panen', 'Inovasi', 'Budidaya', 'Pengetahuan'];
 
@@ -48,35 +67,84 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
   if (selectedArticle) {
     return (
       <div className="space-y-6 pb-16 w-full">
+        {/* Back Button */}
+        <button
+          onClick={() => onSelectArticle(null)}
+          className="flex items-center gap-2 text-xs font-bold text-[#433A30]/70 hover:text-[#2C4219] transition-colors print:hidden"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Kembali ke Daftar Informasi</span>
+        </button>
+
         {/* Article Title */}
         <h1 className="font-title font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] leading-tight pt-2">
           {selectedArticle.title}
         </h1>
 
-        {/* Hero Banner with Floating Thumbnails Overlay Card */}
-        <div className="relative mb-8">
-          <div className="w-full h-64 sm:h-80 md:h-[380px] lg:h-[420px] rounded-3xl overflow-hidden shadow-sm relative border border-[#E6E1D5]">
-            <img
-              src={selectedArticle.gallery && selectedArticle.gallery.length > 0 ? selectedArticle.gallery[activeImageIdx] : selectedArticle.image}
-              alt={selectedArticle.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        {/* Dynamic Carousel Banner */}
+        <div className="relative mb-8 group">
+          <div className="w-full h-64 sm:h-80 md:h-[380px] lg:h-[420px] rounded-3xl overflow-hidden shadow-sm relative border border-[#E6E1D5] flex items-start">
+            {selectedArticle.gallery && selectedArticle.gallery.length > 0 ? (
+               selectedArticle.gallery.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+                      idx === activeImageIdx ? 'opacity-100 z-0 print:opacity-100 print:z-10' : 'opacity-0 -z-10 print:hidden'
+                    }`}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${selectedArticle.title} ${idx + 1}`}
+                      className="w-full h-full object-cover object-center"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent print:hidden" />
+                  </div>
+               ))
+            ) : (
+                <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
+                  <img
+                    src={selectedArticle.image}
+                    alt={selectedArticle.title}
+                    className="w-full h-full object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent print:hidden" />
+                </div>
+            )}
+            
+            {/* Slider Navigation Arrows */}
+            {selectedArticle.gallery && selectedArticle.gallery.length > 1 && (
+              <div className="print:hidden">
+                <button
+                  onClick={() => setActiveImageIdx((prev) => (prev - 1 + selectedArticle.gallery!.length) % selectedArticle.gallery!.length)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs transition-all opacity-0 group-hover:opacity-100"
+                  title="Foto Sebelumnya"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setActiveImageIdx((prev) => (prev + 1) % selectedArticle.gallery!.length)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs transition-all opacity-0 group-hover:opacity-100"
+                  title="Foto Berikutnya"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Gallery Thumbnails Floating Card Overlay */}
-          {selectedArticle.gallery && selectedArticle.gallery.length > 0 && (
-            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md p-2 sm:p-2.5 rounded-2xl border border-[#E6E1D5] shadow-lg flex items-center gap-2 sm:gap-3 z-10">
-              {selectedArticle.gallery.map((imgUrl, idx) => (
+          {/* Indicators */}
+          {selectedArticle.gallery && selectedArticle.gallery.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20 print:hidden">
+              {selectedArticle.gallery.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImageIdx(idx)}
-                  className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden transition-all duration-200 border-2 ${
-                    activeImageIdx === idx ? 'border-[#2C4219] scale-105 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                  className={`transition-all rounded-full ${
+                    idx === activeImageIdx 
+                      ? 'w-6 h-2 bg-[#A8B774]' 
+                      : 'w-2 h-2 bg-white/60 hover:bg-white'
                   }`}
-                >
-                  <img src={imgUrl} alt={`Gallery thumbnail ${idx}`} className="w-full h-full object-cover" />
-                </button>
+                />
               ))}
             </div>
           )}
@@ -85,8 +153,8 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         {/* Article Body + Sidebar Info Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
           {/* Left Column: Detail Informasi */}
-          <div className="lg:col-span-2 space-y-4">
-            <h2 className="font-title font-extrabold text-lg sm:text-xl text-[#2C4219]">
+          <div className="lg:col-span-2 print:col-span-3 space-y-4">
+            <h2 className="font-title font-extrabold text-lg sm:text-xl text-[#2C4219] print:hidden">
               Detail Informasi
             </h2>
             <div className="space-y-4 text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
@@ -101,7 +169,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
           </div>
 
           {/* Right Column: Informasi Utama Card */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 print:hidden">
             <div className="bg-white/90 p-6 rounded-2xl border border-[#E6E1D5] shadow-2xs space-y-6">
               <h3 className="font-title font-extrabold text-base text-[#2C4219]">
                 Informasi Utama
@@ -120,15 +188,17 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                 </div>
 
                 {/* Lokasi */}
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-[#FAF6EE] text-[#433A30]">
-                    <User className="w-4 h-4" />
+                {selectedArticle.location && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-[#FAF6EE] text-[#433A30]">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-[#433A30]/70 uppercase tracking-wider">LOKASI</p>
+                      <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.location}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[#433A30]/70 uppercase tracking-wider">LOKASI</p>
-                    <p className="font-bold text-[#2C4219] mt-0.5">Lahan Utama Blok A</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Penulis */}
                 <div className="flex items-start gap-3">
@@ -148,7 +218,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#433A30]/70 uppercase tracking-wider">KATEGORI</p>
-                    <p className="font-bold text-[#2C4219] mt-0.5">Laporan Pasca Panen</p>
+                    <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.category}</p>
                   </div>
                 </div>
               </div>
@@ -156,15 +226,30 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
                 <button
-                  onClick={() => alert('Unduh Dokumen (PDF)...')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs"
+                  onClick={() => window.print()}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2"
                 >
+                  <Download className="w-3.5 h-3.5" />
                   Unduh Dokumen (PDF)
                 </button>
                 <button
-                  onClick={() => alert('Bagikan Informasi...')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#FAF6EE] text-[#2C4219] font-title font-bold text-xs border border-[#E6E1D5] transition-all"
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: selectedArticle.title,
+                          text: selectedArticle.summary,
+                          url: window.location.href,
+                        });
+                      } catch (err) {}
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      alert('Tautan informasi telah disalin ke clipboard!');
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#FAF6EE] text-[#2C4219] font-title font-bold text-xs border border-[#E6E1D5] transition-all flex items-center justify-center gap-2"
                 >
+                  <Share2 className="w-3.5 h-3.5" />
                   Bagikan Informasi
                 </button>
               </div>
@@ -173,7 +258,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="pt-12 border-t border-[#E6E1D5] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#433A30]/70 font-semibold tracking-wider">
+        <div className="pt-12 border-t border-[#E6E1D5] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#433A30]/70 font-semibold tracking-wider print:hidden">
           <p>KWT SORGUM © 2026. NURTURING COMMUNITY & GROWTH</p>
           <div className="flex items-center gap-6">
             <button className="hover:text-[#2C4219] transition-colors">Kebijakan Privasi</button>

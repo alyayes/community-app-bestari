@@ -2,7 +2,6 @@ import React from 'react';
 import { Announcement } from '../../types';
 import {
   ArrowLeft,
-  Bell,
   Calendar,
   MapPin,
   AlertTriangle,
@@ -19,7 +18,7 @@ interface AnnouncementDetailViewProps {
 }
 
 const categoryIcon = (cat: string) => {
-  if (cat === 'PENTING') return <Bell className="w-4 h-4" />;
+  if (cat === 'PENTING') return <Megaphone className="w-4 h-4" />;
   if (cat === 'HASIL PANEN') return <Wheat className="w-4 h-4" />;
   if (cat === 'INFORMASI ANGGOTA') return <Users className="w-4 h-4" />;
   return <Megaphone className="w-4 h-4" />;

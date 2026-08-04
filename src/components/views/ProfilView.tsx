@@ -9,19 +9,14 @@ import {
   Lock
 } from 'lucide-react';
 
+import { apiUpdateProfile } from '../../api/client';
+
 interface ProfilViewProps {
   currentUser: UserProfile;
   setCurrentUser: (user: UserProfile) => void;
 }
 
-const PRESET_AVATARS = [
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200', // Professional/Leader
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200', // Active member
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200', // Friendly farmer
-  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=200', // Senior farmer
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200', // Young advisor
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&q=80&w=200'  // Officer
-];
+
 
 export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser }) => {
   // Editing states for sections
@@ -32,8 +27,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Avatar selector state
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Section 1: Personal Info Form States
   const [firstName, setFirstName] = useState(currentUser.firstName || 'Hj. Kartini');
@@ -58,47 +55,116 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
     }, 3000);
   };
 
-  const handleSavePersonal = (e: React.FormEvent) => {
+  const handleSavePersonal = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      firstName,
-      lastName,
-      name: `${firstName} ${lastName}`.trim(),
-      dob,
-      email,
-      phone,
-      avatar
-    };
-    setCurrentUser(updatedUser);
-    setIsEditPersonal(false);
-    triggerToast('Informasi Pribadi berhasil diperbarui!');
+    setIsLoading(true);
+    try {
+      const payload = { firstName, lastName, dob, email, phone };
+      const updatedProfile = await apiUpdateProfile(payload);
+      setCurrentUser(updatedProfile);
+      setIsEditPersonal(false);
+      triggerToast('Informasi Pribadi berhasil diperbarui!');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan profil');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSaveAddress = (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      country,
-      city,
-      postalCode,
-      lahanLocation,
-      sorghumType
-    };
-    setCurrentUser(updatedUser);
-    setIsEditAddress(false);
-    triggerToast('Alamat & Lahan berhasil diperbarui!');
+    setIsLoading(true);
+    try {
+      const payload = { country, city, postalCode, lahanLocation, sorghumType };
+      const updatedProfile = await apiUpdateProfile(payload);
+      setCurrentUser(updatedProfile);
+      setIsEditAddress(false);
+      triggerToast('Alamat & Lahan berhasil diperbarui!');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan alamat');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSelectAvatar = (url: string) => {
-    setAvatar(url);
-    const updatedUser: UserProfile = {
-      ...currentUser,
-      avatar: url
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      setAvatar(base64);
+      try {
+        const updatedProfile = await apiUpdateProfile({ avatar: base64 });
+        setCurrentUser(updatedProfile);
+        triggerToast('Foto profil berhasil diunggah!');
+      } catch (err: any) {
+        alert(err.message || 'Gagal menyimpan foto profil');
+      }
     };
-    setCurrentUser(updatedUser);
-    setShowAvatarSelector(false);
-    triggerToast('Foto profil berhasil diubah!');
+    reader.readAsDataURL(file);
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation tidak didukung oleh browser ini.');
+      return;
+    }
+    
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+            headers: {
+              'User-Agent': 'BestariApp/1.0 (contact@kwt-melatisorgum.id)'
+            }
+          });
+          const data = await res.json();
+          if (data && data.address) {
+            const fetchedCity = data.address.city || data.address.town || data.address.county || 'Sleman, Yogyakarta';
+            const fetchedCountry = data.address.country || 'Indonesia';
+            
+            setCity(fetchedCity);
+            setCountry(fetchedCountry);
+            
+            const updatedProfile = await apiUpdateProfile({ city: fetchedCity, country: fetchedCountry });
+            setCurrentUser(updatedProfile);
+            triggerToast('Lokasi berhasil disesuaikan dengan device!');
+          }
+        } catch (err) {
+          alert('Gagal mengambil lokasi: layanan Nominatim sibuk atau ditolak.');
+          setIsGettingLocation(false);
+        }
+      },
+      async (error) => {
+        // Fallback to IP-based location if GPS fails or is denied
+        try {
+          const res = await fetch('https://ipapi.co/json/');
+          const data = await res.json();
+          if (data && data.city && data.country_name) {
+            setCity(data.city);
+            setCountry(data.country_name);
+            
+            const updatedProfile = await apiUpdateProfile({ city: data.city, country: data.country_name });
+            setCurrentUser(updatedProfile);
+            triggerToast('Lokasi disesuaikan menggunakan IP karena GPS tidak tersedia.');
+          } else {
+            alert('Gagal melacak lokasi perangkat.');
+          }
+        } catch (fallbackErr) {
+          alert('Izin lokasi ditolak dan pelacakan alternatif gagal.');
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      {
+        timeout: 10000,
+        enableHighAccuracy: false
+      }
+    );
   };
 
   return (
@@ -122,11 +188,18 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             alt={currentUser.name}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border border-[#2C4219]/20 shadow-xs"
           />
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleAvatarUpload} 
+          />
           <button
             type="button"
-            onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+            onClick={() => fileInputRef.current?.click()}
             className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#2C4219] text-white border border-white hover:bg-[#1E2E11] transition-all shadow-xs"
-            title="Ubah Foto Profil"
+            title="Upload Foto Profil"
           >
             <Camera className="w-3.5 h-3.5 text-[#A8B774]" />
           </button>
@@ -140,47 +213,21 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           <p className="text-xs sm:text-sm font-bold text-[#7A7062]/80 leading-none">
             {currentUser.role}
           </p>
-          <p className="text-xs text-[#7A7062]/60 font-semibold pt-0.5">
+          <p className="text-xs text-[#7A7062]/60 font-semibold pt-0.5 flex items-center gap-1.5">
             {city}, {country}
+            <button 
+              onClick={handleGetLocation}
+              disabled={isGettingLocation}
+              className="px-2 py-0.5 ml-2 bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#E6E1D5] text-[10px] text-[#433A30] rounded-full font-bold transition-all disabled:opacity-50"
+              title="Sesuaikan lokasi dengan device saat ini"
+            >
+              {isGettingLocation ? 'Mencari...' : 'Sesuaikan Lokasi'}
+            </button>
           </p>
         </div>
       </div>
 
-      {/* Preset Avatar Grid Drawer */}
-      {showAvatarSelector && (
-        <div className="bg-white p-5 rounded-2xl border-2 border-[#A8B774] shadow-xs space-y-4 animate-in zoom-in-95 duration-200">
-          <div className="flex items-center justify-between">
-            <h4 className="font-title font-bold text-xs sm:text-sm text-[#2C4219]">Pilih Foto Profil Anggota KWT</h4>
-            <button
-              onClick={() => setShowAvatarSelector(false)}
-              className="text-xs text-[#433A30]/60 hover:text-[#C53030] font-bold"
-            >
-              Batal
-            </button>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-            {PRESET_AVATARS.map((url, idx) => {
-              const isSelected = avatar === url;
-              return (
-                <div
-                  key={idx}
-                  onClick={() => handleSelectAvatar(url)}
-                  className={`relative cursor-pointer rounded-full overflow-hidden aspect-square border-4 transition-all hover:scale-105 ${
-                    isSelected ? 'border-[#2C4219] scale-105 shadow-xs' : 'border-[#FAF6EE] hover:border-[#E6E1D5]'
-                  }`}
-                >
-                  <img src={url} alt={`Preset ${idx + 1}`} className="w-full h-full object-cover" />
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-[#2C4219]/40 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-white stroke-[3]" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+
 
       {/* Card 2: Personal Information */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E6E1D5] shadow-2xs">

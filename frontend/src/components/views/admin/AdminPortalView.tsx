@@ -52,7 +52,8 @@ import {
   Image as ImageIcon,
   Save,
   ExternalLink,
-  Link
+  Link,
+  Sparkles
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
@@ -426,51 +427,35 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setDeleteConfirmModal({ id, title, type: 'artikel' });
   };
 
-  const handleSaveArticle = (e: React.FormEvent) => {
+  const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!artTitle.trim()) return;
 
-    if (editingArticle) {
-      const updated = articles.map(a => {
-        if (a.id === editingArticle.id) {
-          return {
-            ...a,
-            title: artTitle,
-            category: artCategory,
-            summary: artSummary || artTitle,
-            content: artContent ? artContent.split('\n\n') : [artSummary],
-            image: artImage,
-            gallery: artGallery.length > 0 ? artGallery : undefined
-          };
-        }
-        return a;
-      });
-      onUpdateArticles(updated);
-      showToast(`Artikel "${artTitle}" berhasil diperbarui.`);
-    } else {
-      const newArt: InfoArticle = {
-        id: `art_${Date.now()}`,
-        title: artTitle,
-        category: artCategory,
-        timeAgo: 'Baru saja',
-        date: new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-        image: artImage || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200',
-        gallery: artGallery.length > 0 ? artGallery : undefined,
-        summary: artSummary || artTitle,
-        content: artContent ? artContent.split('\n\n') : [artSummary],
-        author: {
-          name: currentUser.name || 'Admin Alya',
-          role: 'Administrator Portal',
-          avatar: currentUser.avatar
-        },
-        location: 'Lahan KWT Sorgum'
-      };
-      onUpdateArticles([newArt, ...articles]);
-      showToast(`Artikel baru "${artTitle}" berhasil dipublikasikan!`);
+    const payload = {
+      title: artTitle,
+      category: artCategory,
+      summary: artSummary || artTitle,
+      content: artContent ? artContent.split('\n\n') : [artSummary],
+      image: artImage,
+      gallery: artGallery.length > 0 ? artGallery : undefined,
+    };
+
+    try {
+      if (editingArticle) {
+        await api(`/artikel/${editingArticle.id}`, { method: 'PUT', body: payload });
+        showToast(`Artikel "${artTitle}" berhasil diperbarui.`);
+      } else {
+        await api('/artikel', { method: 'POST', body: payload });
+        showToast(`Artikel baru "${artTitle}" berhasil dipublikasikan!`);
+      }
+      // Reload dari backend
+      const reloaded = await api<InfoArticle[]>('/artikel');
+      onUpdateArticles(reloaded);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan artikel');
     }
 
     setIsArticleModalOpen(false);
-    setSubTabInformasi('list');
   };
 
   // Announcement Actions — pin = toggle isUrgent (real ke backend)

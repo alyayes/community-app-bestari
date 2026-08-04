@@ -219,13 +219,19 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   }
 ];
 
+const d = new Date();
+const currentYear = d.getFullYear();
+const currentMonthNum = String(d.getMonth() + 1).padStart(2, '0');
+const monthNamesList = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+const currentMonthAbbr = monthNamesList[d.getMonth()];
+
 export const INITIAL_EVENTS: AgendaEvent[] = [
   {
     id: 'ev_10',
     title: 'Workshop Pengolahan Tepung Sorgum',
-    date: '2026-10-10',
+    date: `${currentYear}-${currentMonthNum}-10`,
     dayNumber: '10',
-    monthAbbr: 'OKT',
+    monthAbbr: currentMonthAbbr,
     time: '09:00 - 12:00 WIB',
     location: 'Balai Desa Sukamaju',
     status: 'Terbuka Umum',
@@ -256,9 +262,9 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
   {
     id: 'ev_6',
     title: 'Workshop Olah Sorgum',
-    date: '2026-10-06',
+    date: `${currentYear}-${currentMonthNum}-06`,
     dayNumber: '06',
-    monthAbbr: 'OKT',
+    monthAbbr: currentMonthAbbr,
     time: '08:30 - 11:30 WIB',
     location: 'Dapur Komunitas KWT',
     status: 'Pendaftaran Dibuka',
@@ -286,9 +292,9 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
   {
     id: 'ev_14',
     title: 'Panen Bersama Lahan Blok A',
-    date: '2026-10-14',
+    date: `${currentYear}-${currentMonthNum}-14`,
     dayNumber: '14',
-    monthAbbr: 'OKT',
+    monthAbbr: currentMonthAbbr,
     time: '07:00 WIB - Selesai',
     location: 'Lahan Percobaan Utama',
     status: 'Wajib Hadir',
@@ -318,9 +324,9 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
   {
     id: 'ev_22',
     title: 'Pelatihan Kemasan & Branding',
-    date: '2026-10-22',
+    date: `${currentYear}-${currentMonthNum}-22`,
     dayNumber: '22',
-    monthAbbr: 'OKT',
+    monthAbbr: currentMonthAbbr,
     time: '09:00 - 12:00 WIB',
     location: 'Balai Pertemuan',
     status: 'Pendaftaran Dibuka',
@@ -399,20 +405,19 @@ export const INITIAL_THREADS: ForumThread[] = [
         timeAgo: '1j yang lalu',
         content: 'Inspiratif sekali tipsnya Ibu Rahayu. Untuk penjemuran di bawah sinar matahari langsung, kira-kira berapa jam waktu yang paling ideal ya Bu? Kadang cuaca tidak menentu di sore hari.',
         likes: 3,
-        userLiked: false,
-        replies: [
-          {
-            id: 'c_1_1',
-            authorName: 'Ibu Rahayu',
-            authorAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFTK8aL0lbmzdKkeh1Xei7BhbTIxg5tD8AN4PBL6g0dDKmy5XJvcPAJMKSVXNkyf8x8At48Z7gVlJEuXzBpQuV1brlyrkZPQhMP9wiQ-hzucdobhks645C-cNA21OlgNo4aaz9DHsLBkJyp6NOLhBv4d6SbT4BVEd1pTRL3P7EAxyvfEqARTMazTg1Nw_Ok7b_9iHFBQIYRb3pSR995e1ueq7FcsgLqZ3L8QPz8pSJa4PcRpNttgzk',
-            authorRole: 'Penulis',
-            isAuthor: true,
-            timeAgo: '45m yang lalu',
-            content: 'Pertanyaan bagus Ibu Ani. Waktu ideal biasanya antara jam 10 pagi sampai jam 2 siang saat matahari paling terik. Cukup 4 jam saja per sesi, lalu diangin-anginkan. Jika mendung, segera amankan ke dalam wadah kedap udara ya!',
-            likes: 5,
-            userLiked: true
-          }
-        ]
+        userLiked: false
+      },
+      {
+        id: 'c_1_1',
+        authorName: 'Ibu Rahayu',
+        authorAvatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFTK8aL0lbmzdKkeh1Xei7BhbTIxg5tD8AN4PBL6g0dDKmy5XJvcPAJMKSVXNkyf8x8At48Z7gVlJEuXzBpQuV1brlyrkZPQhMP9wiQ-hzucdobhks645C-cNA21OlgNo4aaz9DHsLBkJyp6NOLhBv4d6SbT4BVEd1pTRL3P7EAxyvfEqARTMazTg1Nw_Ok7b_9iHFBQIYRb3pSR995e1ueq7FcsgLqZ3L8QPz8pSJa4PcRpNttgzk',
+        authorRole: 'Penulis',
+        timeAgo: '45m yang lalu',
+        content: 'Pertanyaan bagus Ibu Ani. Waktu ideal biasanya antara jam 10 pagi sampai jam 2 siang saat matahari paling terik. Cukup 4 jam saja per sesi, lalu diangin-anginkan. Jika mendung, segera amankan ke dalam wadah kedap udara ya!',
+        quotedCommentText: 'Inspiratif sekali tipsnya Ibu Rahayu. Untuk penjemuran di bawah sinar matahari langsung, kira-kira berapa jam waktu yang paling ideal ya Bu? Kadang cuaca tidak menentu di sore hari.',
+        quotedCommentAuthor: 'Ibu Ani',
+        likes: 5,
+        userLiked: true
       },
       {
         id: 'c_2',

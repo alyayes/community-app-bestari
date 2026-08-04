@@ -150,14 +150,27 @@ export const ArticleDetailModal: React.FC<ArticleDetailModalProps> = ({ article,
                   {/* Action Buttons */}
                   <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
                     <button
-                      onClick={() => alert(`Mengunduh: "${article.title}.pdf"`)}
+                      onClick={() => window.print()}
                       className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2"
                     >
                       <Download className="w-3.5 h-3.5 text-[#A8B774]" />
                       Unduh Dokumen (PDF)
                     </button>
                     <button
-                      onClick={() => alert('Link artikel berhasil disalin!')}
+                      onClick={async () => {
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({
+                              title: article.title,
+                              text: article.summary,
+                              url: window.location.href,
+                            });
+                          } catch (err) {}
+                        } else {
+                          navigator.clipboard.writeText(window.location.href);
+                          alert('Tautan informasi telah disalin ke clipboard!');
+                        }
+                      }}
                       className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#FAF6EE] text-[#2C4219] font-title font-bold text-xs border border-[#E6E1D5] transition-all flex items-center justify-center gap-2"
                     >
                       <Share2 className="w-3.5 h-3.5" />

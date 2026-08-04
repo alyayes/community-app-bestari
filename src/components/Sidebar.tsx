@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronRight,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Megaphone
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,8 +24,9 @@ interface SidebarProps {
   onOpenBantuan: () => void;
   unreadAnnouncementsCount: number;
   isOpenMobile: boolean;
-  setIsOpenMobile: (open: boolean) => void;
+  setIsOpenMobile: (isOpen: boolean) => void;
   onGoToLanding?: () => void;
+  onLogout?: () => void;
   onGoToAdmin?: () => void;
 }
 
@@ -38,13 +40,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   setIsOpenMobile,
   onGoToLanding,
+  onLogout,
   onGoToAdmin
 }) => {
   const navItems: { id: NavItem; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
     { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-5 h-5" /> },
     { id: 'informasi', label: 'Informasi', icon: <Info className="w-5 h-5" /> },
-    { id: 'pengumuman', label: 'Pengumuman', icon: <Bell className="w-5 h-5" />, badge: unreadAnnouncementsCount },
+    { id: 'pengumuman', label: 'Pengumuman', icon: <Megaphone className="w-5 h-5" />, badge: unreadAnnouncementsCount },
     { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'dashboard', label: 'Data Sorgum', icon: <BarChart3 className="w-5 h-5" /> },
   ];
@@ -65,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside className={`
-        fixed top-0 left-0 bottom-0 h-screen overflow-y-auto z-50 w-64 bg-white border-r border-[#E6E1D5] flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 bottom-0 h-screen overflow-y-auto z-50 w-64 bg-white border-r border-[#E6E1D5] flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out print:hidden
         ${isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Top Logo & App Title */}
@@ -135,10 +138,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
-          {onGoToLanding && (
+          {onLogout && (
             <button
               onClick={() => {
-                onGoToLanding();
+                onLogout();
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
             >

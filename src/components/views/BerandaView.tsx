@@ -3,7 +3,7 @@ import { NavItem, InfoArticle, Announcement, AgendaEvent, UserProfile } from '..
 import { 
   ArrowRight, 
   Calendar, 
-  Bell, 
+  Megaphone, 
   BookOpen, 
   Clock,
   ChevronLeft,
@@ -70,9 +70,11 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
     setActiveSlide((prev) => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length);
   };
 
-  const latestArticles = articles.slice(0, 2);
-  const urgentAnnouncements = announcements.filter(a => a.isUrgent || a.category === 'PENTING').slice(0, 2);
-  const upcomingEvents = events.slice(0, 2);
+  const latestArticles = articles.slice(0, 4);
+  const latestAnnouncements = [...announcements].slice(0, 2); // Assuming ordered by newest
+  const upcomingEvents = [...events]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 2);
 
   return (
     <div className="space-y-6 pb-12 w-full">
@@ -99,11 +101,11 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
         {/* Content Container */}
         <div className="relative z-10 px-6 md:px-8 pt-2 pb-6 flex flex-col items-start justify-start gap-3 w-full">
           <div className="space-y-2 max-w-2xl">
-            <h2 className="font-title font-bold text-2xl md:text-3xl text-white leading-tight drop-shadow-sm">
+            <h2 className="font-title font-bold text-xl md:text-2xl text-white leading-tight drop-shadow-sm">
               Selamat Datang Kembali, {currentUser.name}!
             </h2>
             <p className="text-sm text-[#E2E8D5] leading-relaxed drop-shadow-xs">
-              {BANNER_SLIDES[activeSlide].desc}
+              {BANNER_SLIDES[0].desc}
             </p>
           </div>
         </div>
@@ -191,7 +193,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
           <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-[#572E4A]" />
+                <Megaphone className="w-5 h-5 text-[#572E4A]" />
                 <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Penting</h3>
               </div>
               <button
@@ -203,29 +205,33 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              {urgentAnnouncements.map((ann) => (
-                <div
-                  key={ann.id}
-                  onClick={() => onSelectAnnouncement(ann)}
-                  className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#572E4A] cursor-pointer transition-all space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span 
-                      className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
-                      style={{ backgroundColor: ann.badgeColor }}
-                    >
-                      {ann.category}
-                    </span>
-                    <span className="text-[10px] text-[#433A30]/70">{ann.timeAgo}</span>
+              {latestAnnouncements.length === 0 ? (
+                <div className="text-center text-xs text-[#433A30]/50 py-4">Belum ada pengumuman</div>
+              ) : (
+                latestAnnouncements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    onClick={() => onSelectAnnouncement(ann)}
+                    className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#572E4A] cursor-pointer transition-all space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span 
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
+                        style={{ backgroundColor: ann.badgeColor }}
+                      >
+                        {ann.category}
+                      </span>
+                      <span className="text-[10px] text-[#433A30]/70">{ann.timeAgo}</span>
+                    </div>
+                    <h4 className="font-title font-bold text-xs text-[#2C4219] line-clamp-2">
+                      {ann.title}
+                    </h4>
+                    <p className="text-[11px] text-[#433A30] line-clamp-2">
+                      {ann.summary}
+                    </p>
                   </div>
-                  <h4 className="font-title font-bold text-xs text-[#2C4219] line-clamp-2">
-                    {ann.title}
-                  </h4>
-                  <p className="text-[11px] text-[#433A30] line-clamp-2">
-                    {ann.summary}
-                  </p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Announcement } from '../../types';
 import {
-  Bell,
   Search,
   ChevronRight,
   Megaphone,
@@ -17,7 +16,7 @@ interface PengumumanViewProps {
 }
 
 const categoryIcon = (cat: string) => {
-  if (cat === 'PENTING') return <Bell className="w-3.5 h-3.5" />;
+  if (cat === 'PENTING') return <Megaphone className="w-3.5 h-3.5" />;
   if (cat === 'HASIL PANEN') return <Wheat className="w-3.5 h-3.5" />;
   if (cat === 'INFORMASI ANGGOTA') return <Users className="w-3.5 h-3.5" />;
   return <Megaphone className="w-3.5 h-3.5" />;
