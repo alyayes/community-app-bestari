@@ -47,6 +47,18 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// ── GET /api/artikel/admin — semua artikel termasuk Draft (ADMIN) ──
+router.get('/admin', authenticate, authorize('ADMIN'), async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await prisma.artikel.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return successResponse(res, data.map(toArticle));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── GET /api/artikel/:id ───────────────────────────
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {

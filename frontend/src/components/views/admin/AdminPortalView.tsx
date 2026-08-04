@@ -452,8 +452,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         await api('/artikel', { method: 'POST', body: payload });
         showToast(`Artikel baru "${artTitle}" berhasil dipublikasikan!`);
       }
-      // Reload dari backend
-      const reloaded = await api<InfoArticle[]>('/artikel');
+      // Reload dari backend — pakai endpoint admin (termasuk Draft)
+      const reloaded = await api<InfoArticle[]>('/artikel/admin');
       onUpdateArticles(reloaded);
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan artikel');
