@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ════════════════════════════════════════════════════
+// USER — match UserProfile frontend
+// ════════════════════════════════════════════════════
+model User {
+  id            String    @id @default(uuid())
+  name          String    @map("name")
+  email         String    @unique
+  password      String
+  role          Role      @default(USER)
+  avatar        String?   @db.LongText
+  phone         String?   @map("phone")
+  lahanLocation String?   @map("lahan_location")
+  sorghumType   String?   @map("sorghum_type")
+  memberSince   String?   @map("member_since")
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  dob           String?
+  country       String?
+  city          String?
+  postalCode    String?   @map("postal_code")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// ════════════════════════════════════════════════════
+// ARTIKEL — match InfoArticle frontend
+// ════════════════════════════════════════════════════
+model Artikel {
+  id               String   @id @default(uuid())
+  title            String
+  category         String   // Budidaya | Inovasi | Pengetahuan | Panen
+  image            String?  @db.Text
+  summary          String   @db.Text
+  content          Json?    // string[]
+  gallery          Json?    // string[]
+  authorName       String?  @map("author_name")
+  authorRole       String?  @map("author_role")
+  authorAvatar     String?  @db.Text @map("author_avatar")
+  location         String?
+  participantsCount Int?    @map("participants_count")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("artikel")
+}
+
+// ════════════════════════════════════════════════════
+// PENGUMUMAN — match Announcement frontend
+// ════════════════════════════════════════════════════
+model Pengumuman {
+  id                 String   @id @default(uuid())
+  title              String
+  category           String   // PENTING | HASIL PANEN | INFORMASI ANGGOTA | MENDESAK
+  badgeColor         String?  @map("badge_color")
+  postedBy           String?  @map("posted_by")
+  postedTime         String?  @map("posted_time")
+  summary            String   @db.Text
+  content            String   @db.Text
+  bulletPoints       Json?    @map("bullet_points") // string[]
+  eventDate          String?  @map("event_date")
+  eventTime          String?  @map("event_time")
+  location           String?
+  targetParticipants String?  @map("target_participants")
+  note               String?
+  isUrgent           Boolean  @default(false) @map("is_urgent")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("pengumuman")
+}
+
+// ════════════════════════════════════════════════════
+// AGENDA — match AgendaEvent frontend
+// ════════════════════════════════════════════════════
+model Agenda {
+  id                 String   @id @default(uuid())
+  title              String
+  date               String
+  dayNumber          String?  @map("day_number")
+  monthAbbr          String?  @map("month_abbr")
+  time               String?
+  location           String?
+  status             String?  // Pendaftaran Dibuka | Wajib Hadir | Menunggu Konfirmasi | Terbuka Umum | Selesai
+  statusType         String?  @map("status_type") // success | warning | neutral | info
+  category           String?
+  description        String?  @db.Text
+  organizer          String?
+  rundown            Json?    // {time, activity}[]
+  requirements       Json?    // string[]
+  benefits           Json?    // string[]
+  targetParticipants String?  @map("target_participants")
+  quotaRegistered    Int?     @map("quota_registered")
+  quotaMax           Int?     @map("quota_max")
+  contactName        String?  @map("contact_name")
+  contactPhone       String?  @map("contact_phone")
+  creatorId          String?  @map("creator_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  peserta   AgendaPeserta[]
+  reminders AgendaReminder[]
+
+  @@map("agenda")
+}
+
+// ════════════════════════════════════════════════════
+// FORUM THREAD — match ForumThread frontend
+// ════════════════════════════════════════════════════
+model Thread {
+  id                   String    @id @default(uuid())
+  title                String
+  authorName           String    @map("author_name")
+  authorAvatar         String?   @db.Text @map("author_avatar")
+  authorRole           String?   @map("author_role")
+  isTopicStarter       Boolean   @default(false) @map("is_topic_starter")
+  category             String    // Produksi & Pengolahan | Budidaya Lahan | Pemasaran & UMKM | Informasi Umum
+  categoryBadgeColor   String?   @map("category_badge_color")
+  summary              String    @db.Text
+  content              String    @db.Text
+  images               Json?     // string[]
+  groupAvatar          String?   @db.Text @map("group_avatar")
+  allowMemberMessages  Boolean   @default(true) @map("allow_member_messages")
+  joinedMembers        Json?     @map("joined_members") // string[]
+  likes                Int       @default(0)
+  userLiked            Boolean   @default(false) @map("user_liked")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  comments ThreadComment[]
+
+  @@map("thread")
+}
+
+// ── Komentar Thread (support nested replies) ──────
+model ThreadComment {
+  id           String    @id @default(uuid())
+  threadId     String    @map("thread_id")
+  parentId     String?   @map("parent_id")
+  authorName   String    @map("author_name")
+  authorAvatar String?   @db.Text @map("author_avatar")
+  authorRole   String?   @map("author_role")
+  isAuthor     Boolean   @default(false) @map("is_author")
+  content             String    @db.Text
+  quotedCommentText   String?   @db.Text @map("quoted_comment_text")
+  quotedCommentAuthor String?   @map("quoted_comment_author")
+  imageAttachment     String?   @db.LongText @map("image_attachment")
+  documentAttachment  String?   @db.LongText @map("document_attachment")
+  documentName        String?   @map("document_name")
+  isEdited            Boolean   @default(false) @map("is_edited")
+  likes               Int       @default(0)
+  userLiked           Boolean   @default(false) @map("user_liked")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("thread_comment")
+}
+
+// ════════════════════════════════════════════════════
+// BANNER — slider hero di halaman Beranda
+// ════════════════════════════════════════════════════
+model Banner {
+  id        String   @id @default(uuid())
+  title     String
+  tag       String?  // label kecil di atas judul (mis. "Panen Raya KWT Melati Sorgum")
+  desc      String?  @db.Text
+  image     String   @db.Text
+  linkUrl   String?  @map("link_url") // tujuan klik (mis. /informasi, /agenda)
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("banner")
+}
+
+// ════════════════════════════════════════════════════
+// HARGA PASAR — ticker harga di halaman Beranda
+// ════════════════════════════════════════════════════
+model HargaPasar {
+  id        String   @id @default(uuid())
+  item      String
+  price     String   // tampilan harga, mis. "Rp 25.000/kg"
+  trend      String   @default("stable") // up | down | stable
+  percentage String   @default("0.0%")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("harga_pasar")
+}
+
+// ════════════════════════════════════════════════════
+// PESERTA AGENDA — pendaftaran user ke kegiatan
+// ════════════════════════════════════════════════════
+model AgendaPeserta {
+  id        String   @id @default(uuid())
+  agendaId  String   @map("agenda_id")
+  userId    String   @map("user_id")
+  userName  String   @map("user_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  agenda Agenda @relation(fields: [agendaId], references: [id], onDelete: Cascade)
+
+  @@unique([agendaId, userId])
+  @@map("agenda_peserta")
+}
+
+// ════════════════════════════════════════════════════
+// REMINDER AGENDA — pengingat user untuk kegiatan
+// ════════════════════════════════════════════════════
+model AgendaReminder {
+  id        String   @id @default(uuid())
+  agendaId  String   @map("agenda_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  agenda Agenda @relation(fields: [agendaId], references: [id], onDelete: Cascade)
+
+  @@unique([agendaId, userId])
+  @@map("agenda_reminder")
+}
+
+// ════════════════════════════════════════════════════
+// LAHAN — match LandPlot frontend (data dari SCM)
+// ════════════════════════════════════════════════════
+model Lahan {
+  id                  String   @id @default(uuid())
+  blockName           String   @map("block_name")
+  cropVariety         String   @map("crop_variety")
+  areaSize            String   @map("area_size")
+  plantingDate        String   @map("planting_date")
+  expectedHarvestDate String   @map("expected_harvest_date")
+  growthProgress      Int      @default(0) @map("growth_progress")
+  status              String   // Vegetatif | Generatif | Siap Panen | Pasca Panen
+  leaderName          String   @map("leader_name")
+  estimatedYieldKg    Int      @map("estimated_yield_kg")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("lahan")
+}
+
+// ════════════════════════════════════════════════════
+// CATATAN PANEN — match HarvestRecord frontend
+// ════════════════════════════════════════════════════
+model Panen {
+  id          String   @id @default(uuid())
+  date        String
+  blockName   String   @map("block_name")
+  cropVariety String   @map("crop_variety")
+  weightKg    Int      @map("weight_kg")
+  quality     String   // Super Premium | Grade A | Grade B
+  recordedBy  String   @map("recorded_by")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("panen")
+}
+
+// ════════════════════════════════════════════════════
+// CMS — match frontend landing, login, register views
+// ════════════════════════════════════════════════════
+model Cms {
+  id             String   @id @default("global")
+  
+  // Landing Page
+  landingTitle   String   @default("Bersama Menanam, Bersama Sejahtera")
+  landingDesc    String   @db.Text
+  landingImages  Json     // Array of images
+  
+  // Login Page
+  loginTitle     String   @default("Selamat Datang Kembali Ibu!")
+  loginDesc      String   @db.Text
+  loginImage     String   @db.Text
+  loginImages    Json?    // Array of images (carousel)
+  
+  // Register Page
+  registerTitle  String   @default("Bergabung Bersama Kami Ibu!")
+  registerDesc   String   @db.Text
+  registerImage  String   @db.Text
+  registerImages Json?    // Array of images (carousel)
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  
+  @@map("cms")
+}
