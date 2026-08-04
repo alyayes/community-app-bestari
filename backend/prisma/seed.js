@@ -61,6 +61,7 @@ async function seed() {
         authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
         location: 'Lahan Utama Blok A',
         participantsCount: 42,
+        status: 'Published',
         createdAt: new Date('2026-10-17T08:00:00'),
       },
       {
@@ -80,6 +81,7 @@ async function seed() {
         authorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
         location: 'Balai Pertemuan Warga',
         participantsCount: 28,
+        status: 'Published',
         createdAt: new Date('2026-09-23T08:00:00'),
       },
       {
@@ -99,6 +101,7 @@ async function seed() {
         authorAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200',
         location: 'Pusat Pembelajaran KWT',
         participantsCount: 35,
+        status: 'Published',
         createdAt: new Date('2026-09-10T08:00:00'),
       },
       {
@@ -118,6 +121,7 @@ async function seed() {
         authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
         location: 'Lahan Komunal RT 04',
         participantsCount: 50,
+        status: 'Published',
         createdAt: new Date('2026-09-05T08:00:00'),
       },
     ],
