@@ -37,7 +37,10 @@ function toArticle(a: any) {
 // ── GET /api/artikel ───────────────────────────────
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await prisma.artikel.findMany({ orderBy: { createdAt: 'desc' } });
+    const data = await prisma.artikel.findMany({
+      where: { status: 'Published' },
+      orderBy: { createdAt: 'desc' }
+    });
     return successResponse(res, data.map(toArticle));
   } catch (err) {
     next(err);
