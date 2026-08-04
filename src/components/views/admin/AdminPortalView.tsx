@@ -406,6 +406,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setEditingArticle(null);
     setArtTitle('');
     setArtCategory('Budidaya');
+    setArtStatus('Published');
     setArtSummary('');
     setArtContent('');
     setArtImage('');
@@ -2502,14 +2503,27 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         type="file"
                         accept="image/png,image/jpeg,image/jpg"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            setArtImage(ev.target?.result as string);
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const form = new FormData();
+                            form.append('file', file);
+                            const res = await fetch('http://localhost:8000/api/upload', {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
+                              body: form,
+                            });
+                            const json = await res.json();
+                            if (json.success && json.data?.url) {
+                              setArtImage(json.data.url);
+                              showToast('Foto berhasil diupload');
+                            } else {
+                              showToast(json.message || 'Gagal upload foto');
+                            }
+                          } catch {
+                            showToast('Gagal upload foto');
+                          }
                         }}
                       />
                     </label>
