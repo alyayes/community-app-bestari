@@ -52,7 +52,8 @@ import {
   Image as ImageIcon,
   Save,
   ExternalLink,
-  Link
+  Link,
+  Sparkles
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
