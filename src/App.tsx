@@ -90,6 +90,18 @@ export function App() {
   // Visible announcements for notifications
   const visibleAnnouncements = announcements.filter(a => !deletedNotificationIds.includes(a.id));
 
+  // Tandai semua pengumuman sebagai "dibaca" saat user masuk halaman Pengumuman
+  useEffect(() => {
+    if (activeNav === 'pengumuman' && currentUser && announcements.length > 0) {
+      const allIds = announcements.map(a => a.id);
+      const newIds = [...new Set([...readAnnouncementIds, ...allIds])];
+      if (newIds.length !== readAnnouncementIds.length) {
+        setReadAnnouncementIds(newIds);
+        localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(newIds));
+      }
+    }
+  }, [activeNav, currentUser?.id, announcements.length]);
+
   // Generate Agenda Reminders (1 day before)
   const todayObj = new Date();
   const tomorrowObj = new Date(todayObj);
