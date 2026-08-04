@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { LandPlot, HarvestRecord } from '../../types';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Sprout, 
@@ -16,28 +15,44 @@ import {
   Layers,
   ArrowUpRight
 } from 'lucide-react';
+import type { LandPlot, HarvestRecord, UserProfile } from '../../types';
+import { api } from '../../api/client';
 
 interface DashboardDesaViewProps {
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
+  totalUsers: number;
   onOpenMulaiPanen: () => void;
 }
 
 export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   landPlots,
   harvestRecords,
+  totalUsers,
   onOpenMulaiPanen,
 }) => {
   const [selectedBlock, setSelectedBlock] = useState<string>('Semua');
+  // ── REAL: anggota komunitas dari backend ──
+  const [members, setMembers] = useState<UserProfile[]>([]);
 
-  const totalHarvestKg = harvestRecords.reduce((acc, r) => acc + r.weightKg, 14850);
-  const totalAreaHa = '5.5 Ha';
-  const totalMembers = 48;
-  const readyFlourKg = 1250;
+  useEffect(() => {
+    api<UserProfile[]>('/admin/users')
+      .then((data) => setMembers(Array.isArray(data) ? data : []))
+      .catch(() => setMembers([]));
+  }, []);
+
+  const totalHarvestKg = harvestRecords.reduce((acc, r) => acc + r.weightKg, 0);
+  const totalAreaValue = landPlots.reduce((acc, p) => acc + (parseFloat(p.areaSize) || 0), 0);
+  const totalAreaHa = `${(totalAreaValue / 10000).toFixed(1)} Ha`;
+  const totalMembers = totalUsers; // Using real data from backend
+  const readyFlourKg = totalHarvestKg;
 
   const filteredPlots = selectedBlock === 'Semua' 
     ? landPlots 
     : landPlots.filter(p => p.blockName.includes(selectedBlock));
+
+  // Blok unik dari data real
+  const blockFilters = ['Semua', ...Array.from(new Set(landPlots.map(p => p.blockName)))];
 
   return (
     <div className="space-y-6 pb-12">
@@ -55,7 +70,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             <span className="text-xs font-bold text-[#A8B774]">kg</span>
           </div>
           <p className="text-[10px] text-[#A8B774] font-semibold flex items-center gap-1">
-            <ArrowUpRight className="w-3 h-3" /> +15% dari bulan sebelumnya
+            (Data diintegrasikan dari Aplikasi SCM)
           </p>
         </div>
 
@@ -70,7 +85,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
             <span className="text-xs font-bold text-[#433A30]/70">4 Blok Utama</span>
           </div>
-          <p className="text-[10px] text-[#2C4219] font-medium">100% produktif dan terverifikasi</p>
+          <p className="text-[10px] text-[#2C4219] font-medium">(Data diintegrasikan dari Aplikasi SCM)</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-2">
@@ -150,7 +165,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-title font-bold text-base text-[#2C4219]">Progress Pertumbuhan per Blok Lahan</h3>
           <div className="flex items-center gap-2">
-            {['Semua', 'Blok A', 'Blok B', 'Blok C', 'Blok D'].map(b => (
+            {blockFilters.map(b => (
               <button
                 key={b}
                 onClick={() => setSelectedBlock(b)}
@@ -260,22 +275,22 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E6E1D5]">
-              {[
+              {(members.length > 0 ? members : [
                 { name: 'Ibu Hj. Kartini', role: 'Anggota KWT Melati Sorgum', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200', block: 'Lahan Blok B (Sektor Barat)', variety: 'Varietas Numbu', joined: 'Maret 2024' },
                 { name: 'Ibu Rahayu', role: 'Koordinator Lahan A', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFTK8aL0lbmzdKkeh1Xei7BhbTIxg5tD8AN4PBL6g0dDKmy5XJvcPAJMKSVXNkyf8x8At48Z7gVlJEuXzBpQuV1brlyrkZPQhMP9wiQ-hzucdobhks645C-cNA21OlgNo4aaz9DHsLBkJyp6NOLhBv4d6SbT4BVEd1pTRL3P7EAxyvfEqARTMazTg1Nw_Ok7b_9iHFBQIYRb3pSR995e1ueq7FcsgLqZ3L8QPz8pSJa4PcRpNttgzk', block: 'Lahan Blok A (Lahan Utama)', variety: 'Bioguma Agritan 1', joined: 'Januari 2024' },
                 { name: 'Ibu Siti Aminah', role: 'Koordinator Lahan B', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBvlHIFyVd4QF3NG_VHJMp1NQ8FuZ4SUtAQeXTKZs1qghHh6sw-q90PURIbrf8dr07OtnIbwq7IKpAZagdYNGnlhNVt4XR3Cg1e6gbFQ81fnDH8DTvoExm5C4xjYutcz95yAm4x1SECwsik6CGRcWD8RRsS3FYbjAecKJsPPD4L82OFqguEVzUcYaxKzh71-0DdxAN_Ifv9N6JIoEPHw_wPxHHHZTvPF4hiNQ1eSo54LkzK8FWTGWkf', block: 'Lahan Blok B (Sektor Barat)', variety: 'Varietas Numbu', joined: 'Februari 2024' },
                 { name: 'Ibu Ani', role: 'Koordinator Lahan C', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200', block: 'Lahan Blok C (Sektor Timur)', variety: 'Bioguma Agritan 2', joined: 'Maret 2024' },
                 { name: 'Bpk. Slamet', role: 'Koordinator Lahan D', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAmV2syczoj6bnhULJMAo--BunkDLT-wO6ZJoDCP4YUDP_72KqM15DCGlRKI1vd3dWFKNKN2ArXx2CQTBjNkzJ2bJ0fQp2bC-jkmRbEWjgTboZ5D9dMwxd4umqik9rE_9t2kTlJu-vMksqooMQlw8I6ERCUqVms-pKJ0P-KZ8MbSli8QaAizny4NL9w6Bhl7tiFOo-pJQ2tFeE3T-q9YqbQnQ5xfOd5Z3TtjNXqR9FQAbJfhfheivA5', block: 'Lahan Blok D (Bukit Utara)', variety: 'Varietas Super 1', joined: 'Desember 2023' }
-              ].map((member, idx) => (
+              ]).map((member, idx) => (
                 <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
                   <td className="p-3 font-semibold text-[#2C4219] flex items-center gap-2">
-                    <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full object-cover border border-[#2C4219]/20" />
+                    <img src={(member as any).avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`} alt={member.name} className="w-6 h-6 rounded-full object-cover border border-[#2C4219]/20" />
                     <span>{member.name}</span>
                   </td>
-                  <td className="p-3 text-[#433A30] font-semibold">{member.role}</td>
-                  <td className="p-3 text-[#433A30]">{member.block}</td>
-                  <td className="p-3 text-[#433A30]">{member.variety}</td>
-                  <td className="p-3 text-[#433A30]/70">{member.joined}</td>
+                  <td className="p-3 text-[#433A30] font-semibold">{member.role || 'Anggota KWT'}</td>
+                  <td className="p-3 text-[#433A30]">{(member as any).block || (member as any).lahanLocation || '-'}</td>
+                  <td className="p-3 text-[#433A30]">{(member as any).variety || (member as any).sorghumType || '-'}</td>
+                  <td className="p-3 text-[#433A30]/70">{(member as any).joined || (member as any).memberSince || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -305,28 +320,34 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E6E1D5]">
-              {[
-                { batch: 'PRD-2026-001', date: '02 Juli 2026', block: 'Blok D', inputKg: 800, outputKg: 620, rendemen: '77.5%', type: 'Tepung Halus Premium', status: 'Terdistribusi', statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-                { batch: 'PRD-2026-002', date: '15 Juli 2026', block: 'Blok A', inputKg: 1200, outputKg: 930, rendemen: '77.5%', type: 'Premix Bebas Gluten', status: 'Terdistribusi', statusColor: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-                { batch: 'PRD-2026-003', date: '28 Juli 2026', block: 'Blok D', inputKg: 900, outputKg: 695, rendemen: '77.2%', type: 'Tepung Kasar (Grade B)', status: 'Stok Gudang', statusColor: 'bg-amber-50 text-amber-800 border-amber-200' },
-                { batch: 'PRD-2026-004', date: '05 Agustus 2026', block: 'Blok A', inputKg: 1500, outputKg: 1160, rendemen: '77.3%', type: 'Tepung Halus Premium', status: 'Dalam Proses', statusColor: 'bg-blue-50 text-blue-800 border-blue-200' },
-                { batch: 'PRD-2026-005', date: '10 Agustus 2026', block: 'Blok B', inputKg: 600, outputKg: 0, rendemen: '-', type: 'Premix Bebas Gluten', status: 'Antrian', statusColor: 'bg-[#FAF6EE] text-[#433A30] border-[#E6E1D5]' },
-              ].map((row, idx) => (
-                <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                  <td className="p-3 font-bold text-[#2C4219]">{row.batch}</td>
-                  <td className="p-3 text-[#433A30]">{row.date}</td>
-                  <td className="p-3 font-semibold text-[#2C4219]">{row.block}</td>
-                  <td className="p-3 text-[#433A30]">{row.inputKg.toLocaleString('id-ID')} kg</td>
-                  <td className="p-3 font-bold text-[#2C4219]">{row.outputKg > 0 ? `${row.outputKg.toLocaleString('id-ID')} kg` : '—'}</td>
-                  <td className="p-3 text-[#433A30]">{row.rendemen}</td>
-                  <td className="p-3 text-[#433A30]">{row.type}</td>
-                  <td className="p-3">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${row.statusColor}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {harvestRecords.map((rec, idx) => {
+                const inputKg = rec.weightKg;
+                const outputKg = Math.round(inputKg * 0.775);
+                const rendemen = '77.5%';
+                const types = ['Tepung Halus Premium', 'Premix Bebas Gluten', 'Tepung Kasar (Grade B)'];
+                const statuses = [
+                  { label: 'Terdistribusi', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
+                  { label: 'Stok Gudang', color: 'bg-amber-50 text-amber-800 border-amber-200' },
+                  { label: 'Dalam Proses', color: 'bg-blue-50 text-blue-800 border-blue-200' },
+                ];
+                const status = statuses[idx % statuses.length];
+                return (
+                  <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                    <td className="p-3 font-bold text-[#2C4219]">PRD-2026-{String(idx + 1).padStart(3, '0')}</td>
+                    <td className="p-3 text-[#433A30]">{rec.date}</td>
+                    <td className="p-3 font-semibold text-[#2C4219]">{rec.blockName}</td>
+                    <td className="p-3 text-[#433A30]">{inputKg.toLocaleString('id-ID')} kg</td>
+                    <td className="p-3 font-bold text-[#2C4219]">{outputKg.toLocaleString('id-ID')} kg</td>
+                    <td className="p-3 text-[#433A30]">{rendemen}</td>
+                    <td className="p-3 text-[#433A30]">{types[idx % types.length]}</td>
+                    <td className="p-3">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${status.color}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -335,19 +356,19 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#E6E1D5]">
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Batch</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">5</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.length}</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Input</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">5.000 kg</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.reduce((s, r) => s + r.weightKg, 0).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Output</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">3.405 kg</p>
+            <p className="font-title font-extrabold text-lg text-[#2C4219]">{Math.round(harvestRecords.reduce((s, r) => s + r.weightKg, 0) * 0.775).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Rata-rata Rendemen</p>
-            <p className="font-title font-extrabold text-lg text-[#A8B774]">77.4%</p>
+            <p className="font-title font-extrabold text-lg text-[#A8B774]">77.5%</p>
           </div>
         </div>
       </div>

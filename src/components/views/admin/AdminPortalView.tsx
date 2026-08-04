@@ -1,54 +1,63 @@
-import React, { useState } from 'react';
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Legend 
+import React, { useState, useEffect } from 'react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts';
-import { 
-  Sprout, 
-  LayoutDashboard, 
-  FileText, 
-  Megaphone, 
-  MessageSquare, 
-  Settings, 
-  LogOut, 
-  Plus, 
-  Search, 
-  Edit3, 
-  Trash2, 
-  Eye, 
-  Pin, 
-  ChevronDown, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  Users, 
-  TrendingUp, 
-  Activity, 
-  X, 
-  ShieldCheck, 
-  Server, 
-  Sparkles,
+import {
+  Sprout,
+  LayoutDashboard,
+  FileText,
+  Megaphone,
+  MessageSquare,
+  Settings,
+  LogOut,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Eye,
+  Pin,
+  ChevronDown,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Users,
+  TrendingUp,
+  Activity,
+  X,
+  ShieldCheck,
+  Server,
+  Layers,
   ArrowRight,
   Calendar,
   MapPin,
   CalendarDays,
   BarChart2,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Home,
+  LogIn,
+  UserPlus,
+  Type,
+  Image as ImageIcon,
+  Save,
+  ExternalLink,
+  Link
 } from 'lucide-react';
-import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord } from '../../../types';
+import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
+import { api } from '../../../api/client';
 
 interface AdminPortalViewProps {
   currentUser: UserProfile;
@@ -64,9 +73,11 @@ interface AdminPortalViewProps {
   onUpdateAgendas?: (agendas: AgendaEvent[]) => void;
   onLogout: () => void;
   onSelectArticle: (article: InfoArticle) => void;
+  cmsData?: CmsData | null;
+  onUpdateCmsData?: (data: CmsData) => void;
 }
 
-type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings';
+type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms';
 
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   currentUser,
@@ -81,7 +92,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onUpdateThreads,
   onUpdateAgendas,
   onLogout,
-  onSelectArticle
+  onSelectArticle,
+  cmsData,
+  onUpdateCmsData
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
@@ -175,7 +188,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [editingArticle, setEditingArticle] = useState<InfoArticle | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'pengumuman' | 'agenda' } | null>(null);
   const [previewArticle, setPreviewArticle] = useState<InfoArticle | null>(null);
-  
+
   // New Article Form
   const [artTitle, setArtTitle] = useState('');
   const [artCategory, setArtCategory] = useState<'Budidaya' | 'Inovasi' | 'Pengetahuan' | 'Panen'>('Budidaya');
@@ -192,8 +205,82 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [annSummary, setAnnSummary] = useState('');
   const [annContent, setAnnContent] = useState('');
 
-  // Pinned announcements tracking
-  const [pinnedIds, setPinnedIds] = useState<string[]>(['ann_1']);
+  // Pinned announcements tracking — pakai isUrgent real dari backend
+  const [pinnedIds, setPinnedIds] = useState<string[]>(
+    (announcements || []).filter(a => (a as any).isUrgent).map(a => a.id)
+  );
+
+  // CMS Form States
+  const [cmsLandingTitle, setCmsLandingTitle] = useState(cmsData?.landingTitle || '');
+  const [cmsLandingDesc, setCmsLandingDesc] = useState(cmsData?.landingDesc || '');
+  // Carousel dinamis: array URL gambar (bisa banyak)
+  const [cmsLandingImages, setCmsLandingImages] = useState<string[]>(
+    (cmsData?.landingImages || []).map(i => i.url).filter(Boolean)
+  );
+  const [cmsLoginTitle, setCmsLoginTitle] = useState(cmsData?.loginTitle || '');
+  const [cmsLoginDesc, setCmsLoginDesc] = useState(cmsData?.loginDesc || '');
+  const [cmsLoginImages, setCmsLoginImages] = useState<string[]>(
+    cmsData?.loginImages?.length ? cmsData.loginImages.map(i => i.url) : (cmsData?.loginImage ? [cmsData.loginImage] : [])
+  );
+  const [cmsRegTitle, setCmsRegTitle] = useState(cmsData?.registerTitle || '');
+  const [cmsRegDesc, setCmsRegDesc] = useState(cmsData?.registerDesc || '');
+  const [cmsRegImages, setCmsRegImages] = useState<string[]>(
+    cmsData?.registerImages?.length ? cmsData.registerImages.map(i => i.url) : (cmsData?.registerImage ? [cmsData.registerImage] : [])
+  );
+  // CMS: halaman yang sedang diedit (landing | login | register)
+  const [cmsActivePage, setCmsActivePage] = useState<'landing' | 'login' | 'register'>('landing');
+  // CMS: status upload (loading per tombol)
+  const [cmsUploading, setCmsUploading] = useState(false);
+
+  // Upload 1 file -> kembalikan URL /uploads/xxx
+  const handleCmsUpload = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api<{ url: string }>('/upload', { method: 'POST', body: formData, isFormData: true });
+    return res.url;
+  };
+
+  // Upload banyak file -> kembalikan array URL
+  const handleCmsUploadMany = async (files: FileList | File[]): Promise<string[]> => {
+    const formData = new FormData();
+    Array.from(files).forEach(f => formData.append('files', f));
+    const res = await api<{ urls: string[] }>('/upload/many', { method: 'POST', body: formData, isFormData: true });
+    return res.urls;
+  };
+
+  // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
+  const cmsImgUrl = (u: string) =>
+    u.startsWith('/uploads/') ? `http://localhost:8000${u}` : u;
+  const handleSaveCms = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload: CmsData = {
+      landingTitle: cmsLandingTitle,
+      landingDesc: cmsLandingDesc,
+      landingImages: cmsLandingImages.filter(u => u.trim() !== '').map(url => ({ url, title: '', caption: '' })),
+      loginTitle: cmsLoginTitle,
+      loginDesc: cmsLoginDesc,
+      loginImages: cmsLoginImages.filter(u => u.trim() !== '').map(url => ({ url, title: '', caption: '' })),
+      loginImage: cmsLoginImages.find(u => u.trim() !== '') || '',
+      registerTitle: cmsRegTitle,
+      registerDesc: cmsRegDesc,
+      registerImages: cmsRegImages.filter(u => u.trim() !== '').map(url => ({ url, title: '', caption: '' })),
+      registerImage: cmsRegImages.find(u => u.trim() !== '') || ''
+    };
+
+    try {
+      await api('/cms', {
+        method: 'PUT',
+        body: payload
+      });
+      if (onUpdateCmsData) {
+        onUpdateCmsData(payload);
+      }
+      showToast('Pengaturan CMS berhasil disimpan!');
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal menyimpan CMS.');
+    }
+  };
 
   // Agenda Handlers
   const handleOpenAddAgenda = () => {
@@ -227,7 +314,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     if (!agTitle.trim()) return;
 
     if (editingAgenda) {
-      const updated = agendaList.map(a => 
+      const updated = agendaList.map(a =>
         a.id === editingAgenda.id ? {
           ...a,
           title: agTitle,
@@ -243,6 +330,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
       showToast(`Agenda "${agTitle}" berhasil diperbarui!`);
+      // Update ke backend (best effort)
+      if (!editingAgenda.id.startsWith('ag_1') && !editingAgenda.id.startsWith('ag_2') && !editingAgenda.id.startsWith('ag_3')) {
+        api(`/agenda/${editingAgenda.id}`, {
+          method: 'PUT',
+          body: {
+            title: agTitle,
+            category: agCategory,
+            date: agDate,
+            time: agTime,
+            location: agLocation,
+            organizer: agOrganizer,
+            status: agStatus,
+            description: agDescription
+          }
+        }).catch(err => console.error('Failed to update agenda on backend:', err));
+      }
     } else {
       const newAg: AgendaEvent = {
         id: `ag_${Date.now()}`,
@@ -262,6 +365,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
       showToast(`Agenda "${agTitle}" berhasil ditambahkan!`);
+      // Simpan ke backend (best effort)
+      api('/agenda', {
+        method: 'POST',
+        body: {
+          title: agTitle,
+          category: agCategory,
+          date: agDate,
+          time: agTime,
+          location: agLocation,
+          organizer: agOrganizer,
+          status: agStatus,
+          description: agDescription
+        }
+      }).catch(err => console.error('Failed to create agenda on backend:', err));
     }
     setIsAgendaModalOpen(false);
   };
@@ -356,18 +473,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setSubTabInformasi('list');
   };
 
-  // Announcement Actions
-  const handleTogglePinAnnouncement = (id: string) => {
-    if (pinnedIds.includes(id)) {
-      setPinnedIds(pinnedIds.filter(pId => pId !== id));
-      showToast('Status pin pengumuman dilepas.');
-    } else {
-      if (pinnedIds.length >= 3) {
-        alert('Maksimal 3 pengumuman disematkan di atas.');
-        return;
-      }
-      setPinnedIds([...pinnedIds, id]);
-      showToast('Pengumuman berhasil disematkan di atas!');
+  // Announcement Actions — pin = toggle isUrgent (real ke backend)
+  const handleTogglePinAnnouncement = async (id: string) => {
+    const isPinned = pinnedIds.includes(id);
+    const nextPinned = isPinned ? pinnedIds.filter(pId => pId !== id) : [...pinnedIds, id];
+    if (!isPinned && nextPinned.length > 3) {
+      alert('Maksimal 3 pengumuman disematkan di atas.');
+      return;
+    }
+    setPinnedIds(nextPinned);
+    try {
+      await api(`/pengumuman/${id}`, { method: 'PUT', body: { isUrgent: !isPinned } });
+      showToast(isPinned ? 'Status pin pengumuman dilepas.' : 'Pengumuman berhasil disematkan di atas!');
+    } catch (err) {
+      setPinnedIds(pinnedIds);
+      showToast('Gagal mengubah pin.');
     }
   };
 
@@ -389,6 +509,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
       showToast(`Agenda "${title}" berhasil dihapus.`);
+      // Delete dari backend (best effort)
+      if (!id.startsWith('ag_1') && !id.startsWith('ag_2') && !id.startsWith('ag_3')) {
+        api(`/agenda/${id}`, { method: 'DELETE' }).catch(err => console.error('Failed to delete agenda on backend:', err));
+      }
     }
     setDeleteConfirmModal(null);
   };
@@ -450,31 +574,50 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Filtering data
   const filteredArticles = articles.filter(art => {
-    const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          art.summary.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = categoryFilter === 'Semua' || art.category?.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesSearch = (art.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (art.summary || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = categoryFilter === 'Semua' || (art.category || '').toLowerCase() === categoryFilter.toLowerCase();
     return matchesSearch && matchesCat;
   });
 
-  const filteredAnnouncements = announcements.filter(ann => {
-    return ann.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           ann.summary.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredAnnouncements = (announcements || []).filter(ann => {
+    return (ann.title || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+      (ann.summary || '').toLowerCase().includes((searchQuery || '').toLowerCase());
   });
 
   const filteredThreads = threads.filter(thr => {
-    return thr.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           thr.authorName.toLowerCase().includes(searchQuery.toLowerCase());
+    return (thr.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (thr.authorName || '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // Analytics chart data for Admin Dashboard (Fokus Informasi & Komunitas)
-  const informasiChartData = [
-    { bulan: 'Mei', pembacaArtikel: 120, pembacaPengumuman: 95 },
-    { bulan: 'Jun', pembacaArtikel: 185, pembacaPengumuman: 140 },
-    { bulan: 'Jul', pembacaArtikel: 240, pembacaPengumuman: 210 },
-    { bulan: 'Agt', pembacaArtikel: 310, pembacaPengumuman: 280 },
-    { bulan: 'Sep', pembacaArtikel: 390, pembacaPengumuman: 320 },
-    { bulan: 'Okt', pembacaArtikel: 460, pembacaPengumuman: 410 },
-  ];
+  // ── REAL: fetch dari /api/admin/stats ──
+  const [stats, setStats] = useState<{
+    totalUser: number;
+    informasiChartData: { bulan: string; pembacaArtikel: number; pembacaPengumuman: number }[];
+    partisipasiChartData: { bulan: string; diskusi: number; agenda: number; anggotaBaru: number }[];
+  } | null>(null);
+
+  useEffect(() => {
+    api<{
+      totalUser: number;
+      informasiChartData: { bulan: string; pembacaArtikel: number; pembacaPengumuman: number }[];
+      partisipasiChartData: { bulan: string; diskusi: number; agenda: number; anggotaBaru: number }[];
+    }>('/admin/stats')
+      .then((data) => setStats(data))
+      .catch(() => setStats(null));
+  }, []);
+
+  const informasiChartData = stats?.informasiChartData?.length
+    ? stats.informasiChartData
+    : [
+        { bulan: 'Mei', pembacaArtikel: 120, pembacaPengumuman: 95 },
+        { bulan: 'Jun', pembacaArtikel: 185, pembacaPengumuman: 140 },
+        { bulan: 'Jul', pembacaArtikel: 240, pembacaPengumuman: 210 },
+        { bulan: 'Agt', pembacaArtikel: 310, pembacaPengumuman: 280 },
+        { bulan: 'Sep', pembacaArtikel: 390, pembacaPengumuman: 320 },
+        { bulan: 'Okt', pembacaArtikel: 460, pembacaPengumuman: 410 },
+      ];
 
   const contentDistributionData = [
     { name: 'Artikel Budidaya', value: articles.filter(a => a.category === 'Budidaya' || a.category === 'Panen').length || 3, color: '#2C4219' },
@@ -483,18 +626,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     { name: 'Diskusi Komunitas', value: threads.length || 3, color: '#433A30' },
   ];
 
-  const partisipasiChartData = [
-    { bulan: 'Mei', diskusi: 12, agenda: 24, anggotaBaru: 8 },
-    { bulan: 'Jun', diskusi: 18, agenda: 32, anggotaBaru: 14 },
-    { bulan: 'Jul', diskusi: 25, agenda: 45, anggotaBaru: 19 },
-    { bulan: 'Agt', diskusi: 31, agenda: 52, anggotaBaru: 22 },
-    { bulan: 'Sep', diskusi: 28, agenda: 48, anggotaBaru: 15 },
-    { bulan: 'Okt', diskusi: 36, agenda: 60, anggotaBaru: 25 },
-  ];
+  const partisipasiChartData = stats?.partisipasiChartData?.length
+    ? stats.partisipasiChartData
+    : [
+        { bulan: 'Mei', diskusi: 12, agenda: 24, anggotaBaru: 8 },
+        { bulan: 'Jun', diskusi: 18, agenda: 32, anggotaBaru: 14 },
+        { bulan: 'Jul', diskusi: 25, agenda: 45, anggotaBaru: 19 },
+        { bulan: 'Agt', diskusi: 31, agenda: 52, anggotaBaru: 22 },
+        { bulan: 'Sep', diskusi: 28, agenda: 48, anggotaBaru: 15 },
+        { bulan: 'Okt', diskusi: 36, agenda: 60, anggotaBaru: 25 },
+      ];
 
   return (
     <div className="min-h-screen bg-[#FAF6EE] flex flex-col md:flex-row font-sans text-[#2C4219]">
-      
+
       {/* Toast Popup */}
       {toastMessage && (
         <div className="fixed top-5 right-5 z-50 bg-[#2C4219] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-[#A8B774]/40 flex items-center gap-3 animate-slide-in">
@@ -526,24 +671,34 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Nav: Dashboard Admin */}
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'dashboard'
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'dashboard'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
+                }`}
             >
               <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Dashboard</span>
             </button>
 
+            {/* Nav: Kelola Agenda */}
+            <button
+              onClick={() => setActiveTab('agenda')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                }`}
+            >
+              <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
+              <span>Kelola Agenda</span>
+            </button>
+
             {/* Nav: Kelola Informasi */}
             <button
               onClick={() => setActiveTab('informasi')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'informasi'
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'informasi'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
+                }`}
             >
               <FileText className={`w-4 h-4 ${activeTab === 'informasi' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Informasi</span>
@@ -552,37 +707,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Nav: Kelola Pengumuman */}
             <button
               onClick={() => setActiveTab('pengumuman')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'pengumuman'
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'pengumuman'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
+                }`}
             >
               <Megaphone className={`w-4 h-4 ${activeTab === 'pengumuman' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Pengumuman</span>
             </button>
 
-            {/* Nav: Kelola Agenda */}
-            <button
-              onClick={() => setActiveTab('agenda')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'agenda'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
-            >
-              <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Agenda</span>
-            </button>
-
             {/* Nav: Kelola Diskusi */}
             <button
               onClick={() => setActiveTab('moderation')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'moderation'
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'moderation'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
+                }`}
             >
               <MessageSquare className={`w-4 h-4 ${activeTab === 'moderation' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Diskusi</span>
@@ -591,14 +731,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Nav: Kelola Data Sorgum (Integrasi SCM) */}
             <button
               onClick={() => setActiveTab('datasorgum')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${
-                activeTab === 'datasorgum'
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'datasorgum'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-              }`}
+                }`}
             >
               <Sprout className={`w-4 h-4 ${activeTab === 'datasorgum' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Data Sorgum</span>
+            </button>
+            {/* Nav: Kelola Konten (CMS Landing/Login/Register) */}
+            <button
+              onClick={() => setActiveTab('cms')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'cms'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                }`}
+            >
+              <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
+              <span>Kelola Konten</span>
             </button>
           </nav>
         </div>
@@ -617,11 +767,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto w-full">
-        
+
         {/* ==================== TAB 1: KELOLA INFORMASI ==================== */}
         {activeTab === 'informasi' && (
           <div className="space-y-6">
-            
+
             {/* Header Title + Add Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -787,7 +937,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {/* ==================== TAB 2: KELOLA PENGUMUMAN ==================== */}
         {activeTab === 'pengumuman' && (
           <div className="space-y-6">
-            
+
             {/* Header + Add Announcement Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -816,29 +966,29 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
                 <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL AKTIF</p>
-                <p className="font-title font-black text-2xl text-[#2C4219]">{announcements.length}</p>
-                <p className="text-[11px] text-emerald-700 font-bold">+2 minggu ini</p>
+                <p className="font-title font-black text-2xl text-[#2C4219]">{(announcements || []).length}</p>
+                <p className="text-[11px] text-emerald-700 font-bold">{(announcements || []).filter(a => a.category === 'HASIL PANEN' || a.category === 'INFORMASI ANGGOTA').length} info anggota</p>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">DILIHAT MEMBER</p>
-                <p className="font-title font-black text-2xl text-[#2C4219]">1.2k</p>
-                <p className="text-[11px] text-[#7A7062] font-semibold">85% engagement rate</p>
+                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN MENDESAK</p>
+                <p className="font-title font-black text-2xl text-rose-700">{(announcements || []).filter(a => a.category === 'MENDESAK' || (a as any).isUrgent).length}</p>
+                <p className="text-[11px] text-[#7A7062] font-semibold">Perlu perhatian segera</p>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">MENDESAK</p>
+                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">DISEMATKAN</p>
                 <p className="font-title font-black text-2xl text-amber-700">{pinnedIds.length}</p>
-                <p className="text-[11px] text-amber-700 font-semibold">Membutuhkan Pin</p>
+                <p className="text-[11px] text-amber-700 font-semibold">Muncul di atas (max 3)</p>
               </div>
 
               <div className="bg-[#2C4219] text-white p-5 rounded-3xl shadow-md space-y-1">
                 <div className="flex items-center gap-2">
                   <Server className="w-4 h-4 text-[#A8B774]" />
-                  <p className="text-[10px] font-bold text-[#A8B774] uppercase tracking-wider">STATUS SERVER</p>
+                  <p className="text-[10px] font-bold text-[#A8B774] uppercase tracking-wider">TOTAL KATEGORI</p>
                 </div>
-                <p className="font-title font-bold text-base text-white">Sistem Optimal</p>
-                <p className="text-[10px] text-gray-300">Terakhir sinkronisasi 3m yang lalu</p>
+                <p className="font-title font-bold text-base text-white">{new Set((announcements || []).map(a => a.category)).size} Jenis</p>
+                <p className="text-[10px] text-gray-300">Dari {(announcements || []).length} pengumuman aktif</p>
               </div>
             </div>
 
@@ -856,59 +1006,66 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {filteredAnnouncements.map((ann) => {
-                      const isPinned = pinnedIds.includes(ann.id);
-                      return (
-                        <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                          <td className="py-4 px-5">
-                            <div>
-                              <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
-                              <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
-                              {ann.category}
-                            </span>
-                          </td>
-                          <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
-                            {ann.postedTime || 'Hari ini'}
-                          </td>
-                          <td className="py-4 px-5 whitespace-nowrap">
-                            {isPinned ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
-                                <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
-                                <span>Dipin di Atas</span>
+                    {filteredAnnouncements.length > 0 ? (
+                      filteredAnnouncements.map((ann) => {
+                        const isPinned = pinnedIds.includes(ann.id);
+                        return (
+                          <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                            <td className="py-4 px-5">
+                              <div>
+                                <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
+                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
+                                {ann.category}
                               </span>
-                            ) : (
-                              <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
-                                Normal
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => handleTogglePinAnnouncement(ann.id)}
-                                title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
-                                }`}
-                              >
-                                <Pin className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
-                                title="Hapus Pengumuman"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
+                              {ann.postedTime || 'Hari ini'}
+                            </td>
+                            <td className="py-4 px-5 whitespace-nowrap">
+                              {isPinned ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
+                                  <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
+                                  <span>Dipin di Atas</span>
+                                </span>
+                              ) : (
+                                <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
+                                  Normal
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-5">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleTogglePinAnnouncement(ann.id)}
+                                  title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
+                                  className={`p-1.5 rounded-lg transition-colors ${isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
+                                    }`}
+                                >
+                                  <Pin className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
+                                  title="Hapus Pengumuman"
+                                  className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-[#7A7062] font-semibold text-xs">
+                          Belum ada pengumuman
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -931,13 +1088,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-[#E6E1D5] space-y-3 text-xs">
                 <h4 className="font-extrabold text-[#2C4219]">Aktivitas Terkini</h4>
                 <div className="space-y-2.5 text-[11px] text-[#5C5246]">
-                  <div className="flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#2C4219] mt-1 shrink-0" />
-                    <div>
-                      <strong className="text-[#2C4219]">Alya Permata</strong> membuat pengumuman baru.
-                      <p className="text-[10px] text-[#7A7062]">2 jam yang lalu</p>
+                  {announcements.slice(0, 2).map((ann) => (
+                    <div key={ann.id} className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#2C4219] mt-1 shrink-0" />
+                      <div>
+                        <strong className="text-[#2C4219]">{ann.postedBy || 'Admin'}</strong> membuat pengumuman baru.
+                        <p className="text-[10px] text-[#7A7062]">{ann.postedTime || 'Baru saja'}</p>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                   <div className="flex items-start gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#A8B774] mt-1 shrink-0" />
                     <div>
@@ -955,7 +1114,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {/* ==================== TAB: KELOLA AGENDA ==================== */}
         {activeTab === 'agenda' && (
           <div className="space-y-6">
-            
+
             {/* Header + Add Agenda Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -982,7 +1141,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Agenda Bulan Ini</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">12</p>
+                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.length}</p>
                 </div>
               </div>
 
@@ -993,7 +1152,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Total Peserta Terdaftar</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">340</p>
+                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1003,8 +1162,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <CheckCircle2 className="w-6 h-6 text-[#2C4219]" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-[#7A7062]">Pendaftaran Pending</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">5</p>
+                  <p className="text-[11px] font-bold text-[#7A7062]">Total Kuota</p>
+                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1015,8 +1174,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
                 <div className="mt-1">
-                  <p className="font-extrabold text-sm text-[#2C4219] line-clamp-2">Workshop Pengolahan Sorgum</p>
-                  <p className="text-xs font-semibold text-[#7A7062] mt-0.5">10 Okt 2026</p>
+                  <p className="font-extrabold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
+                  <p className="text-xs font-semibold text-[#7A7062] mt-0.5">{agendaList[0]?.date || '-'}</p>
                 </div>
               </div>
             </div>
@@ -1095,11 +1254,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <td className="py-4 px-5">
                             <div>
                               <p className="font-extrabold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
-                              <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${
-                                ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
-                                ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
-                                'bg-[#F0EBE1] text-[#7A7062]'
-                              }`}>
+                              <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
+                                  ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
+                                    'bg-[#F0EBE1] text-[#7A7062]'
+                                }`}>
                                 {ag.category || 'WORKSHOP'}
                               </span>
                             </div>
@@ -1135,13 +1293,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </div>
                           </td>
                           <td className="py-4 px-5 text-center">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${
-                              ag.status === 'Draft'
+                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${ag.status === 'Draft'
                                 ? 'bg-[#F0EBE1] text-[#7A7062]'
                                 : ag.status === 'Selesai'
-                                ? 'bg-gray-100 text-gray-600'
-                                : 'bg-[#E3EBD3] text-[#2C4219]'
-                            }`}>
+                                  ? 'bg-gray-100 text-gray-600'
+                                  : 'bg-[#E3EBD3] text-[#2C4219]'
+                              }`}>
                               {ag.status || 'Akan Datang'}
                             </span>
                           </td>
@@ -1179,7 +1336,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* Table Pagination Footer */}
               <div className="bg-[#FAF6EE] px-5 py-3 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062]">
-                <p className="font-semibold">Menampilkan 1-{filteredAgendas.length} dari 42 agenda</p>
+                <p className="font-semibold">Menampilkan 1-{filteredAgendas.length} dari {agendaList.length} agenda</p>
                 <div className="flex items-center gap-1">
                   <button className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold">&lt;</button>
                   <button className="w-7 h-7 rounded-lg bg-[#2C4219] text-white font-extrabold">1</button>
@@ -1196,7 +1353,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {/* ==================== TAB 3: MODERASI DISKUSI ==================== */}
         {activeTab === 'moderation' && (
           <div className="space-y-6">
-            
+
             {/* Header Title */}
             <div>
               <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
@@ -1319,7 +1476,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Users className="w-4 h-4 text-[#2C4219]" />
                   </div>
                 </div>
-                <p className="font-title font-black text-3xl text-[#2C4219]">128</p>
+                <p className="font-title font-black text-3xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
                 <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terverifikasi di Desa
                 </span>
@@ -1328,7 +1485,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Analytics Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Chart 1: Statistik Pembaca & Informasi Komunitas (Area Chart) */}
               <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
@@ -1356,18 +1513,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <AreaChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorArtikel" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2C4219" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#2C4219" stopOpacity={0.05}/>
+                          <stop offset="5%" stopColor="#2C4219" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#2C4219" stopOpacity={0.05} />
                         </linearGradient>
                         <linearGradient id="colorPengumuman" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#A8B774" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#A8B774" stopOpacity={0.05}/>
+                          <stop offset="5%" stopColor="#A8B774" stopOpacity={0.8} />
+                          <stop offset="95%" stopColor="#A8B774" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
                       <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
                       <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
                         formatter={(value: any) => [`${value} Pembaca`, '']}
                       />
@@ -1379,16 +1536,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                 <div className="grid grid-cols-3 gap-3 pt-2 text-center border-t border-[#E6E1D5]">
                   <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">TOTAL PEMBACA ARTIKEL</p>
-                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">1.705 Pembaca</p>
+                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">TOTAL ARTIKEL</p>
+                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">{articles.length} Artikel</p>
                   </div>
                   <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">PEMBACA PENGUMUMAN</p>
-                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">1.355 Pembaca</p>
+                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">TOTAL PENGUMUMAN</p>
+                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">{announcements.length} Pengumuman</p>
                   </div>
                   <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">PERTUMBUHAN / BLN</p>
-                    <p className="font-title font-black text-sm sm:text-base text-emerald-700">+18.4%</p>
+                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">DISKUSI AKTIF</p>
+                    <p className="font-title font-black text-sm sm:text-base text-emerald-700">{threads.length} Thread</p>
                   </div>
                 </div>
               </div>
@@ -1422,7 +1579,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip 
+                        <Tooltip
                           contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '11px', fontWeight: 'bold' }}
                           formatter={(val: any) => [`${val} Item`, 'Jumlah']}
                         />
@@ -1477,7 +1634,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
                     <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
                     />
                     <Bar dataKey="agenda" name="Kehadiran Agenda" fill="#2C4219" radius={[4, 4, 0, 0]} />
@@ -1490,7 +1647,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Dashboard Content Overview - 2 Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
+
               {/* Upcoming Agenda Overview */}
               <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
                 <div className="space-y-4">
@@ -1535,9 +1692,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </div>
                           </div>
                         </div>
-                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                          ag.status === 'Draft' ? 'bg-[#F0EBE1] text-[#7A7062]' : 'bg-[#E3EBD3] text-[#2C4219]'
-                        }`}>
+                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Draft' ? 'bg-[#F0EBE1] text-[#7A7062]' : 'bg-[#E3EBD3] text-[#2C4219]'
+                          }`}>
                           {ag.status || 'Akan Datang'}
                         </span>
                       </div>
@@ -1580,9 +1736,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     {announcements.slice(0, 3).map((ann) => (
                       <div key={ann.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                            ann.category === 'PENTING' ? 'bg-rose-100 text-rose-700' : 'bg-[#E3EBD3] text-[#2C4219]'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ann.category === 'PENTING' ? 'bg-rose-100 text-rose-700' : 'bg-[#E3EBD3] text-[#2C4219]'
+                            }`}>
                             {ann.category || 'INFO'}
                           </span>
                           <span className="text-[10px] text-[#7A7062] font-semibold">{ann.date}</span>
@@ -1607,7 +1762,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Bottom Row: Recent Forum Activity & Community Impact Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
+
               {/* Forum Discussions Summary */}
               <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
@@ -1735,8 +1890,539 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           <DashboardDesaView
             landPlots={landPlots}
             harvestRecords={harvestRecords}
+            totalUsers={stats?.totalUser ?? 3}
             onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
           />
+        )}
+
+        {/* ==================== TAB 7: CMS (Kelola Konten) ==================== */}
+        {activeTab === 'cms' && (
+          <div className="space-y-6 w-full max-w-7xl">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                  Kelola Konten
+                </h1>
+                <p className="text-sm text-[#433A30] font-medium mt-1">
+                  Atur teks &amp; gambar halaman utama, login, dan register secara visual.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveCms as any}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-md active:scale-95 shrink-0"
+              >
+                <Save className="w-4 h-4 text-[#A8B774]" />
+                Simpan Semua
+              </button>
+            </div>
+
+            {/* Page Switcher Tabs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {([
+                { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
+                { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
+                { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' }
+              ] as const).map(({ key, label, icon: Icon, desc }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setCmsActivePage(key)}
+                  className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98]
+                    ${cmsActivePage === key
+                      ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/20'
+                      : 'bg-white text-[#433A30] border-[#E6E1D5] hover:border-[#2C4219]/40 hover:shadow-md'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors
+                      ${cmsActivePage === key ? 'bg-white/15 text-[#A8B774]' : 'bg-[#FAF6EE] text-[#2C4219] group-hover:bg-[#F0EADF]'}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-title font-bold text-sm leading-tight">{label}</p>
+                      <p className={`text-[11px] mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/80' : 'text-[#433A30]/60'}`}>{desc}</p>
+                    </div>
+                    {cmsActivePage === key && (
+                      <CheckCircle2 className="w-4 h-4 text-[#A8B774] ml-auto shrink-0" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* LEFT: Editor */}
+              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-sm space-y-6">
+                {/* ── LANDING EDITOR ── */}
+                {cmsActivePage === 'landing' && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                      <Home className="w-5 h-5 text-[#2C4219]" />
+                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Utama</h2>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Judul Utama
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsLandingTitle}
+                        onChange={(e) => setCmsLandingTitle(e.target.value)}
+                        placeholder="Contoh: Bersama Menanam, Bersama Sejahtera"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                      <p className="text-[10px] text-[#7A7062]">Gunakan \n untuk baris baru.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <FileText className="w-3.5 h-3.5" /> Deskripsi Pendek
+                      </label>
+                      <textarea
+                        value={cmsLandingDesc}
+                        onChange={(e) => setCmsLandingDesc(e.target.value)}
+                        rows={3}
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Carousel ({cmsLandingImages.length})
+                      </label>
+
+                      {/* Grid foto dinamis */}
+                      {cmsLandingImages.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {cmsLandingImages.map((url, idx) => (
+                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                {url ? (
+                                  <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                    <ImageIcon className="w-6 h-6 mb-1" />
+                                    <span className="text-[10px]">Masukkan URL</span>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setCmsLandingImages(prev => prev.filter((_, i) => i !== idx))}
+                                  title="Hapus gambar"
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={url}
+                                onChange={(e) => setCmsLandingImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                placeholder="https://..."
+                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 2 Opsi Upload */}
+                      <div className="grid grid-cols-2 gap-3 mt-3">
+                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <ImageIcon className="w-5 h-5 mb-0.5" />
+                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={cmsUploading}
+                            onChange={async (e) => {
+                              const files = e.target.files;
+                              if (!files || files.length === 0) return;
+                              setCmsUploading(true);
+                              try {
+                                const urls = await handleCmsUploadMany(files);
+                                setCmsLandingImages(prev => [...prev, ...urls]);
+                                showToast(`${urls.length} foto berhasil diupload!`);
+                              } catch (err) {
+                                showToast('Gagal upload foto.');
+                              } finally {
+                                setCmsUploading(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCmsLandingImages(prev => [...prev, ''])}
+                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                        >
+                          <Link className="w-5 h-5 mb-0.5" />
+                          Opsi 2: Gunakan URL
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── LOGIN EDITOR ── */}
+                {cmsActivePage === 'login' && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                      <LogIn className="w-5 h-5 text-[#2C4219]" />
+                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Login</h2>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Judul Login
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsLoginTitle}
+                        onChange={(e) => setCmsLoginTitle(e.target.value)}
+                        placeholder="Contoh: Selamat Datang\nKembali Ibu!"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <FileText className="w-3.5 h-3.5" /> Deskripsi Login
+                      </label>
+                      <textarea
+                        value={cmsLoginDesc}
+                        onChange={(e) => setCmsLoginDesc(e.target.value)}
+                        rows={3}
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Login ({cmsLoginImages.length})
+                      </label>
+                      {/* Grid foto dinamis */}
+                      {cmsLoginImages.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {cmsLoginImages.map((url, idx) => (
+                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                {url ? (
+                                  <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                    <ImageIcon className="w-6 h-6 mb-1" />
+                                    <span className="text-[10px]">Masukkan URL</span>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setCmsLoginImages(prev => prev.filter((_, i) => i !== idx))}
+                                  title="Hapus gambar"
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={url}
+                                onChange={(e) => setCmsLoginImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                placeholder="https://..."
+                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3 mt-3">
+                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <ImageIcon className="w-5 h-5 mb-0.5" />
+                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={cmsUploading}
+                            onChange={async (e) => {
+                              const files = e.target.files;
+                              if (!files || files.length === 0) return;
+                              setCmsUploading(true);
+                              try {
+                                const urls = await handleCmsUploadMany(files);
+                                setCmsLoginImages(prev => [...prev, ...urls]);
+                                showToast(`${urls.length} foto berhasil diupload!`);
+                              } catch (err) {
+                                showToast('Gagal upload foto.');
+                              } finally {
+                                setCmsUploading(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCmsLoginImages(prev => [...prev, ''])}
+                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                        >
+                          <Link className="w-5 h-5 mb-0.5" />
+                          Opsi 2: Gunakan URL
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── REGISTER EDITOR ── */}
+                {cmsActivePage === 'register' && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                      <UserPlus className="w-5 h-5 text-[#2C4219]" />
+                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Register</h2>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Judul Register
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsRegTitle}
+                        onChange={(e) => setCmsRegTitle(e.target.value)}
+                        placeholder="Contoh: Komunitas Sorgum,\nTumbuh & Maju Bersama"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <FileText className="w-3.5 h-3.5" /> Deskripsi Register
+                      </label>
+                      <textarea
+                        value={cmsRegDesc}
+                        onChange={(e) => setCmsRegDesc(e.target.value)}
+                        rows={3}
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Register ({cmsRegImages.length})
+                      </label>
+                      {/* Grid foto dinamis */}
+                      {cmsRegImages.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {cmsRegImages.map((url, idx) => (
+                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                {url ? (
+                                  <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                    <ImageIcon className="w-6 h-6 mb-1" />
+                                    <span className="text-[10px]">Masukkan URL</span>
+                                  </div>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setCmsRegImages(prev => prev.filter((_, i) => i !== idx))}
+                                  title="Hapus gambar"
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={url}
+                                onChange={(e) => setCmsRegImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                placeholder="https://..."
+                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3 mt-3">
+                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <ImageIcon className="w-5 h-5 mb-0.5" />
+                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={cmsUploading}
+                            onChange={async (e) => {
+                              const files = e.target.files;
+                              if (!files || files.length === 0) return;
+                              setCmsUploading(true);
+                              try {
+                                const urls = await handleCmsUploadMany(files);
+                                setCmsRegImages(prev => [...prev, ...urls]);
+                                showToast(`${urls.length} foto berhasil diupload!`);
+                              } catch (err) {
+                                showToast('Gagal upload foto.');
+                              } finally {
+                                setCmsUploading(false);
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCmsRegImages(prev => [...prev, ''])}
+                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                        >
+                          <Link className="w-5 h-5 mb-0.5" />
+                          Opsi 2: Gunakan URL
+                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT: Live Preview */}
+              <div className="space-y-3 lg:sticky lg:top-6">
+                <div className="flex items-center justify-between px-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#433A30]/60 flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
+                  </p>
+                  <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
+                    {cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
+                  </span>
+                </div>
+
+                {/* Landing Preview */}
+                {cmsActivePage === 'landing' && (
+                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                      {cmsLandingImages[0] && (
+                        <img src={cmsImgUrl(cmsLandingImages[0])} alt="Hero" className="w-full h-full object-cover opacity-60" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#1E2E11]/90 via-[#2C4219]/70 to-transparent" />
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#A8B774] text-[#1E2E11] uppercase tracking-wider">Komunitas KWT</span>
+                        <h3 className="font-title font-extrabold text-white text-3xl leading-tight mt-3">
+                          {cmsLandingTitle || 'Judul Utama'}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="p-6 bg-white shrink-0">
+                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-3">
+                        {cmsLandingDesc || 'Deskripsi singkat akan tampil di sini.'}
+                      </p>
+                      {cmsLandingImages.length > 0 && (
+                        <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                          {cmsLandingImages.map((img, i) => (
+                            <div key={i} className="w-24 h-16 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Login Preview */}
+                {cmsActivePage === 'login' && (
+                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                      {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                          {cmsLoginTitle || 'Judul Login'}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="p-6 bg-white shrink-0">
+                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                        {cmsLoginDesc || 'Deskripsi login akan tampil di sini.'}
+                      </p>
+                      {cmsLoginImages.length > 0 && (
+                        <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                          {cmsLoginImages.map((img, i) => (
+                            <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-3 pt-4">
+                        <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                          <span className="text-xs text-[#433A30]/50 font-medium">email@contoh.com</span>
+                        </div>
+                        <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                          <span className="text-sm font-bold text-white">Masuk</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Register Preview */}
+                {cmsActivePage === 'register' && (
+                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                      {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                      <div className="absolute bottom-6 left-6 right-6">
+                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                          {cmsRegTitle || 'Judul Register'}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="p-6 bg-white shrink-0">
+                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                        {cmsRegDesc || 'Deskripsi register akan tampil di sini.'}
+                      </p>
+                      {cmsRegImages.length > 0 && (
+                        <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                          {cmsRegImages.map((img, i) => (
+                            <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-3 pt-4">
+                        <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                          <span className="text-xs text-[#433A30]/50 font-medium">Nama lengkap</span>
+                        </div>
+                        <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                          <span className="text-sm font-bold text-white">Daftar Sekarang</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-[#433A30]/50 px-1 flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> Pratinjau menyesuaikan teks &amp; gambar yang kamu ketik.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
       </main>
@@ -1790,7 +2476,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="space-y-2">
                 <label className="block font-bold text-[#2C4219]">Gambar Header</label>
                 <div className="flex gap-4 items-start">
-                                  {/* Preview — only show when image exists */}
+                  {/* Preview — only show when image exists */}
                   {artImage && (
                     <div className="w-32 h-24 rounded-xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] flex items-center justify-center shrink-0 overflow-hidden">
                       <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
@@ -2239,7 +2925,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       {threadToDeleteModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4">
-            
+
             {/* Header with Title and Close Button */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">

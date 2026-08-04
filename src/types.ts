@@ -1,5 +1,19 @@
 export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'diskusi' | 'dashboard' | 'profil';
 
+export interface CmsData {
+  landingTitle: string;
+  landingDesc: string;
+  landingImages: { url: string; title: string; caption: string }[];
+  loginTitle: string;
+  loginDesc: string;
+  loginImage?: string;
+  loginImages?: { url: string; title: string; caption: string }[];
+  registerTitle: string;
+  registerDesc: string;
+  registerImage?: string;
+  registerImages?: { url: string; title: string; caption: string }[];
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -76,6 +90,8 @@ export interface AgendaEvent {
   targetParticipants?: string;
   quota?: { registered: number; max: number };
   contactPerson?: { name: string; phone: string };
+  creatorId?: string;
+  isRegistered?: boolean;
 }
 
 export interface ForumComment {
@@ -89,6 +105,13 @@ export interface ForumComment {
   likes: number;
   userLiked?: boolean;
   replies?: ForumComment[];
+  imageAttachment?: string;
+  documentAttachment?: string;
+  documentName?: string;
+  quotedCommentText?: string;
+  quotedCommentAuthor?: string;
+  createdAt?: number | string;
+  isEdited?: boolean;
 }
 
 export interface ForumThread {
@@ -135,4 +158,13 @@ export interface HarvestRecord {
   quality: 'Super Premium' | 'Grade A' | 'Grade B';
   recordedBy: string;
   notes: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  summary: string;
+  isRead: boolean;
+  postedTime: string;
+  category: string;
 }
