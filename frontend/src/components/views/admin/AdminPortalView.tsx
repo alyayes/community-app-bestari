@@ -2460,6 +2460,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               </div>
 
+              {/* Row 1.5: Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Status</label>
+                  <select
+                    value={artStatus}
+                    onChange={(e) => setArtStatus(e.target.value as 'Draft' | 'Published')}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  >
+                    <option value="Published">Published</option>
+                    <option value="Draft">Draft</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Row 2: Upload Gambar */}
               <div className="space-y-2">
                 <label className="block font-bold text-[#2C4219]">Gambar Header</label>
