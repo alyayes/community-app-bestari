@@ -689,7 +689,7 @@ export function App() {
         harvestRecords={harvestRecords}
         cmsData={cmsData}
         onUpdateCmsData={handleUpdateCmsData}
-        onUpdateArticles={setArticles}
+        onUpdateArticles={(list) => setArticles(list.filter(a => (a as any).status !== 'Draft'))}
         onUpdateAnnouncements={setAnnouncements}
         onUpdateThreads={setThreads}
         onUpdateAgendas={setEvents}

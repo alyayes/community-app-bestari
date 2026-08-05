@@ -101,6 +101,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
   const [subTabAgenda, setSubTabAgenda] = useState<'list' | 'tambah'>('list');
 
+  // State artikel admin sendiri (termasuk Draft) — pisah dari state publik App.tsx
+  const [adminArticles, setAdminArticles] = useState<InfoArticle[]>(articles);
+  useEffect(() => {
+    setAdminArticles(articles);
+  }, [articles]);
+
   // Agenda items initial mock matching screenshot
   const DEFAULT_AGENDAS: AgendaEvent[] = [
     {
@@ -454,6 +460,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       }
       // Reload dari backend — pakai endpoint admin (termasuk Draft)
       const reloaded = await api<InfoArticle[]>('/artikel/admin');
+      setAdminArticles(reloaded);
       onUpdateArticles(reloaded);
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan artikel');
@@ -488,8 +495,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     if (!deleteConfirmModal) return;
     const { id, title, type } = deleteConfirmModal;
     if (type === 'artikel') {
-      onUpdateArticles(articles.filter(a => a.id !== id));
-      showToast(`Artikel "${title}" berhasil dihapus.`);
+      const updated = adminArticles.filter(a => a.id !== id);
+      setAdminArticles(updated);
+      onUpdateArticles(updated);
+      showToast('Artikel "' + title + '" berhasil dihapus.');
     } else if (type === 'pengumuman') {
       onUpdateAnnouncements(announcements.filter(a => a.id !== id));
       showToast(`Pengumuman "${title}" berhasil dihapus.`);
@@ -562,7 +571,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   };
 
   // Filtering data
-  const filteredArticles = articles.filter(art => {
+  const filteredArticles = adminArticles.filter(art => {
     const matchesSearch = (art.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (art.summary || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCat = categoryFilter === 'Semua' || (art.category || '').toLowerCase() === categoryFilter.toLowerCase();
@@ -911,7 +920,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* Table Pagination Footer */}
               <div className="p-4 bg-[#FAF6EE]/60 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062] font-bold">
-                <span>Showing {filteredArticles.length} of {articles.length} articles</span>
+                <span>Showing {filteredArticles.length} of {adminArticles.length} articles</span>
                 <div className="flex items-center gap-1">
                   <button className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]">&lt;</button>
                   <button className="px-3 py-1 rounded-lg bg-[#2C4219] text-white">1</button>
