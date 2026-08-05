@@ -101,11 +101,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
   const [subTabAgenda, setSubTabAgenda] = useState<'list' | 'tambah'>('list');
 
-  // State artikel admin sendiri (termasuk Draft) — pisah dari state publik App.tsx
+  // State artikel admin sendiri (termasuk Draft) — pisah dari state publik App.tsx.
+  // TIDAK di-sync dari props setelah mount (agar Draft tidak tertimpa oleh filter Published App.tsx)
   const [adminArticles, setAdminArticles] = useState<InfoArticle[]>(articles);
+
+  // Saat mount: load semua artikel (termasuk Draft) untuk tabel admin
   useEffect(() => {
-    setAdminArticles(articles);
-  }, [articles]);
+    api<InfoArticle[]>('/artikel/admin')
+      .then(list => { if (list?.length) setAdminArticles(list); })
+      .catch(() => {});
+  }, []);
 
   // Agenda items initial mock matching screenshot
   const DEFAULT_AGENDAS: AgendaEvent[] = [
