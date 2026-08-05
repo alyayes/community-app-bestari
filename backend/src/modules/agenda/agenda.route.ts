@@ -21,6 +21,14 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
   const dayNumber = a.dayNumber || String(d.getDate()).padStart(2, '0');
   const monthAbbr = a.monthAbbr || MONTHS_ID[d.getMonth()];
 
+  // Auto-status: jika tanggal agenda sudah lewat (bukan hari ini) → otomatis Selesai
+  let status = a.status || 'Pendaftaran Dibuka';
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (a.date && a.date < todayStr) {
+    status = 'Selesai';
+  }
+
   const peserta = Array.isArray(a.peserta) ? a.peserta : [];
   const reminders = Array.isArray(a.reminders) ? a.reminders : [];
   const userId = opts.userId;
@@ -33,7 +41,7 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
     monthAbbr,
     time: a.time || '',
     location: a.location || '',
-    status: a.status || 'Pendaftaran Dibuka',
+    status: status,
     statusType: a.statusType || 'success',
     category: a.category || '',
     description: a.description || '',

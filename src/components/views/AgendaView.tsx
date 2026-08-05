@@ -73,6 +73,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
   const [newContactPhone, setNewContactPhone] = useState('');
   const [newRequirements, setNewRequirements] = useState('');
   const [newBenefits, setNewBenefits] = useState('');
+  const [newStatus, setNewStatus] = useState('Pendaftaran Dibuka');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
@@ -82,6 +83,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
   // Filtered list based on search term and category
   const activeSearch = searchTerm || searchQuery;
   const filteredEvents = events.filter(e => {
+    // Sembunyikan agenda yang sudah selesai (lewat tanggal) dari daftar user
+    if (e.status === 'Selesai') return false;
     const matchesSearch = e.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
                           (e.location && e.location.toLowerCase().includes(activeSearch.toLowerCase())) ||
                           (e.organizer && e.organizer.toLowerCase().includes(activeSearch.toLowerCase()));
@@ -131,6 +134,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
     setNewContactPhone('');
     setNewRequirements('');
     setNewBenefits('');
+    setNewStatus('Pendaftaran Dibuka');
     setShowAddModal(true);
   };
 
@@ -149,6 +153,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
     setNewContactPhone(ev.contactPerson?.phone || '');
     setNewRequirements(ev.requirements?.join(', ') || '');
     setNewBenefits(ev.benefits?.join(', ') || '');
+    setNewStatus(ev.status || 'Pendaftaran Dibuka');
     setShowAddModal(true);
   };
 
@@ -181,7 +186,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
         targetParticipants: newTargetParticipants,
         contactPerson: contactObj,
         requirements: reqList.length > 0 ? reqList : undefined,
-        benefits: benList.length > 0 ? benList : undefined
+        benefits: benList.length > 0 ? benList : undefined,
+        status: newStatus as AgendaEvent['status']
       };
       onEditEvent(updatedEv);
       setSelectedEvent(updatedEv);
@@ -194,7 +200,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
         monthAbbr,
         time: newTime,
         location: newLocation,
-        status: 'Pendaftaran Dibuka',
+        status: newStatus as AgendaEvent['status'],
         statusType: 'success',
         category: newCategory,
         description: newDesc || 'Kegiatan kelompok tani KWT Sorgum.',
@@ -896,6 +902,20 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events, currentUser, onA
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[#433A30] mb-1">Status Agenda</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#E6E1D5] focus:outline-none focus:border-[#2C4219]"
+                  >
+                    <option value="Pendaftaran Dibuka">Pendaftaran Dibuka</option>
+                    <option value="Terbuka Umum">Terbuka Umum</option>
+                    <option value="Wajib Hadir">Wajib Hadir</option>
+                    <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+                    <option value="Selesai">Selesai</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block font-semibold text-[#433A30] mb-1">Waktu</label>
                   <input

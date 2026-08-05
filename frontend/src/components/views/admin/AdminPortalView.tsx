@@ -105,11 +105,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // TIDAK di-sync dari props setelah mount (agar Draft tidak tertimpa oleh filter Published App.tsx)
   const [adminArticles, setAdminArticles] = useState<InfoArticle[]>(articles);
 
-  // Saat mount: load semua artikel (termasuk Draft) untuk tabel admin
+  // Saat mount: load semua artikel (termasuk Draft) untuk tabel admin.
+  // Retry beberapa kali untuk mengatasi race condition dengan auto-login (token belum siap).
   useEffect(() => {
-    api<InfoArticle[]>('/artikel/admin')
-      .then(list => { if (list?.length) setAdminArticles(list); })
-      .catch(() => {});
+    let cancelled = false;
+    let attempts = 0;
+    const load = () => {
+      api<InfoArticle[]>('/artikel/admin')
+        .then(list => { if (!cancelled && list?.length) setAdminArticles(list); })
+        .catch(() => {
+          attempts += 1;
+          if (!cancelled && attempts < 5) setTimeout(load, 800);
+        });
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   // Agenda items initial mock matching screenshot
@@ -177,13 +187,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [agTime, setAgTime] = useState('09:00 - 12:00');
   const [agLocation, setAgLocation] = useState('Balai Desa Sukamaju');
   const [agOrganizer, setAgOrganizer] = useState('KWT Sari');
-  const [agStatus, setAgStatus] = useState('Akan Datang');
+  const [agStatus, setAgStatus] = useState('Pendaftaran Dibuka');
   const [agDescription, setAgDescription] = useState('');
+  const [agTargetParticipants, setAgTargetParticipants] = useState('');
+  const [agContactName, setAgContactName] = useState('');
+  const [agContactPhone, setAgContactPhone] = useState('');
+  const [agRequirements, setAgRequirements] = useState('');
+  const [agBenefits, setAgBenefits] = useState('');
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Semua');
   const [statusFilter, setStatusFilter] = useState('Semua');
+
+  // Pagination artikel admin: 8 item per halaman
+  const [articlePage, setArticlePage] = useState(1);
+  const ARTICLES_PER_PAGE = 8;
+
+  // Pagination agenda admin: 8 item per halaman
+  const [agendaPage, setAgendaPage] = useState(1);
+  const AGENDAS_PER_PAGE = 8;
 
   // Toast / Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -304,8 +327,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setAgTime('09:00 - 12:00');
     setAgLocation('Balai Desa Sukamaju');
     setAgOrganizer('KWT Sari');
-    setAgStatus('Akan Datang');
+    setAgStatus('Pendaftaran Dibuka');
     setAgDescription('');
+    setAgTargetParticipants('');
+    setAgContactName('');
+    setAgContactPhone('');
+    setAgRequirements('');
+    setAgBenefits('');
     setIsAgendaModalOpen(true);
   };
 
@@ -317,8 +345,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setAgTime(ag.time || '');
     setAgLocation(ag.location || '');
     setAgOrganizer(ag.organizer || 'Admin KWT');
-    setAgStatus(ag.status || 'Akan Datang');
+    setAgStatus(ag.status || 'Pendaftaran Dibuka');
     setAgDescription(ag.description || '');
+    setAgTargetParticipants((ag as any).targetParticipants || '');
+    setAgContactName((ag as any).contactPerson?.name || '');
+    setAgContactPhone((ag as any).contactPerson?.phone || '');
+    setAgRequirements((ag as any).requirements?.join(', ') || '');
+    setAgBenefits((ag as any).benefits?.join(', ') || '');
     setIsAgendaModalOpen(true);
   };
 
@@ -337,7 +370,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           location: agLocation,
           organizer: agOrganizer,
           status: agStatus as any,
-          description: agDescription
+          description: agDescription,
+          targetParticipants: agTargetParticipants,
+          contactPerson: { name: agContactName, phone: agContactPhone },
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
         } : a
       );
       setAgendaList(updated);
@@ -355,7 +392,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             location: agLocation,
             organizer: agOrganizer,
             status: agStatus,
-            description: agDescription
+            description: agDescription,
+            targetParticipants: agTargetParticipants,
+            contactPerson: { name: agContactName, phone: agContactPhone },
+            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
           }
         }).catch(err => console.error('Failed to update agenda on backend:', err));
       }
@@ -372,7 +413,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         organizer: agOrganizer,
         status: agStatus as any,
         statusType: 'success',
-        description: agDescription
+        description: agDescription,
+        targetParticipants: agTargetParticipants,
+        contactPerson: { name: agContactName, phone: agContactPhone },
+        requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+        benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
       };
       const updated = [newAg, ...agendaList];
       setAgendaList(updated);
@@ -389,7 +434,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           location: agLocation,
           organizer: agOrganizer,
           status: agStatus,
-          description: agDescription
+          description: agDescription,
+          targetParticipants: agTargetParticipants,
+          contactPerson: { name: agContactName, phone: agContactPhone },
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
         }
       }).catch(err => console.error('Failed to create agenda on backend:', err));
     }
@@ -411,6 +460,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Pagination slice untuk tabel agenda
+  const totalAgendaPages = Math.max(1, Math.ceil(filteredAgendas.length / AGENDAS_PER_PAGE));
+  const currentAgendaPage = Math.min(agendaPage, totalAgendaPages);
+  const pagedAgendas = filteredAgendas.slice((currentAgendaPage - 1) * AGENDAS_PER_PAGE, currentAgendaPage * AGENDAS_PER_PAGE);
 
   // Article Actions
   const handleOpenAddArticle = () => {
@@ -504,9 +558,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setAdminArticles(updated);
       onUpdateArticles(updated);
       showToast('Artikel "' + title + '" berhasil dihapus.');
+      // Hapus dari backend (wajib, agar tidak muncul lagi setelah refresh)
+      api(`/artikel/${id}`, { method: 'DELETE' }).catch(err => {
+        console.error('Failed to delete artikel on backend:', err);
+        showToast('Gagal menghapus artikel di server.');
+      });
     } else if (type === 'pengumuman') {
-      onUpdateAnnouncements(announcements.filter(a => a.id !== id));
+      const updated = announcements.filter(a => a.id !== id);
+      onUpdateAnnouncements(updated);
       showToast(`Pengumuman "${title}" berhasil dihapus.`);
+      // Hapus dari backend (wajib, agar tidak muncul lagi setelah refresh)
+      api(`/pengumuman/${id}`, { method: 'DELETE' }).catch(err => {
+        console.error('Failed to delete pengumuman on backend:', err);
+        showToast('Gagal menghapus pengumuman di server.');
+      });
     } else if (type === 'agenda') {
       const updated = agendaList.filter(a => a.id !== id);
       setAgendaList(updated);
@@ -583,6 +648,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const matchesStatus = statusFilter === 'Semua' || ((art as any).status || 'Published') === statusFilter;
     return matchesSearch && matchesCat && matchesStatus;
   });
+
+  // Pagination slice untuk tabel artikel
+  const totalArticlePages = Math.max(1, Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE));
+  const currentPage = Math.min(articlePage, totalArticlePages);
+  const pagedArticles = filteredArticles.slice((currentPage - 1) * ARTICLES_PER_PAGE, currentPage * ARTICLES_PER_PAGE);
 
   const filteredAnnouncements = (announcements || []).filter(ann => {
     return (ann.title || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
@@ -850,8 +920,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {filteredArticles.length > 0 ? (
-                      filteredArticles.map((art, idx) => (
+                    {pagedArticles.length > 0 ? (
+                      pagedArticles.map((art, idx) => (
                         <tr key={art.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                           <td className="py-4 px-5 font-bold text-[#7A7062]">
                             {String(idx + 1).padStart(2, '0')}
@@ -886,27 +956,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </span>
                           </td>
                           <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 onClick={() => setPreviewArticle(art)}
                                 title="Lihat Artikel"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
                               >
                                 <Eye className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Lihat Detail</span>
                               </button>
                               <button
                                 onClick={() => handleOpenEditArticle(art)}
                                 title="Sunting Artikel"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
                               >
                                 <Edit3 className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Sunting</span>
                               </button>
                               <button
                                 onClick={() => handleDeleteArticle(art.id, art.title)}
                                 title="Hapus Artikel"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Hapus</span>
                               </button>
                             </div>
                           </td>
@@ -925,13 +998,28 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* Table Pagination Footer */}
               <div className="p-4 bg-[#FAF6EE]/60 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062] font-bold">
-                <span>Showing {filteredArticles.length} of {adminArticles.length} articles</span>
-                <div className="flex items-center gap-1">
-                  <button className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]">&lt;</button>
-                  <button className="px-3 py-1 rounded-lg bg-[#2C4219] text-white">1</button>
-                  <button className="px-3 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]">2</button>
-                  <button className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]">&gt;</button>
-                </div>
+                <span>Menampilkan {Math.min(filteredArticles.length, (currentPage - 1) * ARTICLES_PER_PAGE + pagedArticles.length)} dari {filteredArticles.length} artikel</span>
+                {totalArticlePages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setArticlePage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
+                    >&lt;</button>
+                    {Array.from({ length: totalArticlePages }, (_, i) => i + 1).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setArticlePage(p)}
+                        className={`px-3 py-1 rounded-lg ${p === currentPage ? 'bg-[#2C4219] text-white' : 'border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]'}`}
+                      >{p}</button>
+                    ))}
+                    <button
+                      onClick={() => setArticlePage(Math.min(totalArticlePages, currentPage + 1))}
+                      disabled={currentPage === totalArticlePages}
+                      className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
+                    >&gt;</button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1204,17 +1292,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
-                {/* Status / Time Filter Dropdown */}
+                {/* Status Filter Dropdown */}
                 <div className="relative">
                   <select
                     value={agendaStatusFilter}
                     onChange={(e) => setAgendaStatusFilter(e.target.value)}
                     className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
                   >
-                    <option value="Semua">Filter Waktu</option>
-                    <option value="Akan Datang">Akan Datang</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Selesai">Selesai</option>
+                    <option value="Semua">Semua Status</option>
+                    {Array.from(new Set(agendaList.map(ag => ag.status).filter(Boolean))).map(st => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -1249,7 +1337,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E6E1D5]/60 font-medium text-[#433A30]">
-                    {filteredAgendas.map((ag, idx) => {
+                    {pagedAgendas.map((ag, idx) => {
                       return (
                         <tr key={ag.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                           <td className="py-4 px-4 text-center font-bold text-[#7A7062]">
@@ -1307,27 +1395,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </span>
                           </td>
                           <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 onClick={() => setViewingAgenda(ag)}
                                 title="Lihat Detail"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
                               >
                                 <Eye className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Lihat Detail</span>
                               </button>
                               <button
                                 onClick={() => handleOpenEditAgenda(ag)}
                                 title="Edit Agenda"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
                               >
                                 <Edit3 className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Sunting</span>
                               </button>
                               <button
                                 onClick={() => handleDeleteAgenda(ag.id, ag.title)}
                                 title="Hapus Agenda"
-                                className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
+                                <span className="text-[9px] font-bold">Hapus</span>
                               </button>
                             </div>
                           </td>
@@ -1340,14 +1431,28 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* Table Pagination Footer */}
               <div className="bg-[#FAF6EE] px-5 py-3 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062]">
-                <p className="font-semibold">Menampilkan 1-{filteredAgendas.length} dari {agendaList.length} agenda</p>
-                <div className="flex items-center gap-1">
-                  <button className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold">&lt;</button>
-                  <button className="w-7 h-7 rounded-lg bg-[#2C4219] text-white font-extrabold">1</button>
-                  <button className="w-7 h-7 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold">2</button>
-                  <button className="w-7 h-7 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold">3</button>
-                  <button className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold">&gt;</button>
-                </div>
+                <p className="font-semibold">Menampilkan {Math.min(filteredAgendas.length, (currentAgendaPage - 1) * AGENDAS_PER_PAGE + pagedAgendas.length)} dari {filteredAgendas.length} agenda</p>
+                {totalAgendaPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setAgendaPage(Math.max(1, currentAgendaPage - 1))}
+                      disabled={currentAgendaPage === 1}
+                      className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
+                    >&lt;</button>
+                    {Array.from({ length: totalAgendaPages }, (_, i) => i + 1).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setAgendaPage(p)}
+                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-extrabold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
+                      >{p}</button>
+                    ))}
+                    <button
+                      onClick={() => setAgendaPage(Math.min(totalAgendaPages, currentAgendaPage + 1))}
+                      disabled={currentAgendaPage === totalAgendaPages}
+                      className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
+                    >&gt;</button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2605,16 +2710,29 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     accept="image/png,image/jpeg,image/jpg"
                     multiple
                     className="hidden"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const files = Array.from(e.target.files || []);
-                      files.forEach((file: File) => {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          setArtGallery(prev => [...prev, ev.target?.result as string]);
-                        };
-                        reader.readAsDataURL(file);
-                      });
                       e.target.value = '';
+                      for (const file of files) {
+                        try {
+                          const form = new FormData();
+                          form.append('file', file as Blob);
+                          const res = await fetch('http://localhost:8000/api/upload', {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
+                            body: form,
+                          });
+                          const json = await res.json();
+                          if (json.success && json.data?.url) {
+                            setArtGallery(prev => [...prev, json.data.url]);
+                          } else {
+                            showToast(json.message || 'Gagal upload foto galeri');
+                          }
+                        } catch {
+                          showToast('Gagal upload foto galeri');
+                        }
+                      }
+                      if (files.length > 0) showToast(`${files.length} foto berhasil diupload`);
                     }}
                   />
                 </label>
@@ -2744,7 +2862,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       {/* Modal Tambah / Edit Agenda */}
       {isAgendaModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-2xl max-w-xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
               <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
                 {editingAgenda ? 'Sunting Agenda Kegiatan' : 'Tambah Agenda Baru'}
@@ -2793,10 +2911,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     onChange={(e) => setAgStatus(e.target.value)}
                     className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   >
-                    <option value="Akan Datang">Akan Datang</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Selesai">Selesai</option>
                     <option value="Pendaftaran Dibuka">Pendaftaran Dibuka</option>
+                    <option value="Terbuka Umum">Terbuka Umum</option>
+                    <option value="Wajib Hadir">Wajib Hadir</option>
+                    <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
+                    <option value="Selesai">Selesai</option>
                   </select>
                 </div>
               </div>
@@ -2805,9 +2924,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Tanggal Kegiatan *</label>
                   <input
-                    type="text"
+                    type="date"
                     required
-                    placeholder="Contoh: 10 Okt 2026"
                     value={agDate}
                     onChange={(e) => setAgDate(e.target.value)}
                     className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
@@ -2859,6 +2977,63 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   onChange={(e) => setAgDescription(e.target.value)}
                   className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Target Peserta</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Seluruh Anggota"
+                    value={agTargetParticipants}
+                    onChange={(e) => setAgTargetParticipants(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Kontak Person (PIC)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama"
+                      value={agContactName}
+                      onChange={(e) => setAgContactName(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="No. HP"
+                      value={agContactPhone}
+                      onChange={(e) => setAgContactPhone(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Persyaratan & Alat yang Dibawa</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Contoh: Membawa alat tulis, Sarung tangan (pisahkan dengan koma)"
+                    value={agRequirements}
+                    onChange={(e) => setAgRequirements(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-[#2C4219]">Fasilitas & Manfaat Peserta</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Contoh: Makan siang, Modul, Sertifikat (pisahkan dengan koma)"
+                    value={agBenefits}
+                    onChange={(e) => setAgBenefits(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  />
+                </div>
               </div>
 
               <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
