@@ -67,13 +67,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
       return;
     }
 
-    if (!email.trim() && !phone.trim()) {
-      setErrorMsg('Mohon isi Email atau Nomor WhatsApp Anda.');
+    if (!email.trim()) {
+      setErrorMsg('Mohon isi alamat Email Anda.');
       return;
     }
 
-    if (!password.trim()) {
-      setErrorMsg('Mohon isi Kata Sandi.');
+    if (!password.trim() || password.length < 6) {
+      setErrorMsg('Mohon isi Kata Sandi minimal 6 karakter.');
       return;
     }
 
@@ -100,7 +100,12 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
         })
         .catch(err => {
           setIsLoading(false);
-          setErrorMsg(err?.message || 'Gagal mendaftar. Coba lagi.');
+          if (err?.data?.errors && Array.isArray(err.data.errors)) {
+            const msgs = err.data.errors.map((e: any) => e.message).join(', ');
+            setErrorMsg(`${err.message || 'Validasi gagal'}: ${msgs}`);
+          } else {
+            setErrorMsg(err?.message || 'Gagal mendaftar. Coba lagi.');
+          }
         });
       return;
     }
