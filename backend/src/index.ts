@@ -18,6 +18,7 @@ import bannerRoutes from './modules/banner/banner.route';
 import hargaPasarRoutes from './modules/harga-pasar/hargaPasar.route';
 import uploadRoutes from './modules/upload/upload.route';
 import cmsRoutes from './modules/cms/cms.route';
+import sttRoutes from './modules/stt/stt.route';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/banner', bannerRoutes);
 app.use('/api/harga-pasar', hargaPasarRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cms', cmsRoutes);
+app.use('/api/stt', sttRoutes);
 
 // 404
 app.use((_req, res) => {

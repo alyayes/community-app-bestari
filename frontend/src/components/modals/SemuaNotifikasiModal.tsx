@@ -44,7 +44,7 @@ export const SemuaNotifikasiModal: React.FC<SemuaNotifikasiModalProps> = ({
               onClick={onMarkAllRead}
               className="text-[10px] sm:text-xs font-bold text-[#2C4219] hover:text-[#1E2E11] transition-colors"
             >
-              Tandai Semua Dibaca
+              Baca Semua
             </button>
             <button
               onClick={onClearAll}
@@ -105,7 +105,7 @@ export const SemuaNotifikasiModal: React.FC<SemuaNotifikasiModalProps> = ({
                       <button
                         onClick={() => onMarkRead(notif.id)}
                         className="p-1.5 rounded bg-[#FAF6EE] text-[#A8B774] hover:text-[#2C4219] hover:bg-[#E3EAD3] transition-colors"
-                        title="Tandai Dibaca"
+                        title="Baca Semua"
                       >
                         <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

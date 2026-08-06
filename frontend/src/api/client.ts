@@ -3,7 +3,8 @@
 // Base URL: http://localhost:8000/api
 // ────────────────────────────────────────────────────────────
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const SERVER_BASE = BASE_URL.replace(/\/api$/, '');
 
 const TOKEN_KEY = 'bestari_token';
 

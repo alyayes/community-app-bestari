@@ -13,6 +13,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
+import { SERVER_BASE } from '../../api/client';
 
 interface RegisterViewProps {
   cmsData?: CmsData | null;
@@ -35,7 +36,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(true);
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -45,7 +46,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
     ? cmsData.registerImages.map(i => i.url)
     : (cmsData?.registerImage ? [cmsData.registerImage] : ["https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=1200"]);
 
-  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `http://localhost:8000${u}` : u;
+  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
 
   useEffect(() => {
     if (registerImages.length <= 1) return;
@@ -79,10 +80,6 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
       return;
     }
 
-    if (!agreeTerms) {
-      setErrorMsg('Anda harus menyetujui Syarat & Ketentuan keanggotaan.');
-      return;
-    }
 
     setIsLoading(true);
 
@@ -150,15 +147,19 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             onClick={onGoToLanding}
             className="flex items-center gap-3 cursor-pointer group text-left"
           >
-            <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0">
-              <Sprout className="w-6 h-6" />
-            </div>
+            {cmsData?.webLogo ? (
+              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0">
+                <Sprout className="w-6 h-6" />
+              </div>
+            )}
             <div className="text-left">
-              <span className="font-title font-extrabold text-lg tracking-tight block leading-tight text-white">
+              <span className="font-title font-extrabold text-lg tracking-tight block leading-tight text-white line-clamp-1">
                 Community App
               </span>
-              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-0.5">
-                KWT MELATI SORGUM
+              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-0.5 line-clamp-1">
+                {cmsData?.webName || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>
@@ -312,19 +313,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
               </div>
             </div>
 
-            {/* 5. SYARAT & KETENTUAN */}
-            <div className="flex items-center gap-2.5 pt-1">
-              <input
-                type="checkbox"
-                id="agreeTerms"
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="w-4 h-4 accent-[#2C4219] rounded cursor-pointer"
-              />
-              <label htmlFor="agreeTerms" className="text-[11px] text-[#433A30] cursor-pointer font-medium">
-                Saya menyetujui <span className="font-bold text-[#2C4219]">Syarat & Ketentuan</span> keanggotaan KWT Melati Sorgum.
-              </label>
-            </div>
+
 
             {/* 6. TOMBOL DAFTAR */}
             <button

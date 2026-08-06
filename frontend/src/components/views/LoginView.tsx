@@ -9,11 +9,15 @@ import {
   Mail,
   Lock,
   ShieldCheck,
-  User
+  User,
+  KeyRound,
+  Loader2,
+  X
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
 import { ADMIN_USER } from '../../data/mockData';
 import { useToast } from '../../contexts/ToastContext';
+import { SERVER_BASE, BASE_URL } from '../../api/client';
 interface LoginViewProps {
   cmsData?: CmsData | null;
   onGoToLanding: () => void;
@@ -28,13 +32,20 @@ export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
   onApiLogin
 }) => {
-  const [accountType, setAccountType] = useState<'member' | 'admin'>('member');
-  const [email, setEmail] = useState('anggota@kwtsorgum.id');
-  const [password, setPassword] = useState('sorgum123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const { showToast } = useToast();
+
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -42,7 +53,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     ? cmsData.loginImages.map(i => i.url)
     : (cmsData?.loginImage ? [cmsData.loginImage] : ["https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200"]);
 
-  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `http://localhost:8000${u}` : u;
+  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
 
   useEffect(() => {
     if (loginImages.length <= 1) return;
@@ -51,17 +62,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
     }, 5500);
     return () => clearInterval(timer);
   }, [loginImages.length]);
-
-  const handleSelectType = (type: 'member' | 'admin') => {
-    setAccountType(type);
-    if (type === 'admin') {
-      setEmail('admin@kwtsorgum.id');
-      setPassword('admin123');
-    } else {
-      setEmail('anggota@kwtsorgum.id');
-      setPassword('sorgum123');
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +92,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setTimeout(() => {
       setIsLoading(false);
 
-      const isAdminInput = accountType === 'admin' ||
-        email.toLowerCase().includes('admin') ||
+      const isAdminInput = email.toLowerCase().includes('admin') ||
         password.toLowerCase().includes('admin');
 
       if (isAdminInput) {
@@ -120,6 +119,66 @@ export const LoginView: React.FC<LoginViewProps> = ({
         onLoginSuccess(loggedUser);
       }
     }, 800);
+  };
+
+  const handleForgotPasswordStep1 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    if (!forgotEmail.trim()) {
+      setForgotError('Masukkan alamat email yang terdaftar.');
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'OTP berhasil dikirim!', 'success');
+        setForgotStep(2);
+      } else {
+        setForgotError(data.message || 'Gagal mengirim OTP');
+      }
+    } catch (err) {
+      setForgotError('Terjadi kesalahan koneksi jaringan.');
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleForgotPasswordStep2 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    if (!forgotOtp.trim() || !forgotNewPass.trim()) {
+      setForgotError('Masukkan kode OTP dan kata sandi baru.');
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim(), otp: forgotOtp.trim(), newPassword: forgotNewPass })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'Kata sandi berhasil diubah!', 'success');
+        setShowForgotModal(false);
+        setForgotStep(1);
+        setForgotEmail('');
+        setForgotOtp('');
+        setForgotNewPass('');
+      } else {
+        setForgotError(data.message || 'Gagal mengubah kata sandi');
+      }
+    } catch (err) {
+      setForgotError('Terjadi kesalahan koneksi jaringan.');
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   return (
@@ -198,33 +257,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
             </h1>
           </div>
 
-            {/* Role Type Selector Tabs */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleSelectType('member')}
-                className={`py-2.5 px-4 rounded-xl border-2 font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 transition-all ${accountType === 'member'
-                    ? 'border-[#2C4219] bg-[#2C4219] text-white shadow-md'
-                    : 'border-[#E6E1D5] bg-white text-[#433A30] hover:bg-[#FAF6EE]'
-                  }`}
-              >
-                <User className={`w-5 h-5 ${accountType === 'member' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-                <span>Anggota KWT</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSelectType('admin')}
-                className={`py-2.5 px-4 rounded-xl border-2 font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 transition-all ${accountType === 'admin'
-                    ? 'border-[#2C4219] bg-[#2C4219] text-white shadow-md'
-                    : 'border-[#E6E1D5] bg-white text-[#433A30] hover:bg-[#FAF6EE]'
-                  }`}
-              >
-                <ShieldCheck className={`w-5 h-5 ${accountType === 'admin' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-                <span>Admin Portal</span>
-              </button>
-            </div>
-
           {errorMsg && (
             <div className="p-4 rounded-2xl bg-[#C53030]/10 border border-[#C53030]/30 text-[#C53030] text-sm font-semibold flex items-center gap-2.5 shadow-sm">
               <AlertCircle className="w-5 h-5 text-[#C53030] shrink-0" />
@@ -261,7 +293,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => showToast('Silakan hubungi sekretariat KWT atau ketua kelompok di Balai Desa untuk mereset kata sandi Anda.', 'info')}
+                  onClick={() => setShowForgotModal(true)}
                   className="text-[10px] text-[#2C4219] hover:underline font-extrabold"
                 >
                   Lupa kata sandi?
@@ -321,6 +353,97 @@ export const LoginView: React.FC<LoginViewProps> = ({
         </div>
       </div>
 
+      {/* LUPA PASSWORD MODAL */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#FAF6EE] w-full max-w-md rounded-[2rem] p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 border border-[#E6E1D5]">
+            <button 
+              onClick={() => {
+                setShowForgotModal(false);
+                setForgotStep(1);
+                setForgotError('');
+              }}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white text-[#433A30] hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-16 h-16 bg-[#2C4219]/10 rounded-full flex items-center justify-center mb-4">
+                <KeyRound className="w-8 h-8 text-[#2C4219]" />
+              </div>
+              <h3 className="font-title font-extrabold text-[#2C4219] text-xl">Lupa Kata Sandi?</h3>
+              <p className="text-sm text-[#5C5246] mt-2">
+                {forgotStep === 1 
+                  ? 'Masukkan email yang terdaftar, kami akan mengirimkan kode OTP untuk mengatur ulang kata sandi Anda.' 
+                  : 'Masukkan kode OTP yang telah dikirim ke email Anda beserta kata sandi baru.'}
+              </p>
+            </div>
+
+            {forgotError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs text-center font-medium">
+                {forgotError}
+              </div>
+            )}
+
+            {forgotStep === 1 ? (
+              <form onSubmit={handleForgotPasswordStep1} className="space-y-4">
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    placeholder="Masukkan alamat email..."
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full p-3 pl-10 rounded-xl border border-[#E6E1D5] bg-white focus:outline-none focus:border-[#2C4219] text-sm"
+                  />
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isForgotLoading}
+                  className="w-full py-3.5 bg-[#2C4219] hover:bg-[#1E2E11] text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-sm"
+                >
+                  {isForgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Kirim Kode OTP'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleForgotPasswordStep2} className="space-y-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Kode OTP 6 Digit"
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value)}
+                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-white focus:outline-none focus:border-[#2C4219] text-center tracking-[0.5em] text-lg font-bold text-[#2C4219]"
+                    maxLength={6}
+                  />
+                </div>
+                <div className="relative">
+                  <input
+                    type="password"
+                    required
+                    placeholder="Kata Sandi Baru"
+                    value={forgotNewPass}
+                    onChange={(e) => setForgotNewPass(e.target.value)}
+                    autoComplete="new-password"
+                    className="w-full p-3 pl-10 rounded-xl border border-[#E6E1D5] bg-white focus:outline-none focus:border-[#2C4219] text-sm"
+                  />
+                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isForgotLoading}
+                  className="w-full py-3.5 bg-[#2C4219] hover:bg-[#1E2E11] text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-sm"
+                >
+                  {isForgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan Kata Sandi Baru'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -22,7 +22,7 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
   const monthAbbr = a.monthAbbr || MONTHS_ID[d.getMonth()];
 
   // Auto-status: jika tanggal agenda sudah lewat (bukan hari ini) → otomatis Selesai
-  let status = a.status || 'Pendaftaran Dibuka';
+  let status = a.status || 'Belum dimulai';
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   if (a.date && a.date < todayStr) {

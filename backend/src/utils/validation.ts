@@ -29,10 +29,10 @@ export const updateProfileSchema = z.object({
 
 // ── Artikel ───────────────────────────────────────
 export const createArtikelSchema = z.object({
-  title: z.string().min(3).max(200),
+  title: z.string().min(1).max(200),
   category: z.enum(['Budidaya', 'Inovasi', 'Pengetahuan', 'Panen']),
   image: z.string().optional(),
-  summary: z.string().min(5),
+  summary: z.string().min(1),
   content: z.array(z.string()).optional(),
   gallery: z.array(z.string()).optional(),
   status: z.enum(['Draft', 'Published']).optional(),
@@ -73,7 +73,7 @@ export const createAgendaSchema = z.object({
   monthAbbr: z.string().optional(),
   time: z.string().optional(),
   location: z.string().optional(),
-  status: z.enum(['Pendaftaran Dibuka', 'Wajib Hadir', 'Menunggu Konfirmasi', 'Terbuka Umum', 'Selesai']).optional(),
+  status: z.enum(['Belum dimulai', 'Selesai']).optional(),
   statusType: z.enum(['success', 'warning', 'neutral', 'info']).optional(),
   category: z.string().optional(),
   description: z.string().optional(),

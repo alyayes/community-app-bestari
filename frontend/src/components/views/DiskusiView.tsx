@@ -1049,6 +1049,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                           <input
                             type="file"
                             ref={fileInputRef}
+                            accept="image/png,image/jpeg,image/jpg"
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               if (e.target.files && e.target.files[0]) {
@@ -1069,7 +1070,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                           <input
                             type="file"
                             ref={docInputRef}
-                            accept=".pdf,.doc,.docx,.txt"
+                            accept=".pdf"
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               if (e.target.files && e.target.files[0]) {

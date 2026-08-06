@@ -1,6 +1,8 @@
 export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'diskusi' | 'dashboard' | 'profil';
 
 export interface CmsData {
+  webName?: string;
+  webLogo?: string;
   landingTitle: string;
   landingDesc: string;
   landingImages: { url: string; title: string; caption: string }[];
@@ -79,7 +81,7 @@ export interface AgendaEvent {
   monthAbbr: string; // e.g. "OKT" or "JUL"
   time: string;
   location: string;
-  status: 'Pendaftaran Dibuka' | 'Wajib Hadir' | 'Menunggu Konfirmasi' | 'Terbuka Umum' | 'Selesai';
+  status: 'Belum dimulai' | 'Selesai';
   statusType: 'success' | 'warning' | 'neutral' | 'info';
   category: string;
   description: string;

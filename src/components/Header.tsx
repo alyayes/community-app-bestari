@@ -131,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
                         onClick={() => onMarkAllRead && onMarkAllRead()}
                         className="text-[10px] font-bold text-[#433A30]/60 hover:text-[#2C4219] transition-colors"
                       >
-                        Tandai Dibaca
+                        Baca Semua
                       </button>
                     )}
                     {notifications.length > 0 && (
@@ -231,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Lihat Profil Saya"
           >
             <img
-              src={currentUser.avatar}
+              src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'User')}&background=A8B774&color=2C4219`}
               alt={currentUser.name}
               className="w-8 h-8 rounded-full object-cover border border-[#2C4219]/20"
             />

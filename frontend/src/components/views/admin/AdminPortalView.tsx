@@ -44,6 +44,7 @@ import {
   MapPin,
   CalendarDays,
   BarChart2,
+  AlertTriangle,
   PieChart as PieChartIcon,
   Home,
   LogIn,
@@ -53,12 +54,16 @@ import {
   Save,
   ExternalLink,
   Link,
-  Sparkles
+  Sparkles,
+  Upload,
+  Mic,
+  Square,
+  Loader2
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
-import { api } from '../../../api/client';
+import { api, SERVER_BASE, BASE_URL } from '../../../api/client';
 
 interface AdminPortalViewProps {
   currentUser: UserProfile;
@@ -78,7 +83,7 @@ interface AdminPortalViewProps {
   onUpdateCmsData?: (data: CmsData) => void;
 }
 
-type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms';
+type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
 
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   currentUser,
@@ -100,6 +105,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
   const [subTabAgenda, setSubTabAgenda] = useState<'list' | 'tambah'>('list');
+
+  // Kelola Pengguna (Users) States
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userFormData, setUserFormData] = useState({ name: '', email: '', role: 'USER', phone: '', password: '' });
+
+  // Load Users when tab is 'users'
+  useEffect(() => {
+    if (activeTab === 'users') {
+      api<any[]>('/admin/users')
+        .then(data => setUsersList(data || []))
+        .catch(err => console.error(err));
+    }
+  }, [activeTab]);
 
   // State artikel admin sendiri (termasuk Draft) — pisah dari state publik App.tsx.
   // TIDAK di-sync dari props setelah mount (agar Draft tidak tertimpa oleh filter Published App.tsx)
@@ -134,7 +155,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       time: '09:00 - 12:00',
       location: 'Balai Desa Sukamaju',
       organizer: 'KWT Sari',
-      status: 'Akan Datang' as any,
+      status: 'Belum dimulai' as any,
       statusType: 'success',
       description: 'Pelatihan teknis olahan tepung sorgum bebas gluten untuk produk UMKM.'
     },
@@ -148,7 +169,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       time: '07:00 - 11:00',
       location: 'Lahan Percobaan Utama',
       organizer: 'Pak Slamet',
-      status: 'Akan Datang' as any,
+      status: 'Belum dimulai' as any,
       statusType: 'success',
       description: 'Kegiatan pemetikan biji sorgum varietas Bioguma secara bergotong royong.'
     },
@@ -162,7 +183,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       time: '13:00 - 15:00',
       location: 'Belum Ditentukan',
       organizer: 'Admin KWT',
-      status: 'Draft' as any,
+      status: 'Belum dimulai' as any,
       statusType: 'neutral',
       description: 'Pertemuan evaluasi rutin pengurus dan koordinator kelompok tani.'
     }
@@ -177,23 +198,146 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Agenda Modal & View States
   const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false);
+  const [showDateWarning, setShowDateWarning] = useState(false);
   const [editingAgenda, setEditingAgenda] = useState<AgendaEvent | null>(null);
   const [viewingAgenda, setViewingAgenda] = useState<AgendaEvent | null>(null);
 
   // Form fields for Agenda
   const [agTitle, setAgTitle] = useState('');
   const [agCategory, setAgCategory] = useState('WORKSHOP');
-  const [agDate, setAgDate] = useState('10 Okt 2026');
+  const [agDate, setAgDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [agTime, setAgTime] = useState('09:00 - 12:00');
   const [agLocation, setAgLocation] = useState('Balai Desa Sukamaju');
-  const [agOrganizer, setAgOrganizer] = useState('KWT Sari');
-  const [agStatus, setAgStatus] = useState('Pendaftaran Dibuka');
+  const [agOrganizer, setAgOrganizer] = useState(currentUser?.name || 'Admin');
+  const [agStatus, setAgStatus] = useState('Belum dimulai');
   const [agDescription, setAgDescription] = useState('');
   const [agTargetParticipants, setAgTargetParticipants] = useState('');
   const [agContactName, setAgContactName] = useState('');
   const [agContactPhone, setAgContactPhone] = useState('');
   const [agRequirements, setAgRequirements] = useState('');
   const [agBenefits, setAgBenefits] = useState('');
+
+  // STT Recording State for Agenda
+  const [inputModeAgenda, setInputModeAgenda] = useState<'manual' | 'voice'>('manual');
+  const [isRecordingAgenda, setIsRecordingAgenda] = useState(false);
+  const [isProcessingSTTAgenda, setIsProcessingSTTAgenda] = useState(false);
+  const mediaRecorderAgendaRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksAgendaRef = React.useRef<Blob[]>([]);
+
+  const startRecordingAgenda = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderAgendaRef.current = mediaRecorder;
+      audioChunksAgendaRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksAgendaRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksAgendaRef.current, { type: 'audio/webm' });
+        setIsProcessingSTTAgenda(true);
+
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          const response = await fetch(`${BASE_URL}/stt`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await response.json();
+          if (data.success && data.text) {
+            // Hapus tanda baca agar tidak mengganggu parser
+            const cleanText = data.text.replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim();
+
+            const keywords = [
+              { key: 'title', match: /(?:judul)[^\w]*/i },
+              { key: 'category', match: /(?:kategori)[^\w]*/i },
+              { key: 'date', match: /(?:tanggal)[^\w]*/i },
+              { key: 'time', match: /(?:waktu|jam)[^\w]*/i },
+              { key: 'desc', match: /(?:deskripsi)[^\w]*/i }
+            ];
+
+            let foundPositions: any[] = [];
+            keywords.forEach(kw => {
+              const match = cleanText.match(kw.match);
+              if (match) {
+                foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
+              }
+            });
+
+            if (foundPositions.length === 0) {
+              setAgDescription(prev => prev ? `${prev}\n\n${cleanText}` : cleanText);
+            } else {
+              foundPositions.sort((a, b) => a.index - b.index);
+
+              for (let i = 0; i < foundPositions.length; i++) {
+                const curr = foundPositions[i];
+                const next = foundPositions[i + 1];
+
+                const start = curr.index + curr.length;
+                const end = next ? next.index : cleanText.length;
+
+                const val = cleanText.substring(start, end).trim();
+                if (!val) continue;
+
+                if (curr.key === 'title') {
+                  setAgTitle(val);
+                } else if (curr.key === 'category') {
+                  const upper = val.toUpperCase();
+                  if (upper.includes('WORKSHOP')) setAgCategory('WORKSHOP');
+                  else if (upper.includes('PANEN')) setAgCategory('PANEN BERSAMA');
+                  else if (upper.includes('RAPAT')) setAgCategory('RAPAT');
+                  else if (upper.includes('PELATIHAN')) setAgCategory('PELATIHAN');
+                  else if (upper.includes('INSPEKSI')) setAgCategory('INSPEKSI');
+                } else if (curr.key === 'date') {
+                  const matchDate = val.match(/(\d{1,2})\s+(jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
+                  if (matchDate) {
+                    const day = matchDate[1].padStart(2, '0');
+                    const mMap: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12' };
+                    const month = mMap[matchDate[2].toLowerCase()];
+                    setAgDate(`${matchDate[3]}-${month}-${day}`);
+                  }
+                } else if (curr.key === 'time') {
+                  setAgTime(val);
+                } else if (curr.key === 'desc') {
+                  setAgDescription(val);
+                }
+              }
+            }
+          } else {
+            console.error('STT Failed:', data.message);
+          }
+        } catch (error) {
+          console.error('STT Request Error:', error);
+        } finally {
+          setIsProcessingSTTAgenda(false);
+          stream.getTracks().forEach(track => track.stop());
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecordingAgenda(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Tidak dapat mengakses mikrofon. Pastikan Anda telah memberikan izin.');
+    }
+  };
+
+  const stopRecordingAgenda = () => {
+    if (mediaRecorderAgendaRef.current && isRecordingAgenda) {
+      mediaRecorderAgendaRef.current.stop();
+      setIsRecordingAgenda(false);
+    }
+  };
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,7 +365,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // Modal States
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<InfoArticle | null>(null);
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'pengumuman' | 'agenda' } | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'pengumuman' | 'agenda' | 'pengguna' } | null>(null);
   const [previewArticle, setPreviewArticle] = useState<InfoArticle | null>(null);
 
   // New Article Form
@@ -247,6 +391,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   );
 
   // CMS Form States
+  const [cmsWebName, setCmsWebName] = useState(cmsData?.webName || 'KWT Sorgum');
+  const [cmsWebLogo, setCmsWebLogo] = useState(cmsData?.webLogo || '');
   const [cmsLandingTitle, setCmsLandingTitle] = useState(cmsData?.landingTitle || '');
   const [cmsLandingDesc, setCmsLandingDesc] = useState(cmsData?.landingDesc || '');
   // Carousel dinamis: array URL gambar (bisa banyak)
@@ -263,8 +409,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [cmsRegImages, setCmsRegImages] = useState<string[]>(
     cmsData?.registerImages?.length ? cmsData.registerImages.map(i => i.url) : (cmsData?.registerImage ? [cmsData.registerImage] : [])
   );
-  // CMS: halaman yang sedang diedit (landing | login | register)
-  const [cmsActivePage, setCmsActivePage] = useState<'landing' | 'login' | 'register'>('landing');
+  // CMS: halaman yang sedang diedit (identitas | landing | login | register)
+  const [cmsActivePage, setCmsActivePage] = useState<'identitas' | 'landing' | 'login' | 'register'>('identitas');
   // CMS: status upload (loading per tombol)
   const [cmsUploading, setCmsUploading] = useState(false);
 
@@ -286,10 +432,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
   const cmsImgUrl = (u: string) =>
-    u.startsWith('/uploads/') ? `http://localhost:8000${u}` : u;
+    u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
   const handleSaveCms = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: CmsData = {
+      webName: cmsWebName,
+      webLogo: cmsWebLogo,
       landingTitle: cmsLandingTitle,
       landingDesc: cmsLandingDesc,
       landingImages: cmsLandingImages.filter(u => u.trim() !== '').map(url => ({ url, title: '', caption: '' })),
@@ -323,11 +471,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setEditingAgenda(null);
     setAgTitle('');
     setAgCategory('WORKSHOP');
-    setAgDate('10 Okt 2026');
+    const d = new Date();
+    setAgDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
     setAgTime('09:00 - 12:00');
     setAgLocation('Balai Desa Sukamaju');
-    setAgOrganizer('KWT Sari');
-    setAgStatus('Pendaftaran Dibuka');
+    setAgOrganizer(currentUser?.name || 'Admin');
+    setAgStatus('Belum dimulai');
     setAgDescription('');
     setAgTargetParticipants('');
     setAgContactName('');
@@ -345,7 +494,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setAgTime(ag.time || '');
     setAgLocation(ag.location || '');
     setAgOrganizer(ag.organizer || 'Admin KWT');
-    setAgStatus(ag.status || 'Pendaftaran Dibuka');
+    setAgStatus(ag.status || 'Belum dimulai');
     setAgDescription(ag.description || '');
     setAgTargetParticipants((ag as any).targetParticipants || '');
     setAgContactName((ag as any).contactPerson?.name || '');
@@ -359,13 +508,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     e.preventDefault();
     if (!agTitle.trim()) return;
 
+    if (agDate) {
+      const selectedDate = new Date(agDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (!isNaN(selectedDate.getTime()) && selectedDate < today) {
+        setShowDateWarning(true);
+        return;
+      }
+    }
+
     if (editingAgenda) {
+      const d = new Date(agDate);
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+      const updatedDayNumber = isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0');
+      const updatedMonthAbbr = isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()];
+
       const updated = agendaList.map(a =>
         a.id === editingAgenda.id ? {
           ...a,
           title: agTitle,
           category: agCategory,
           date: agDate,
+          dayNumber: updatedDayNumber,
+          monthAbbr: updatedMonthAbbr,
           time: agTime,
           location: agLocation,
           organizer: agOrganizer,
@@ -401,13 +567,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         }).catch(err => console.error('Failed to update agenda on backend:', err));
       }
     } else {
+      const d = new Date(agDate);
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
       const newAg: AgendaEvent = {
         id: `ag_${Date.now()}`,
         title: agTitle,
         category: agCategory,
         date: agDate,
-        dayNumber: agDate.slice(0, 2),
-        monthAbbr: 'OKT',
+        dayNumber: isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0'),
+        monthAbbr: isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()],
         time: agTime,
         location: agLocation,
         organizer: agOrganizer,
@@ -450,7 +618,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   };
 
   // Filtered Agendas
-  const filteredAgendas = agendaList.filter(ag => {
+  const filteredAgendas = agendaList.map(ag => {
+    const isPast = ag.date && !isNaN(new Date(ag.date).getTime()) && new Date(ag.date).getTime() < new Date().setHours(0, 0, 0, 0);
+    return isPast ? { ...ag, status: 'Selesai' as any } : ag;
+  }).filter(ag => {
     const matchesSearch = ag.title.toLowerCase().includes(agendaSearchQuery.toLowerCase()) ||
       (ag.location && ag.location.toLowerCase().includes(agendaSearchQuery.toLowerCase())) ||
       (ag.organizer && ag.organizer.toLowerCase().includes(agendaSearchQuery.toLowerCase()));
@@ -581,6 +752,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       if (!id.startsWith('ag_1') && !id.startsWith('ag_2') && !id.startsWith('ag_3')) {
         api(`/agenda/${id}`, { method: 'DELETE' }).catch(err => console.error('Failed to delete agenda on backend:', err));
       }
+    } else if (type === 'pengguna') {
+      const updated = usersList.filter(u => u.id !== id);
+      setUsersList(updated);
+      showToast(`Pengguna "${title}" berhasil dihapus.`);
+      api(`/admin/users/${id}`, { method: 'DELETE' }).catch(err => {
+        console.error('Failed to delete user on backend:', err);
+        showToast('Gagal menghapus pengguna di server.');
+      });
     }
     setDeleteConfirmModal(null);
   };
@@ -682,34 +861,56 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       .catch(() => setStats(null));
   }, []);
 
-  const informasiChartData = stats?.informasiChartData?.length
-    ? stats.informasiChartData
-    : [
-        { bulan: 'Mei', pembacaArtikel: 120, pembacaPengumuman: 95 },
-        { bulan: 'Jun', pembacaArtikel: 185, pembacaPengumuman: 140 },
-        { bulan: 'Jul', pembacaArtikel: 240, pembacaPengumuman: 210 },
-        { bulan: 'Agt', pembacaArtikel: 310, pembacaPengumuman: 280 },
-        { bulan: 'Sep', pembacaArtikel: 390, pembacaPengumuman: 320 },
-        { bulan: 'Okt', pembacaArtikel: 460, pembacaPengumuman: 410 },
-      ];
+  const generateDynamicChartData = () => {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ label: d.toLocaleString('id-ID', { month: 'short' }), month: d.getMonth() });
+    }
+
+    const parseMonth = (dateStr?: string) => {
+      if (!dateStr) return now.getMonth();
+      const lower = dateStr.toLowerCase();
+      const map: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5, jul: 6, agt: 7, sep: 8, okt: 9, nov: 10, des: 11 };
+      for (const [key, val] of Object.entries(map)) {
+        if (lower.includes(key)) return val;
+      }
+      return now.getMonth();
+    };
+
+    return {
+      info: months.map(m => ({
+        bulan: m.label,
+        pembacaArtikel: articles.filter(a => parseMonth(a.date) === m.month).length,
+        pembacaPengumuman: announcements.filter(a => parseMonth(a.postedTime) === m.month).length
+      })),
+      part: months.map(m => ({
+        bulan: m.label,
+        diskusi: threads.filter(t => parseMonth(t.timeAgo) === m.month).length,
+        agenda: (agendas || []).filter(a => parseMonth(a.date) === m.month).length,
+        anggotaBaru: m.month === now.getMonth() ? 2 : 0
+      }))
+    };
+  };
+
+  const dynData = generateDynamicChartData();
+
+  const informasiChartData = (stats?.informasiChartData?.length ? stats.informasiChartData : dynData.info).map((item, idx) => ({
+    ...item,
+    diskusi: stats?.partisipasiChartData?.[idx]?.diskusi ?? dynData.part[idx]?.diskusi ?? 0
+  }));
 
   const contentDistributionData = [
-    { name: 'Artikel Budidaya', value: articles.filter(a => a.category === 'Budidaya' || a.category === 'Panen').length || 3, color: '#2C4219' },
-    { name: 'Inovasi Olahan', value: articles.filter(a => a.category === 'Inovasi' || a.category === 'Pengetahuan').length || 2, color: '#A8B774' },
-    { name: 'Pengumuman Resmi', value: announcements.length || 4, color: '#572E4A' },
-    { name: 'Diskusi Komunitas', value: threads.length || 3, color: '#433A30' },
+    { name: 'Artikel Budidaya', value: articles.filter(a => a.category === 'Budidaya' || a.category === 'Panen').length, color: '#2C4219' },
+    { name: 'Inovasi Olahan', value: articles.filter(a => a.category === 'Inovasi' || a.category === 'Pengetahuan').length, color: '#A8B774' },
+    { name: 'Pengumuman Resmi', value: announcements.length, color: '#572E4A' },
+    { name: 'Diskusi Komunitas', value: threads.length, color: '#433A30' },
   ];
 
   const partisipasiChartData = stats?.partisipasiChartData?.length
     ? stats.partisipasiChartData
-    : [
-        { bulan: 'Mei', diskusi: 12, agenda: 24, anggotaBaru: 8 },
-        { bulan: 'Jun', diskusi: 18, agenda: 32, anggotaBaru: 14 },
-        { bulan: 'Jul', diskusi: 25, agenda: 45, anggotaBaru: 19 },
-        { bulan: 'Agt', diskusi: 31, agenda: 52, anggotaBaru: 22 },
-        { bulan: 'Sep', diskusi: 28, agenda: 48, anggotaBaru: 15 },
-        { bulan: 'Okt', diskusi: 36, agenda: 60, anggotaBaru: 25 },
-      ];
+    : dynData.part;
 
   return (
     <div className="min-h-screen bg-[#FAF6EE] flex flex-col md:flex-row font-sans text-[#2C4219]">
@@ -727,12 +928,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="space-y-6">
           {/* Admin Portal Brand Header */}
           <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-extrabold shadow-md">
-              <Sprout className="w-5 h-5" />
-            </div>
+            {cmsWebLogo ? (
+              <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5]" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-extrabold shadow-md">
+                <Sprout className="w-5 h-5" />
+              </div>
+            )}
             <div>
-              <h1 className="font-title font-black text-base text-[#2C4219] leading-tight">
-                KWT Sorgum
+              <h1 className="font-title font-black text-base text-[#2C4219] leading-tight line-clamp-1">
+                {cmsWebName || 'KWT Sorgum'}
               </h1>
               <span className="text-[10px] font-black text-[#572E4A] tracking-widest uppercase block">
                 ADMIN PORTAL
@@ -746,8 +951,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'dashboard'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -758,8 +963,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('agenda')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -770,8 +975,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('informasi')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'informasi'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <FileText className={`w-4 h-4 ${activeTab === 'informasi' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -782,8 +987,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('pengumuman')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'pengumuman'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <Megaphone className={`w-4 h-4 ${activeTab === 'pengumuman' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -794,8 +999,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('moderation')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'moderation'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <MessageSquare className={`w-4 h-4 ${activeTab === 'moderation' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -806,19 +1011,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               onClick={() => setActiveTab('datasorgum')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'datasorgum'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <Sprout className={`w-4 h-4 ${activeTab === 'datasorgum' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
               <span>Kelola Data Sorgum</span>
             </button>
+            {/* Nav: Kelola Pengguna */}
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'users'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                }`}
+            >
+              <Users className={`w-4 h-4 ${activeTab === 'users' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
+              <span>Kelola Pengguna</span>
+            </button>
             {/* Nav: Kelola Konten (CMS Landing/Login/Register) */}
             <button
               onClick={() => setActiveTab('cms')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'cms'
-                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                 }`}
             >
               <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
@@ -1300,9 +1516,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
                   >
                     <option value="Semua">Semua Status</option>
-                    {Array.from(new Set(agendaList.map(ag => ag.status).filter(Boolean))).map(st => (
-                      <option key={st} value={st}>{st}</option>
-                    ))}
+                    <option value="Belum dimulai">Belum dimulai</option>
+                    <option value="Selesai">Selesai</option>
                   </select>
                   <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -1330,8 +1545,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <th className="py-3.5 px-4 text-center w-12">NO</th>
                       <th className="py-3.5 px-5">JUDUL AGENDA & KATEGORI</th>
                       <th className="py-3.5 px-5">TANGGAL & WAKTU</th>
-                      <th className="py-3.5 px-5">LOKASI KEGIATAN</th>
-                      <th className="py-3.5 px-5">PJ / INSTRUKTUR</th>
+                      <th className="py-3.5 px-5">PEMBUAT</th>
                       <th className="py-3.5 px-5 text-center">STATUS</th>
                       <th className="py-3.5 px-5 text-center">AKSI</th>
                     </tr>
@@ -1347,8 +1561,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <div>
                               <p className="font-extrabold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
                               <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
-                                  ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
-                                    'bg-[#F0EBE1] text-[#7A7062]'
+                                ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
+                                  'bg-[#F0EBE1] text-[#7A7062]'
                                 }`}>
                                 {ag.category || 'WORKSHOP'}
                               </span>
@@ -1369,14 +1583,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </div>
                           </td>
                           <td className="py-4 px-5">
-                            <div className="flex items-center gap-1.5 text-[#5C5246]">
-                              <MapPin className="w-3.5 h-3.5 text-[#7A7062] shrink-0" />
-                              <span className={ag.location && ag.location !== 'Belum Ditentukan' ? 'font-semibold' : 'italic text-[#9E9585]'}>
-                                {ag.location || 'Belum Ditentukan'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-extrabold text-[10px] flex items-center justify-center shrink-0">
                                 {ag.organizer ? ag.organizer.slice(0, 2).toUpperCase() : 'KS'}
@@ -1385,13 +1591,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </div>
                           </td>
                           <td className="py-4 px-5 text-center">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${ag.status === 'Draft'
-                                ? 'bg-[#F0EBE1] text-[#7A7062]'
-                                : ag.status === 'Selesai'
-                                  ? 'bg-gray-100 text-gray-600'
-                                  : 'bg-[#E3EBD3] text-[#2C4219]'
+                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${ag.status === 'Selesai'
+                                ? 'bg-gray-100 text-gray-600'
+                                : 'bg-[#E3EBD3] text-[#2C4219]'
                               }`}>
-                              {ag.status || 'Akan Datang'}
+                              {ag.status || 'Belum dimulai'}
                             </span>
                           </td>
                           <td className="py-4 px-5">
@@ -1561,7 +1765,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <p className="font-title font-black text-3xl text-[#2C4219]">{agendaList.length}</p>
                 <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Akan Datang').length} Akan Datang
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Belum dimulai').length} Belum dimulai
                 </span>
               </div>
 
@@ -1614,48 +1818,27 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Pengumuman
                     </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-sm bg-[#572E4A]" /> Diskusi Aktif
+                    </span>
                   </div>
                 </div>
 
                 <div className="h-64 w-full pt-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorArtikel" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2C4219" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#2C4219" stopOpacity={0.05} />
-                        </linearGradient>
-                        <linearGradient id="colorPengumuman" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#A8B774" stopOpacity={0.8} />
-                          <stop offset="95%" stopColor="#A8B774" stopOpacity={0.05} />
-                        </linearGradient>
-                      </defs>
+                    <BarChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
                       <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
-                        formatter={(value: any) => [`${value} Pembaca`, '']}
+                        formatter={(value: any) => [`${value} Konten`, '']}
                       />
-                      <Area type="monotone" dataKey="pembacaArtikel" name="Artikel" stroke="#2C4219" strokeWidth={2.5} fillOpacity={1} fill="url(#colorArtikel)" />
-                      <Area type="monotone" dataKey="pembacaPengumuman" name="Pengumuman" stroke="#A8B774" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorPengumuman)" />
-                    </AreaChart>
+                      <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="pembacaPengumuman" name="Pengumuman" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="diskusi" name="Diskusi Aktif" fill="#572E4A" radius={[4, 4, 0, 0]} barSize={20} />
+                    </BarChart>
                   </ResponsiveContainer>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 pt-2 text-center border-t border-[#E6E1D5]">
-                  <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">TOTAL ARTIKEL</p>
-                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">{articles.length} Artikel</p>
-                  </div>
-                  <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">TOTAL PENGUMUMAN</p>
-                    <p className="font-title font-black text-sm sm:text-base text-[#2C4219]">{announcements.length} Pengumuman</p>
-                  </div>
-                  <div className="bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
-                    <p className="text-[10px] text-[#7A7062] font-extrabold uppercase">DISKUSI AKTIF</p>
-                    <p className="font-title font-black text-sm sm:text-base text-emerald-700">{threads.length} Thread</p>
-                  </div>
                 </div>
               </div>
 
@@ -1801,9 +1984,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </div>
                           </div>
                         </div>
-                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Draft' ? 'bg-[#F0EBE1] text-[#7A7062]' : 'bg-[#E3EBD3] text-[#2C4219]'
+                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Selesai' ? 'bg-gray-100 text-gray-500' : 'bg-[#E3EBD3] text-[#2C4219]'
                           }`}>
-                          {ag.status || 'Akan Datang'}
+                          {ag.status || 'Belum dimulai'}
                         </span>
                       </div>
                     ))}
@@ -2028,8 +2211,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             {/* Page Switcher Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               {([
+                { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo & Nama' },
                 { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
                 { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
                 { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' }
@@ -2063,6 +2247,84 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               {/* LEFT: Editor */}
               <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-sm space-y-6">
+
+                {/* ── IDENTITAS WEB EDITOR ── */}
+                {cmsActivePage === 'identitas' && (
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                      <Type className="w-5 h-5 text-[#2C4219]" />
+                      <h2 className="font-title font-bold text-base text-[#2C4219]">Identitas Website</h2>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Nama Website
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWebName}
+                        onChange={(e) => setCmsWebName(e.target.value)}
+                        placeholder="Contoh: KWT Sorgum"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <ImageIcon className="w-3.5 h-3.5" /> Logo Website
+                      </label>
+
+                      {cmsWebLogo && (
+                        <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#A8B774]/60 bg-white mb-2">
+                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain p-2" />
+                          <button
+                            type="button"
+                            onClick={() => setCmsWebLogo('')}
+                            title="Hapus gambar"
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                      {!cmsWebLogo && (
+                        <input
+                          type="text"
+                          value={cmsWebLogo}
+                          onChange={(e) => setCmsWebLogo(e.target.value)}
+                          placeholder="Atau masukkan URL logo (https://...)"
+                          className="w-full p-2.5 rounded-xl border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50"
+                        />
+                      )}
+
+                      <div className="mt-2">
+                        <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <Upload className="w-4 h-4" />
+                          {cmsUploading ? 'Mengunggah...' : 'Upload Logo Baru'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setCmsUploading(true);
+                              try {
+                                const url = await handleCmsUpload(file);
+                                setCmsWebLogo(url);
+                              } catch (err) {
+                                showToast('Gagal upload logo');
+                              } finally {
+                                setCmsUploading(false);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── LANDING EDITOR ── */}
                 {cmsActivePage === 'landing' && (
                   <div className="space-y-5">
@@ -2534,7 +2796,188 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           </div>
         )}
 
+        {/* ==================== TAB: KELOLA PENGGUNA ==================== */}
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                  Kelola Pengguna
+                </h1>
+                <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div className="relative w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Cari nama atau email..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#2C4219] focus:outline-none focus:border-[#2C4219] shadow-2xs"
+                />
+                <Search className="w-4 h-4 text-[#7A7062] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
+                    <tr>
+                      <th className="py-4 px-5">PENGGUNA</th>
+                      <th className="py-4 px-5">ROLE</th>
+                      <th className="py-4 px-5">TELEPON</th>
+                      <th className="py-4 px-5">BERGABUNG</th>
+                      <th className="py-4 px-5 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
+                    {usersList.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
+                      <tr key={u.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                        <td className="py-4 px-5">
+                          <div>
+                            <p className="font-extrabold text-[#2C4219] text-sm">{u.name}</p>
+                            <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">{u.email}</p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-5">
+                          <span className={`inline-block px-2.5 py-1 rounded-md font-bold text-[10px] ${u.role === 'ADMIN' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {u.role === 'ADMIN' ? 'Admin Portal' : 'Anggota KWT'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-5 text-[#5C5246]">{u.phone || '-'}</td>
+                        <td className="py-4 px-5 text-[#5C5246]">{new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                        <td className="py-4 px-5 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setEditingUser(u);
+                                setUserFormData({ name: u.name, email: u.email, role: u.role, phone: u.phone || '', password: '' });
+                                setIsUserModalOpen(true);
+                              }}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-[#A8B774]/20 text-[#A8B774] transition-colors"
+                              title="Edit Pengguna"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
+                              title="Hapus Pengguna"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {usersList.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-[#7A7062]">Belum ada pengguna.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
+      {/* MODAL: Edit Pengguna */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
+              <h2 className="font-title font-extrabold text-xl text-[#2C4219]">Edit Pengguna</h2>
+              <button onClick={() => setIsUserModalOpen(false)} className="p-2 hover:bg-[#FAF6EE] rounded-xl text-[#7A7062] transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Nama Lengkap</label>
+                <input
+                  type="text"
+                  value={userFormData.name}
+                  onChange={e => setUserFormData({ ...userFormData, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={userFormData.email}
+                  onChange={e => setUserFormData({ ...userFormData, email: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Role (Hak Akses)</label>
+                <select
+                  value={userFormData.role}
+                  onChange={e => setUserFormData({ ...userFormData, role: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
+                >
+                  <option value="USER">Anggota KWT</option>
+                  <option value="ADMIN">Admin Portal</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">No Telepon (Opsional)</label>
+                <input
+                  type="text"
+                  value={userFormData.phone}
+                  onChange={e => setUserFormData({ ...userFormData, phone: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Password Baru (Opsional)</label>
+                <input
+                  type="password"
+                  placeholder="Isi jika ingin ganti kata sandi"
+                  value={userFormData.password}
+                  onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold placeholder-[#7A7062]/40"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
+              <button
+                onClick={() => setIsUserModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-[#7A7062] hover:bg-[#FAF6EE] transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await api<{ name: string }>(`/admin/users/${editingUser.id}`, {
+                      method: 'PUT',
+                      body: userFormData
+                    });
+                    setUsersList(usersList.map(u => u.id === editingUser.id ? { ...u, ...userFormData } : u));
+                    setIsUserModalOpen(false);
+                    showToast('Data pengguna berhasil diperbarui!');
+                  } catch (err: any) {
+                    alert(err.message || 'Terjadi kesalahan');
+                  }
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white text-xs font-bold shadow-md transition-colors"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: Tambah / Edit Informasi */}
       {isArticleModalOpen && (
@@ -2599,143 +3042,161 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               {/* Row 2: Upload Gambar */}
               <div className="space-y-2">
                 <label className="block font-bold text-[#2C4219]">Gambar Header</label>
-                <div className="flex gap-4 items-start">
-                  {/* Preview — only show when image exists */}
-                  {artImage && (
-                    <div className="w-32 h-24 rounded-xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] flex items-center justify-center shrink-0 overflow-hidden">
-                      <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  {/* File input area */}
-                  <div className="flex-1 space-y-2">
-                    <label
-                      htmlFor="artImageUpload"
-                      className="flex flex-col items-center justify-center w-full h-24 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
-                    >
-                      <svg className="w-6 h-6 text-[#2C4219] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
-                      <span className="text-[11px] font-bold text-[#2C4219]">Klik untuk upload foto</span>
-                      <span className="text-[10px] text-[#433A30]/60 mt-0.5">PNG, JPG (maks. 5MB)</span>
-                      <input
-                        id="artImageUpload"
-                        type="file"
-                        accept="image/png,image/jpeg,image/jpg"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          try {
-                            const form = new FormData();
-                            form.append('file', file);
-                            const res = await fetch('http://localhost:8000/api/upload', {
-                              method: 'POST',
-                              headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                              body: form,
-                            });
-                            const json = await res.json();
-                            if (json.success && json.data?.url) {
-                              setArtImage(json.data.url);
-                              showToast('Foto berhasil diupload');
-                            } else {
-                              showToast(json.message || 'Gagal upload foto');
-                            }
-                          } catch {
-                            showToast('Gagal upload foto');
-                          }
-                        }}
-                      />
-                    </label>
-                    {artImage && (
-                      <button
-                        type="button"
-                        onClick={() => setArtImage('')}
-                        className="text-[10px] font-semibold text-rose-500 hover:text-rose-700"
-                      >
-                        Hapus Foto
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2b: Gambar Gallery (multi-upload) */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-[#2C4219]">
-                    Gambar Gallery <span className="text-[#433A30]/50 font-normal">(Opsional — tampil sebagai slideshow di detail artikel)</span>
-                  </label>
-                  {artGallery.length > 0 && (
-                    <button type="button" onClick={() => setArtGallery([])} className="text-[10px] font-semibold text-rose-500 hover:text-rose-700">
-                      Hapus Semua
-                    </button>
-                  )}
-                </div>
-
-                {/* Existing gallery thumbnails */}
-                {artGallery.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {artGallery.map((img, idx) => (
-                      <div key={idx} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-[#E6E1D5] shrink-0">
-                        <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setArtGallery(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity text-white"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Upload area */}
-                <label
-                  htmlFor="artGalleryUpload"
-                  className="flex flex-col items-center justify-center w-full h-20 rounded-xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
-                >
-                  <svg className="w-5 h-5 text-[#2C4219] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  <span className="text-[11px] font-bold text-[#2C4219]">
-                    {artGallery.length > 0 ? `${artGallery.length} foto dipilih — klik untuk tambah lagi` : 'Klik untuk upload beberapa foto sekaligus'}
-                  </span>
-                  <span className="text-[10px] text-[#433A30]/60 mt-0.5">PNG, JPG — bisa pilih lebih dari 1 file</span>
-                  <input
-                    id="artGalleryUpload"
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files || []);
-                      e.target.value = '';
-                      for (const file of files) {
+                {!artImage ? (
+                  <label
+                    htmlFor="artImageUpload"
+                    className="flex flex-col items-center justify-center w-full h-40 rounded-2xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
+                  >
+                    <svg className="w-8 h-8 text-[#2C4219] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span className="text-sm font-bold text-[#2C4219]">Klik untuk upload foto header</span>
+                    <span className="text-xs text-[#433A30]/60 mt-1">PNG, JPG (maks. 5MB)</span>
+                    <input
+                      id="artImageUpload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
                         try {
                           const form = new FormData();
-                          form.append('file', file as Blob);
-                          const res = await fetch('http://localhost:8000/api/upload', {
+                          form.append('file', file);
+                          const res = await fetch(`${BASE_URL}/upload`, {
                             method: 'POST',
                             headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
                             body: form,
                           });
                           const json = await res.json();
                           if (json.success && json.data?.url) {
-                            setArtGallery(prev => [...prev, json.data.url]);
+                            setArtImage(json.data.url);
+                            showToast('Foto berhasil diupload');
                           } else {
-                            showToast(json.message || 'Gagal upload foto galeri');
+                            showToast(json.message || 'Gagal upload foto');
                           }
                         } catch {
-                          showToast('Gagal upload foto galeri');
+                          showToast('Gagal upload foto');
                         }
-                      }
-                      if (files.length > 0) showToast(`${files.length} foto berhasil diupload`);
-                    }}
-                  />
-                </label>
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <div className="relative w-full h-48 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
+                    <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                      <label htmlFor="artImageUploadChange" className="px-4 py-2 bg-white/90 rounded-xl text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-white transition-colors">
+                        Ganti Foto
+                        <input
+                          id="artImageUploadChange"
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const form = new FormData();
+                              form.append('file', file);
+                              const res = await fetch(`${BASE_URL}/upload`, {
+                                method: 'POST',
+                                headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
+                                body: form,
+                              });
+                              const json = await res.json();
+                              if (json.success && json.data?.url) {
+                                setArtImage(json.data.url);
+                                showToast('Foto berhasil diganti');
+                              }
+                            } catch {
+                              showToast('Gagal upload foto');
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setArtImage('')}
+                        className="px-4 py-2 bg-rose-500/90 rounded-xl text-xs font-bold text-white cursor-pointer hover:bg-rose-500 transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Row 2b: Gambar Gallery (multi-upload) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-[#2C4219]">
+                    Gambar Gallery <span className="text-[#433A30]/50 font-normal text-xs ml-1">(Opsional — tampil sebagai slideshow)</span>
+                  </label>
+                  {artGallery.length > 0 && (
+                    <button type="button" onClick={() => setArtGallery([])} className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+                      Hapus Semua
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {/* Existing gallery thumbnails */}
+                  {artGallery.map((img, idx) => (
+                    <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-[#E6E1D5] shadow-xs">
+                      <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setArtGallery(prev => prev.filter((_, i) => i !== idx))}
+                          className="w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center hover:bg-rose-500 transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Upload area */}
+                  <label
+                    htmlFor="artGalleryUpload"
+                    className="flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
+                  >
+                    <svg className="w-8 h-8 text-[#A8B774] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="text-xs font-bold text-[#7A7062] text-center px-2">Tambah Foto</span>
+                    <input
+                      id="artGalleryUpload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg"
+                      multiple
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        e.target.value = '';
+                        for (const file of files) {
+                          try {
+                            const form = new FormData();
+                            form.append('file', file as Blob);
+                            const res = await fetch(`${BASE_URL}/upload`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
+                              body: form,
+                            });
+                            const json = await res.json();
+                            if (json.success && json.data?.url) {
+                              setArtGallery(prev => [...prev, json.data.url]);
+                            }
+                          } catch {
+                            showToast('Gagal upload salah satu foto');
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Row 3: Ringkasan + Isi side by side */}
@@ -2875,6 +3336,81 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </button>
             </div>
 
+            <div className="flex bg-[#F0EDE4] rounded-xl p-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setInputModeAgenda('manual')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${inputModeAgenda === 'manual' ? 'bg-white text-[#2C4219] shadow-sm border border-[#E6E1D5]' : 'text-[#7A7062] hover:text-[#2C4219] hover:bg-white/50'}`}
+              >
+                ✍️ Isi Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputModeAgenda('voice')}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${inputModeAgenda === 'voice' ? 'bg-[#2C4219] text-white shadow-sm' : 'text-[#7A7062] hover:text-[#2C4219] hover:bg-white/50'}`}
+              >
+                🎙️ Asisten Suara
+              </button>
+            </div>
+
+            {inputModeAgenda === 'voice' && (
+              <div className="bg-[#FAF6EE] border border-[#A8B774] rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#A8B774]/20 rounded-full blur-xl pointer-events-none"></div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-5 h-5 text-[#2C4219]" />
+                    <span className="font-extrabold text-[#2C4219] text-sm">Asisten Suara Pintar</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={isRecordingAgenda ? stopRecordingAgenda : startRecordingAgenda}
+                    disabled={isProcessingSTTAgenda}
+                    className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm ${isRecordingAgenda
+                      ? 'bg-rose-50 text-rose-600 border border-rose-200 animate-pulse shadow-rose-100'
+                      : isProcessingSTTAgenda
+                        ? 'bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed'
+                        : 'bg-[#2C4219] text-white hover:bg-[#1E2E11] hover:scale-105 active:scale-95'
+                      }`}
+                  >
+                    {isProcessingSTTAgenda ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Memproses Suara...
+                      </>
+                    ) : isRecordingAgenda ? (
+                      <>
+                        <Square className="w-4 h-4 fill-current" />
+                        Berhenti Merekam
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-4 h-4" />
+                        Mulai Bicara Sekarang
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-2 relative z-10">
+                  <p className="text-xs text-[#5C5246] leading-relaxed">
+                    Cukup berbicara untuk mengisi formulir secara otomatis. <br />
+                    <b>Caranya:</b> Tekan tombol mikrofon di atas, lalu sebutkan kata kunci (Keyword) dan isi sendiri datanya:
+                  </p>
+                  <div className="bg-white/60 rounded-lg p-3 border border-[#E6E1D5]/50 space-y-1">
+                    <p className="text-[11px] text-[#433A30] font-medium leading-relaxed">
+                      Keyword <b>Judul</b>: [Isi sendiri]<br/>
+                      Keyword <b>Kategori</b>: [Isi sendiri]<br/>
+                      Keyword <b>Tanggal</b>: [Isi sendiri]<br/>
+                      Keyword <b>Waktu</b>: [Isi sendiri]<br/>
+                      Keyword <b>Deskripsi</b>: [Isi sendiri]
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSaveAgenda} className="space-y-4 text-xs">
               <div className="space-y-1">
                 <label className="block font-bold text-[#2C4219]">Judul Agenda & Kegiatan *</label>
@@ -2903,21 +3439,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <option value="INSPEKSI">INSPEKSI</option>
                   </select>
                 </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Status Agenda *</label>
-                  <select
-                    value={agStatus}
-                    onChange={(e) => setAgStatus(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  >
-                    <option value="Pendaftaran Dibuka">Pendaftaran Dibuka</option>
-                    <option value="Terbuka Umum">Terbuka Umum</option>
-                    <option value="Wajib Hadir">Wajib Hadir</option>
-                    <option value="Menunggu Konfirmasi">Menunggu Konfirmasi</option>
-                    <option value="Selesai">Selesai</option>
-                  </select>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2944,30 +3465,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Lokasi Kegiatan</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Balai Desa Sukamaju"
-                    value={agLocation}
-                    onChange={(e) => setAgLocation(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">PJ / Instruktur</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: KWT Sari"
-                    value={agOrganizer}
-                    onChange={(e) => setAgOrganizer(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-1">
                 <label className="block font-bold text-[#2C4219]">Deskripsi Agenda</label>
                 <textarea
@@ -2975,65 +3472,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   placeholder="Keterangan singkat kegiatan..."
                   value={agDescription}
                   onChange={(e) => setAgDescription(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                  className={`w-full p-3 rounded-xl border ${isRecordingAgenda ? 'border-rose-300 ring-2 ring-rose-100 bg-rose-50/30' : 'border-[#E6E1D5] bg-[#FAF6EE]'} text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all`}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Target Peserta</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Seluruh Anggota"
-                    value={agTargetParticipants}
-                    onChange={(e) => setAgTargetParticipants(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Kontak Person (PIC)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nama"
-                      value={agContactName}
-                      onChange={(e) => setAgContactName(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                    />
-                    <input
-                      type="text"
-                      placeholder="No. HP"
-                      value={agContactPhone}
-                      onChange={(e) => setAgContactPhone(e.target.value)}
-                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Persyaratan & Alat yang Dibawa</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Contoh: Membawa alat tulis, Sarung tangan (pisahkan dengan koma)"
-                    value={agRequirements}
-                    onChange={(e) => setAgRequirements(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Fasilitas & Manfaat Peserta</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Contoh: Makan siang, Modul, Sertifikat (pisahkan dengan koma)"
-                    value={agBenefits}
-                    onChange={(e) => setAgBenefits(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
-                </div>
               </div>
 
               <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
@@ -3088,14 +3528,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="font-bold">Waktu:</span> {viewingAgenda.time}
                   </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#2C4219]" />
-                  <span className="font-bold">Lokasi:</span> {viewingAgenda.location || 'Belum Ditentukan'}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#2C4219]" />
-                  <span className="font-bold">PJ / Instruktur:</span> {viewingAgenda.organizer || 'Admin KWT'}
-                </div>
               </div>
 
               {viewingAgenda.description && (
@@ -3208,7 +3640,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <h3 className="font-title font-bold text-base text-[#2C4219]">
-                    Hapus {deleteConfirmModal.type === 'artikel' ? 'Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Pengumuman' : 'Agenda'}
+                    Hapus {deleteConfirmModal.type === 'artikel' ? 'Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Pengumuman' : deleteConfirmModal.type === 'pengguna' ? 'Pengguna' : 'Agenda'}
                   </h3>
                   <p className="text-xs text-[#7A7062]">Tindakan ini tidak dapat dibatalkan</p>
                 </div>
@@ -3224,7 +3656,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Detail item */}
             <div className="bg-[#FAF6EE] p-3.5 rounded-xl border border-[#E6E1D5] space-y-1">
               <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">
-                {deleteConfirmModal.type === 'artikel' ? 'Judul Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Judul Pengumuman' : 'Judul Agenda'}
+                {deleteConfirmModal.type === 'artikel' ? 'Judul Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Judul Pengumuman' : deleteConfirmModal.type === 'pengguna' ? 'Nama Pengguna' : 'Judul Agenda'}
               </p>
               <p className="font-bold text-xs text-[#2C4219] line-clamp-2">
                 "{deleteConfirmModal.title}"
@@ -3255,6 +3687,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </div>
       )}
 
+      {/* Date Warning Modal */}
+      {showDateWarning && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="font-title font-bold text-xl text-[#2C4219] mb-2">Tanggal Tidak Valid</h3>
+            <p className="text-sm text-[#7A7062] mb-6 leading-relaxed">
+              Anda tidak dapat {editingAgenda ? 'mengubah' : 'menambahkan'} agenda dengan tanggal di masa lalu. Silakan pilih hari ini atau tanggal di masa mendatang.
+            </p>
+            <button
+              onClick={() => setShowDateWarning(false)}
+              className="w-full py-3 px-4 bg-[#2C4219] hover:bg-[#1E2E11] text-white font-bold rounded-xl transition-colors shadow-lg"
+            >
+              Mengerti
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

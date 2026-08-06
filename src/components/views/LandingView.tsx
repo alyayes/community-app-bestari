@@ -5,6 +5,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
+import { SERVER_BASE } from '../../api/client';
 
 interface LandingViewProps {
   currentUser: UserProfile;
@@ -45,7 +46,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
   const activeHeroImages = cmsData?.landingImages?.length ? cmsData.landingImages : HERO_IMAGES;
   // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
   const imgUrl = (u: string) =>
-    u.startsWith('/uploads/') ? `http://localhost:8000${u}` : u;
+    u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
 
   // Auto transition hero images every 5.5 seconds
   useEffect(() => {
@@ -76,20 +77,23 @@ export const LandingView: React.FC<LandingViewProps> = ({
           }`}
       >
         <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-between">
-          {/* Logo Brand (Left Aligned) */}
           <div
-            onClick={() => onEnterApp('beranda')}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="flex items-center gap-3.5 cursor-pointer group"
           >
-            <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30">
-              <Sprout className="w-7 h-7" />
-            </div>
+            {cmsData?.webLogo ? (
+              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30">
+                <Sprout className="w-7 h-7" />
+              </div>
+            )}
             <div className="text-left">
-              <span className="font-title font-extrabold text-lg sm:text-xl tracking-tight block leading-none text-white">
+              <span className="font-title font-extrabold text-lg sm:text-xl tracking-tight block leading-none text-white line-clamp-1">
                 Community App
               </span>
-              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-1">
-                KWT MELATI SORGUM
+              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-1 line-clamp-1">
+                {cmsData?.webName || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>

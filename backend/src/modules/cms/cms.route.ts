@@ -15,7 +15,9 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       cms = await prisma.cms.create({
         data: {
           id: 'global',
-          landingTitle: 'Menanam Bersama,\\nTumbuh Bersama',
+          webName: 'KWT Sorgum',
+          webLogo: '',
+          landingTitle: 'Menanam Bersama,\nTumbuh Bersama',
           landingDesc: 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.',
           landingImages: [
             {
@@ -61,6 +63,8 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
     const cms = await prisma.cms.upsert({
       where: { id: 'global' },
       update: {
+        webName: data.webName,
+        webLogo: data.webLogo,
         landingTitle: data.landingTitle,
         landingDesc: data.landingDesc,
         landingImages: data.landingImages,
@@ -75,6 +79,8 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
       },
       create: {
         id: 'global',
+        webName: data.webName || 'KWT Sorgum',
+        webLogo: data.webLogo || '',
         landingTitle: data.landingTitle,
         landingDesc: data.landingDesc,
         landingImages: data.landingImages,

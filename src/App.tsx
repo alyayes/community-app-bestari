@@ -146,7 +146,9 @@ export function App() {
         }
       }).catch(() => setToken(null));
     }
+  }, []);
 
+  useEffect(() => {
     // Load semua data publik dari backend
     const loadAll = async () => {
       try {
@@ -160,12 +162,12 @@ export function App() {
           api<{ totalUsers: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
           api<CmsData>('/cms').catch(() => null)
         ]);
-        if (arts.length) setArticles(arts);
-        if (anns.length) setAnnouncements(anns);
-        if (ags.length) setEvents(ags);
-        if (thrs.length) setThreads(thrs);
-        if (lahan.length) setLandPlots(lahan);
-        if (panen.length) setHarvestRecords(panen);
+        setArticles(arts.length ? arts : []);
+        setAnnouncements(anns.length ? anns : []);
+        setEvents(ags.length ? ags : []);
+        setThreads(thrs.length ? thrs : []);
+        setLandPlots(lahan.length ? lahan : []);
+        setHarvestRecords(panen.length ? panen : []);
         if (stats) setDashboardStats(stats);
         if (cmsRes) setCmsData(cmsRes);
       } catch (e) {
@@ -174,7 +176,7 @@ export function App() {
       }
     };
     loadAll();
-  }, []);
+  }, [currentUser.id]);
 
 
 
@@ -301,7 +303,8 @@ export function App() {
   };
 
   const handleClearAllNotifications = () => {
-    const allIds = announcements.map(a => a.id);
+    const agendaReminderIds = events.filter(ev => ev.isRegistered).map(ev => `agenda_reminder_${ev.id}`);
+    const allIds = [...agendaReminderIds, ...visibleAnnouncements.map(a => a.id)];
     setDeletedNotificationIds(allIds);
     if (currentUser?.id) {
       localStorage.setItem(`deleted_notifications_${currentUser.id}`, JSON.stringify(allIds));
@@ -309,7 +312,8 @@ export function App() {
   };
 
   const handleMarkAllNotificationsRead = () => {
-    const allIds = announcements.map(a => a.id);
+    const agendaReminderIds = events.filter(ev => ev.isRegistered).map(ev => `agenda_reminder_${ev.id}`);
+    const allIds = [...agendaReminderIds, ...visibleAnnouncements.map(a => a.id)];
     setReadAnnouncementIds(allIds);
     if (currentUser?.id) {
       localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(allIds));
@@ -562,32 +566,39 @@ export function App() {
   };
 
   const handleEditEvent = async (updatedEv: AgendaEvent) => {
-    // Sync ke backend (best effort), fallback ke lokal
+    // Hitung status berdasarkan tanggal di sisi klien (tanggal lampau = Selesai)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const computedStatus = updatedEv.date < todayStr ? 'Selesai' : updatedEv.status;
+    const finalEv: AgendaEvent = { ...updatedEv, status: computedStatus as AgendaEvent['status'] };
+
+    // Update lokal DULU agar UI langsung responsif
+    setEvents(prev => prev.map(ev => ev.id === finalEv.id ? finalEv : ev));
+
+    // Sync ke backend (best effort)
     try {
-      const updated = await api<AgendaEvent>(`/agenda/${updatedEv.id}`, {
+      await api<AgendaEvent>(`/agenda/${finalEv.id}`, {
         method: 'PUT',
         body: {
-          title: updatedEv.title,
-          category: updatedEv.category,
-          date: updatedEv.date,
-          dayNumber: updatedEv.dayNumber,
-          monthAbbr: updatedEv.monthAbbr,
-          time: updatedEv.time,
-          location: updatedEv.location,
-          organizer: updatedEv.organizer,
-          status: updatedEv.status,
-          statusType: updatedEv.statusType,
-          description: updatedEv.description,
-          targetParticipants: updatedEv.targetParticipants,
-          contactPerson: updatedEv.contactPerson,
-          requirements: updatedEv.requirements,
-          benefits: updatedEv.benefits,
+          title: finalEv.title,
+          category: finalEv.category,
+          date: finalEv.date,
+          dayNumber: finalEv.dayNumber,
+          monthAbbr: finalEv.monthAbbr,
+          time: finalEv.time,
+          location: finalEv.location,
+          organizer: finalEv.organizer,
+          status: finalEv.status,
+          statusType: finalEv.statusType,
+          description: finalEv.description,
+          targetParticipants: finalEv.targetParticipants,
+          contactPerson: finalEv.contactPerson,
+          requirements: finalEv.requirements,
+          benefits: finalEv.benefits,
         },
       });
-      setEvents(prev => prev.map(ev => ev.id === updated.id ? updated : ev));
     } catch (e) {
-      console.warn('[Bestari] Gagal update agenda:', e);
-      setEvents(prev => prev.map(ev => ev.id === updatedEv.id ? updatedEv : ev));
+      console.warn('[Bestari] Gagal update agenda ke backend:', e);
+      // State lokal sudah diupdate, tidak perlu rollback
     }
   };
 
@@ -719,6 +730,8 @@ export function App() {
         setIsOpenMobile={setIsOpenMobileMenu}
         onGoToLanding={handleGoToLanding}
         onGoToAdmin={() => setPageMode('admin')}
+        webName={cmsData?.webName}
+        webLogo={cmsData?.webLogo}
       />
 
       {/* Main Container Area with offset for Sidebar on desktop */}
@@ -730,6 +743,10 @@ export function App() {
           setSearchQuery={setSearchQuery}
           onToggleMobileMenu={() => setIsOpenMobileMenu(prev => !prev)}
           unreadCount={unreadNotificationsCount}
+          notifications={combinedNotifications}
+          onMarkNotificationRead={handleMarkNotificationRead}
+          onDeleteNotification={handleDeleteNotification}
+          onClearAllNotifications={handleClearAllNotifications}
           onMarkAllRead={handleMarkAllNotificationsRead}
           onClickNotification={(id) => {
             handleMarkNotificationRead(id);

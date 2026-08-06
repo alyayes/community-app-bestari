@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../../config/database';
@@ -130,6 +131,99 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
     });
 
     return successResponse(res, toProfile(updatedUser), 'Profil berhasil diperbarui');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/auth/forgot-password ────────────────
+router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body;
+    if (!email) throw new AppError('Email wajib diisi', 400);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) throw new AppError('Email tidak terdaftar', 404);
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetToken: otp,
+        resetTokenExp: expiry,
+      },
+    });
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_EMAIL || 'communityappbestari@gmail.com',
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+
+    const mailOptions = {
+      from: '"Aplikasi KWT Bestari" <' + (process.env.SMTP_EMAIL || 'communityappbestari@gmail.com') + '>',
+      to: email,
+      subject: 'Kode OTP Lupa Kata Sandi',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #433A30; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2C4219;">Halo ${user.firstName || user.name},</h2>
+          <p>Anda telah meminta untuk mereset kata sandi akun KWT Bestari Anda.</p>
+          <p>Berikut adalah kode rahasia OTP Anda:</p>
+          <div style="font-size: 32px; font-weight: bold; color: #4FA13C; margin: 20px 0; letter-spacing: 4px;">
+            ${otp}
+          </div>
+          <p>Kode ini hanya berlaku selama <strong>15 menit</strong>. Jangan bagikan kode ini kepada siapapun.</p>
+          <p>Jika Anda tidak meminta reset kata sandi, silakan abaikan email ini.</p>
+          <br/>
+          <p>Salam,<br/><strong>Tim KWT Bestari</strong></p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return successResponse(res, null, 'Kode OTP telah dikirim ke email Anda');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/auth/reset-password ─────────────────
+router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      throw new AppError('Email, OTP, dan Kata Sandi baru wajib diisi', 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) throw new AppError('Email tidak terdaftar', 404);
+
+    if (user.resetToken !== otp) {
+      throw new AppError('Kode OTP tidak valid atau salah', 400);
+    }
+
+    if (!user.resetTokenExp || user.resetTokenExp < new Date()) {
+      throw new AppError('Kode OTP telah kedaluwarsa, silakan minta ulang', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExp: null,
+      },
+    });
+
+    return successResponse(res, null, 'Kata sandi berhasil diubah! Silakan login kembali.');
   } catch (err) {
     next(err);
   }

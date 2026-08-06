@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavItem, UserProfile } from '../types';
+import { SERVER_BASE } from '../api/client';
 import { 
   Home, 
   Calendar, 
@@ -28,6 +29,8 @@ interface SidebarProps {
   onGoToLanding?: () => void;
   onLogout?: () => void;
   onGoToAdmin?: () => void;
+  webName?: string;
+  webLogo?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -41,7 +44,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsOpenMobile,
   onGoToLanding,
   onLogout,
-  onGoToAdmin
+  onGoToAdmin,
+  webName,
+  webLogo
 }) => {
   const navItems: { id: NavItem; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
@@ -78,15 +83,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="flex items-center gap-3 px-2 pt-2 cursor-pointer group"
             title="Kembali ke Landing Page Utama"
           >
-            <div className="w-10 h-10 rounded-full bg-[#2C4219] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-              <Sprout className="w-6 h-6 text-[#A8B774]" />
-            </div>
+            {webLogo ? (
+              <img src={webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${webLogo}` : webLogo} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#2C4219] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
+                <Sprout className="w-6 h-6 text-[#A8B774]" />
+              </div>
+            )}
             <div>
-              <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight">
+              <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight line-clamp-1">
                 Community App
               </h1>
-              <p className="text-[11px] font-extrabold text-[#A8B774] tracking-wider uppercase">
-                KWT MELATI SORGUM
+              <p className="text-[11px] font-extrabold text-[#A8B774] tracking-wider uppercase line-clamp-1">
+                {webName || 'KWT MELATI SORGUM'}
               </p>
             </div>
           </div>

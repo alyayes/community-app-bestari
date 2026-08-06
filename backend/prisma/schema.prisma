@@ -24,6 +24,8 @@ model User {
   firstName     String?   @map("first_name")
   lastName      String?   @map("last_name")
   dob           String?
+  resetToken    String?   @map("reset_token")
+  resetTokenExp DateTime? @map("reset_token_exp")
   country       String?
   city          String?
   postalCode    String?   @map("postal_code")
@@ -281,6 +283,10 @@ model Panen {
 // ════════════════════════════════════════════════════
 model Cms {
   id             String   @id @default("global")
+  
+  // General Website Identity
+  webName        String?  @default("KWT Sorgum")
+  webLogo        String?  @db.Text
   
   // Landing Page
   landingTitle   String   @default("Bersama Menanam, Bersama Sejahtera")

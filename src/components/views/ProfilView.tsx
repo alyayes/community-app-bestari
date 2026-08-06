@@ -6,7 +6,8 @@ import {
   Edit3, 
   Save, 
   X,
-  Lock
+  Lock,
+  Trash2
 } from 'lucide-react';
 
 import { apiUpdateProfile } from '../../api/client';
@@ -106,6 +107,18 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
     reader.readAsDataURL(file);
   };
 
+  const handleDeleteAvatar = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAvatar('');
+    try {
+      const updatedProfile = await apiUpdateProfile({ avatar: '' });
+      setCurrentUser(updatedProfile);
+      triggerToast('Foto profil berhasil dihapus!');
+    } catch (err: any) {
+      alert(err.message || 'Gagal menghapus foto profil');
+    }
+  };
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation tidak didukung oleh browser ini.');
@@ -182,9 +195,9 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {/* Card 1: Header Profile Card */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E6E1D5] shadow-2xs flex items-center gap-6 relative">
         {/* Avatar Area */}
-        <div className="relative group cursor-pointer shrink-0">
+        <div className="relative shrink-0 group">
           <img
-            src={avatar}
+            src={avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'User')}&background=A8B774&color=2C4219`}
             alt={currentUser.name}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border border-[#2C4219]/20 shadow-xs"
           />
@@ -195,14 +208,29 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             accept="image/*" 
             onChange={handleAvatarUpload} 
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#2C4219] text-white border border-white hover:bg-[#1E2E11] transition-all shadow-xs"
-            title="Upload Foto Profil"
-          >
-            <Camera className="w-3.5 h-3.5 text-[#A8B774]" />
-          </button>
+          {/* Hover overlay at bottom */}
+          <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none group-hover:pointer-events-auto">
+            <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-black/50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 transition-colors"
+                title="Ganti Foto"
+              >
+                <Camera className="w-3.5 h-3.5 text-white" />
+              </button>
+              {avatar && (
+                <button
+                  type="button"
+                  onClick={handleDeleteAvatar}
+                  className="p-1.5 rounded-full bg-white/20 hover:bg-red-500/80 transition-colors"
+                  title="Hapus Foto"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* User Quick Info */}

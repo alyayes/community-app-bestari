@@ -73,6 +73,10 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
   const latestArticles = articles.slice(0, 4);
   const latestAnnouncements = [...announcements].slice(0, 2); // Assuming ordered by newest
   const upcomingEvents = [...events]
+    .filter(e => {
+      const isPast = e.date && !isNaN(new Date(e.date).getTime()) && new Date(e.date).getTime() < new Date().setHours(0, 0, 0, 0);
+      return e.status !== 'Selesai' && !isPast;
+    })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 2);
 

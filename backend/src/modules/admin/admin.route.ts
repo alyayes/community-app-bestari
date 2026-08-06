@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import prisma from '../../config/database';
 import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse } from '../../utils/response';
@@ -129,6 +130,38 @@ router.put('/users/:id/role', async (req: Request, res: Response, next: NextFunc
       select: { id: true, name: true, email: true, role: true },
     });
     return successResponse(res, user, 'Role berhasil diperbarui');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── PUT /api/admin/users/:id ──────────────────────
+router.put('/users/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id);
+    const { name, email, role, phone, password } = req.body;
+
+    if (role && !['ADMIN', 'USER'].includes(role)) {
+      throw new AppError('Role tidak valid', 400);
+    }
+    if (role && id === req.user!.userId && role !== 'ADMIN') {
+      throw new AppError('Tidak bisa mengubah role sendiri', 400);
+    }
+
+    const dataToUpdate: any = { name, email, role, phone };
+    if (password) {
+      dataToUpdate.password = await bcrypt.hash(password, 12);
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: dataToUpdate,
+      select: {
+        id: true, name: true, email: true, role: true, avatar: true,
+        phone: true, memberSince: true, createdAt: true,
+      },
+    });
+    return successResponse(res, user, 'Data pengguna berhasil diperbarui');
   } catch (err) {
     next(err);
   }
