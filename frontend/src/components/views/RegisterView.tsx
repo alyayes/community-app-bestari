@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
 import { SERVER_BASE } from '../../api/client';
+import { useToast } from '../../contexts/ToastContext';
 
 interface RegisterViewProps {
   cmsData?: CmsData | null;
@@ -36,6 +37,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { showToast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -91,9 +93,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
         password,
         phone: phone.trim(),
       })
-        .then(user => {
+        .then(() => {
           setIsLoading(false);
-          onRegisterSuccess(user);
+          showToast('Pendaftaran berhasil, silakan login dengan akun Anda.', 'success');
+          onGoToLogin();
         })
         .catch(err => {
           setIsLoading(false);
@@ -105,17 +108,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
     // ── Fallback mock (jika tidak terhubung backend) ──
     setTimeout(() => {
       setIsLoading(false);
-      const newUser: UserProfile = {
-        id: `user_new_${Date.now()}`,
-        name: fullName,
-        role: 'Anggota KWT Melati Sorgum',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
-        phone: phone || '0812-3456-7890',
-        lahanLocation: 'Blok B - Lahan Utara',
-        sorghumType: 'Sorgum Bioguma Agritan',
-        memberSince: 'Hari ini'
-      };
-      onRegisterSuccess(newUser);
+      showToast('Pendaftaran berhasil, silakan login dengan akun Anda.', 'success');
+      onGoToLogin();
     }, 1000);
   };
 

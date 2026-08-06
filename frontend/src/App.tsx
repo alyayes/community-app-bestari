@@ -237,8 +237,6 @@ export function App() {
 
   const handleApiRegister = async (payload: { name: string; email: string; password: string; phone?: string }): Promise<UserProfile> => {
     const data = await apiRegister(payload);
-    setToken(data.token);
-    setCurrentUser(data.user);
     return data.user;
   };
 
