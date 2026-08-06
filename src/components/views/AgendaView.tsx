@@ -659,7 +659,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                   );
                 } else {
                   // Hari
-                  const refDate = selectedEvent ? new Date(selectedEvent.date) : new Date();
+                  const refDate = (selectedEvent && selectedEvent.date) ? new Date(selectedEvent.date) : new Date();
                   return renderDayCell(refDate);
                 }
               })()}
