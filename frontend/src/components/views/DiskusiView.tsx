@@ -806,9 +806,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                               </React.Fragment>
                             );
                           }
-
-                          const isMe = comment.authorName === currentUser.name;
-
+                          const isMe = comment.authorName.trim().toLowerCase() === currentUser.name.trim().toLowerCase();
                           // Format time
                           let timeString = comment.timeAgo;
                           if (comment.createdAt) {

@@ -62,7 +62,7 @@ async function seed() {
         location: 'Lahan Utama Blok A',
         participantsCount: 42,
         status: 'Published',
-        createdAt: new Date('2026-10-17T08:00:00'),
+        createdAt: new Date('2025-10-17T08:00:00'),
       },
       {
         title: 'Workshop UMKM Desa',
@@ -82,7 +82,7 @@ async function seed() {
         location: 'Balai Pertemuan Warga',
         participantsCount: 28,
         status: 'Published',
-        createdAt: new Date('2026-09-23T08:00:00'),
+        createdAt: new Date('2025-09-23T08:00:00'),
       },
       {
         title: 'Pelatihan Ketahanan Pangan',
@@ -102,7 +102,7 @@ async function seed() {
         location: 'Pusat Pembelajaran KWT',
         participantsCount: 35,
         status: 'Published',
-        createdAt: new Date('2026-09-10T08:00:00'),
+        createdAt: new Date('2025-09-10T08:00:00'),
       },
       {
         title: 'Gotong Royong KWT',
@@ -122,7 +122,7 @@ async function seed() {
         location: 'Lahan Komunal RT 04',
         participantsCount: 50,
         status: 'Published',
-        createdAt: new Date('2026-09-05T08:00:00'),
+        createdAt: new Date('2025-09-05T08:00:00'),
       },
     ],
   });
@@ -152,7 +152,7 @@ async function seed() {
         targetParticipants: 'Seluruh Anggota KWT & Umum',
         note: 'Peserta diharapkan membawa wadah sendiri untuk sampel tepung hasil praktek.',
         isUrgent: true,
-        createdAt: new Date('2026-07-28T08:00:00'),
+        createdAt: new Date('2025-07-28T08:00:00'),
       },
       {
         title: 'Rekapitulasi Total Hasil Panen Periode Juli 2026',
@@ -173,7 +173,7 @@ async function seed() {
         location: 'Kantor Sekretariat KWT',
         targetParticipants: 'Pengurus & Koordinator Blok',
         isUrgent: false,
-        createdAt: new Date('2026-07-27T08:00:00'),
+        createdAt: new Date('2025-07-27T08:00:00'),
       },
       {
         title: 'Pengambilan Benih Sorgum Varietas Unggul Baru',
@@ -193,7 +193,7 @@ async function seed() {
         location: 'Balai Desa RT 04',
         targetParticipants: 'Seluruh Anggota Terdaftar',
         isUrgent: false,
-        createdAt: new Date('2026-07-26T08:00:00'),
+        createdAt: new Date('2025-07-26T08:00:00'),
       },
       {
         title: 'Panen Raya Besok!',
@@ -208,7 +208,7 @@ async function seed() {
         location: 'Lahan Utama Blok A',
         targetParticipants: 'Seluruh Anggota KWT',
         isUrgent: true,
-        createdAt: new Date('2026-10-27T08:00:00'),
+        createdAt: new Date('2025-10-27T08:00:00'),
       },
     ],
   });
@@ -220,7 +220,7 @@ async function seed() {
     data: [
       {
         title: 'Workshop Pengolahan Tepung Sorgum',
-        date: '2026-10-10',
+        date: '2025-10-10',
         dayNumber: '10',
         monthAbbr: 'OKT',
         time: '09:00 - 12:00 WIB',
@@ -243,11 +243,11 @@ async function seed() {
         quotaMax: 40,
         contactName: 'Ibu Dian Permata',
         contactPhone: '0812-3456-7890',
-        createdAt: new Date('2026-09-01T08:00:00'),
+        createdAt: new Date('2025-09-01T08:00:00'),
       },
       {
         title: 'Workshop Olah Sorgum',
-        date: '2026-10-06',
+        date: '2025-10-06',
         dayNumber: '06',
         monthAbbr: 'OKT',
         time: '08:30 - 11:30 WIB',
@@ -264,11 +264,11 @@ async function seed() {
         quotaMax: 25,
         contactName: 'Ibu Siti Aminah',
         contactPhone: '0857-1122-3344',
-        createdAt: new Date('2026-08-20T08:00:00'),
+        createdAt: new Date('2025-08-20T08:00:00'),
       },
       {
         title: 'Panen Bersama Lahan Blok A',
-        date: '2026-10-14',
+        date: '2025-10-14',
         dayNumber: '14',
         monthAbbr: 'OKT',
         time: '07:00 WIB - Selesai',
@@ -285,11 +285,11 @@ async function seed() {
         quotaMax: 50,
         contactName: 'Pak Budi Santoso',
         contactPhone: '0813-8899-0011',
-        createdAt: new Date('2026-08-15T08:00:00'),
+        createdAt: new Date('2025-08-15T08:00:00'),
       },
       {
         title: 'Pelatihan Kemasan & Branding',
-        date: '2026-10-22',
+        date: '2025-10-22',
         dayNumber: '22',
         monthAbbr: 'OKT',
         time: '09:00 - 12:00 WIB',
@@ -306,7 +306,7 @@ async function seed() {
         quotaMax: 30,
         contactName: 'Ibu Ratna Suwandi',
         contactPhone: '0819-7766-5544',
-        createdAt: new Date('2026-08-10T08:00:00'),
+        createdAt: new Date('2025-08-10T08:00:00'),
       },
       {
         title: 'Rapat Evaluasi Triwulan',
@@ -327,7 +327,7 @@ async function seed() {
         quotaMax: 40,
         contactName: 'Sekretariat KWT',
         contactPhone: '0812-9988-7766',
-        createdAt: new Date('2026-08-05T08:00:00'),
+        createdAt: new Date('2025-08-05T08:00:00'),
       },
     ],
   });
@@ -352,7 +352,7 @@ async function seed() {
       joinedMembers: JSON.stringify(['Ibu Rahayu', 'Ibu Ani', 'Bpk. Slamet']),
       likes: 14,
       userLiked: true,
-      createdAt: new Date('2026-10-28T10:00:00'),
+      createdAt: new Date('2025-10-28T10:00:00'),
     },
   });
 
@@ -367,7 +367,7 @@ async function seed() {
         content: 'Inspiratif sekali tipsnya Ibu Rahayu. Untuk penjemuran di bawah sinar matahari langsung, kira-kira berapa jam waktu yang paling ideal ya Bu?',
         likes: 3,
         userLiked: false,
-        createdAt: new Date('2026-10-28T11:00:00'),
+        createdAt: new Date('2025-10-28T11:00:00'),
       },
       {
         threadId: t1.id,
@@ -378,7 +378,7 @@ async function seed() {
         content: 'Setuju sekali. Kualitas tepung kelompok kita memang sedang meningkat pesat sejak teknik ini diterapkan. Terima kasih Bu Rahayu sudah merangkumnya dengan jelas.',
         likes: 2,
         userLiked: false,
-        createdAt: new Date('2026-10-28T12:00:00'),
+        createdAt: new Date('2025-10-28T12:00:00'),
       },
     ],
   });
@@ -397,7 +397,7 @@ async function seed() {
       joinedMembers: JSON.stringify(['Ibu Siti Aminah', 'Ibu Kartini']),
       likes: 21,
       userLiked: false,
-      createdAt: new Date('2026-10-28T07:00:00'),
+      createdAt: new Date('2025-10-28T07:00:00'),
     },
   });
 
@@ -411,7 +411,7 @@ async function seed() {
       content: 'Bisa semprot POC ekstrak daun kelor dan urin kelinci yang sudah difermentasi Bu Siti. Coba takaran 100ml per tangki, semprot saat pagi hari.',
       likes: 6,
       userLiked: true,
-      createdAt: new Date('2026-10-28T09:00:00'),
+      createdAt: new Date('2025-10-28T09:00:00'),
     },
   });
 
