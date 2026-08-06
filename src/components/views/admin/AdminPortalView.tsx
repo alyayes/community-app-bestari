@@ -812,9 +812,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const confirmDeleteThread = () => {
     if (threadToDeleteModal) {
-      const updated = threads.filter(t => t.id !== threadToDeleteModal.id);
+      const { id, title } = threadToDeleteModal;
+      const updated = threads.filter(t => t.id !== id);
       onUpdateThreads(updated);
-      showToast(`Utas "${threadToDeleteModal.title}" telah dihapus.`);
+      showToast(`Utas "${title}" telah dihapus.`);
+      
+      // Hapus dari backend (agar tidak muncul lagi saat refresh)
+      api(`/thread/${id}`, { method: 'DELETE' }).catch(err => {
+        console.error('Failed to delete thread on backend:', err);
+        showToast('Gagal menghapus diskusi di server.');
+      });
+      
       setThreadToDeleteModal(null);
     }
   };
