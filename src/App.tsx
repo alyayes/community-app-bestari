@@ -703,6 +703,18 @@ export function App() {
         onUpdateThreads={setThreads}
         onUpdateAgendas={setEvents}
         onLogout={handleLogout}
+        onNavigateToPage={(page) => {
+          if (page === 'beranda') {
+            setPageMode('landing');
+          } else if (page === 'login') {
+            setPageMode('login');
+          } else if (page === 'register') {
+            setPageMode('register');
+          } else {
+            setPageMode('app');
+            setActiveNav(page as any);
+          }
+        }}
         onSelectArticle={(art) => {
           setSelectedArticle(art);
           setPageMode('app');

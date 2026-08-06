@@ -123,3 +123,18 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
+
+.emoji-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 6px;
+}
+.emoji-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.emoji-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(67, 58, 48, 0.2);
+  border-radius: 20px;
+}
+.emoji-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(67, 58, 48, 0.4);
+}

@@ -220,7 +220,7 @@ async function seed() {
     data: [
       {
         title: 'Workshop Pengolahan Tepung Sorgum',
-        date: '2025-10-10',
+        date: '2026-10-10',
         dayNumber: '10',
         monthAbbr: 'OKT',
         time: '09:00 - 12:00 WIB',
@@ -247,7 +247,7 @@ async function seed() {
       },
       {
         title: 'Workshop Olah Sorgum',
-        date: '2025-10-06',
+        date: '2026-10-06',
         dayNumber: '06',
         monthAbbr: 'OKT',
         time: '08:30 - 11:30 WIB',
@@ -268,7 +268,7 @@ async function seed() {
       },
       {
         title: 'Panen Bersama Lahan Blok A',
-        date: '2025-10-14',
+        date: '2026-10-14',
         dayNumber: '14',
         monthAbbr: 'OKT',
         time: '07:00 WIB - Selesai',
@@ -289,7 +289,7 @@ async function seed() {
       },
       {
         title: 'Pelatihan Kemasan & Branding',
-        date: '2025-10-22',
+        date: '2026-10-22',
         dayNumber: '22',
         monthAbbr: 'OKT',
         time: '09:00 - 12:00 WIB',

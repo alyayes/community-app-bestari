@@ -89,10 +89,10 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </div>
             )}
             <div className="text-left">
-              <span className="font-title font-extrabold text-lg sm:text-xl tracking-tight block leading-none text-white line-clamp-1">
+              <span className="font-title font-bold text-lg sm:text-xl tracking-tight block leading-none text-white line-clamp-1">
                 Community App
               </span>
-              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-1 line-clamp-1">
+              <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-1 line-clamp-1">
                 {cmsData?.webName || 'KWT MELATI SORGUM'}
               </span>
             </div>
@@ -165,7 +165,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
         <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6 my-auto pt-10">
 
           {/* MAIN HEADLINE */}
-          <h1 className="font-title font-extrabold text-2xl sm:text-4xl lg:text-5xl tracking-tight leading-tight drop-shadow-lg">
+          <h1 className="font-title font-bold text-2xl sm:text-4xl lg:text-5xl tracking-tight leading-tight drop-shadow-lg">
             {cmsData?.landingTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.landingTitle.replace('\\n', '<br className="hidden sm:inline" />') }} />
             ) : (
@@ -187,7 +187,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
             <button
               onClick={onGoToRegister}
-              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
+              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
             >
               <UserPlus className="w-5 h-5 text-[#A8B774]" />
               <span>Daftar Sekarang</span>
@@ -195,7 +195,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
             <button
               onClick={onGoToLogin}
-              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-extrabold text-sm sm:text-base flex items-center justify-center gap-2.5 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
+              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
             >
               <LogIn className="w-5 h-5 text-[#A8B774]" />
               <span>Masuk Akun</span>

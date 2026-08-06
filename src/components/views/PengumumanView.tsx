@@ -117,7 +117,7 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-title font-extrabold text-base sm:text-lg text-[#2C4219] leading-snug mt-3 mb-2 group-hover:text-[#3d5a23] transition-colors">
+                  <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] leading-snug mt-3 mb-2 group-hover:text-[#3d5a23] transition-colors">
                     {ann.title}
                   </h3>
 

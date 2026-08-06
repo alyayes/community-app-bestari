@@ -186,7 +186,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {showSuccessToast && (
         <div className="fixed top-5 right-5 z-50 bg-[#2C4219] text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 border border-[#A8B774] animate-in fade-in slide-in-from-top-4 duration-300">
           <Check className="w-4 h-4 text-[#A8B774] stroke-[3]" />
-          <span className="text-xs sm:text-sm font-extrabold">{toastMessage}</span>
+          <span className="text-xs sm:text-sm font-bold">{toastMessage}</span>
         </div>
       )}
 
@@ -294,7 +294,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         <form onSubmit={handleSavePersonal} className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-12">
           {/* First Name */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nama Depan
             </span>
             {isEditPersonal ? (
@@ -312,7 +312,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Last Name */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nama Belakang
             </span>
             {isEditPersonal ? (
@@ -330,7 +330,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Date of Birth */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Tanggal Lahir
             </span>
             {isEditPersonal ? (
@@ -350,7 +350,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Email Address */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Alamat Email
             </span>
             {isEditPersonal ? (
@@ -369,7 +369,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Phone Number */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nomor WhatsApp
             </span>
             {isEditPersonal ? (
@@ -388,7 +388,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* User Role */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Peran Pengguna
             </span>
             <span className="text-xs sm:text-sm font-black text-[#2C4219] flex items-center gap-1.5">
@@ -436,7 +436,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         <form onSubmit={handleSaveAddress} className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-12">
           {/* Lahan Location */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Lokasi Lahan Kerja KWT
             </span>
             {isEditAddress ? (
@@ -460,7 +460,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Sorghum Type */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Varietas Sorgum Utama
             </span>
             {isEditAddress ? (
@@ -484,7 +484,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Member Since */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Tanggal Bergabung KWT
             </span>
             <span className="block text-xs sm:text-sm font-black text-[#2C4219]">

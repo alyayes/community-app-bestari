@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { InfoArticle } from '../../types';
 import { 
   Search, 
@@ -30,6 +32,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
   const [localSearch, setLocalSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   // Reset activeImageIdx when selected article changes
   useEffect(() => {
@@ -63,10 +66,32 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
     return 'bg-[#FAF6EE] text-[#433A30] border border-[#E6E1D5]';
   };
 
+  const handleDownloadPDF = async () => {
+    if (!pdfRef.current) return;
+    try {
+      const dataUrl = await htmlToImage.toPng(pdfRef.current, {
+        quality: 1,
+        backgroundColor: '#FAF6EE',
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
+        }
+      });
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${selectedArticle?.title || 'informasi'}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    }
+  };
+
   // If an article is selected, render the Detail Informasi view matching the screenshot!
   if (selectedArticle) {
     return (
-      <div className="space-y-6 pb-16 w-full">
+      <div ref={pdfRef} className="space-y-6 pb-16 w-full">
         {/* Back Button */}
         <button
           onClick={() => onSelectArticle(null)}
@@ -77,7 +102,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         </button>
 
         {/* Article Title */}
-        <h1 className="font-title font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] leading-tight pt-2">
+        <h1 className="font-title font-bold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] leading-tight pt-2">
           {selectedArticle.title}
         </h1>
 
@@ -102,11 +127,13 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                ))
             ) : (
                 <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
-                  <img
-                    src={selectedArticle.image}
-                    alt={selectedArticle.title}
-                    className="w-full h-full object-cover object-center"
-                  />
+                  {selectedArticle.image && (
+                    <img
+                      src={selectedArticle.image}
+                      alt={selectedArticle.title}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent print:hidden" />
                 </div>
             )}
@@ -154,7 +181,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
           {/* Left Column: Detail Informasi */}
           <div className="lg:col-span-2 print:col-span-3 space-y-4">
-            <h2 className="font-title font-extrabold text-lg sm:text-xl text-[#2C4219] print:hidden">
+            <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] print:hidden">
               Detail Informasi
             </h2>
             <div className="space-y-4 text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
@@ -171,7 +198,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
           {/* Right Column: Informasi Utama Card */}
           <div className="lg:col-span-1 print:hidden">
             <div className="bg-white/90 p-6 rounded-2xl border border-[#E6E1D5] shadow-2xs space-y-6">
-              <h3 className="font-title font-extrabold text-base text-[#2C4219]">
+              <h3 className="font-title font-bold text-base text-[#2C4219]">
                 Informasi Utama
               </h3>
 
@@ -226,7 +253,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
                 <button
-                  onClick={() => window.print()}
+                  onClick={handleDownloadPDF}
                   className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -316,11 +343,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Image Header */}
               <div className="relative h-48 w-full overflow-hidden bg-[#FAF6EE]">
                 <img
-                  src={art.image}
+                  src={art.image || undefined}
                   alt={art.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <span className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase shadow-xs ${getCategoryBadgeClass(art.category)}`}>
+                <span className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider uppercase shadow-xs ${getCategoryBadgeClass(art.category)}`}>
                   {art.category}
                 </span>
               </div>

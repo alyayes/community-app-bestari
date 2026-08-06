@@ -66,7 +66,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalHarvestKg.toLocaleString('id-ID')}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalHarvestKg.toLocaleString('id-ID')}</h3>
             <span className="text-xs font-bold text-[#A8B774]">kg</span>
           </div>
           <p className="text-[10px] text-[#A8B774] font-semibold flex items-center gap-1">
@@ -82,7 +82,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
             <span className="text-xs font-bold text-[#433A30]/70">4 Blok Utama</span>
           </div>
           <p className="text-[10px] text-[#2C4219] font-medium">(Data diintegrasikan dari Aplikasi SCM)</p>
@@ -96,7 +96,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalMembers}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalMembers}</h3>
             <span className="text-xs font-bold text-[#572E4A]">Ibu Tani</span>
           </div>
           <p className="text-[10px] text-[#433A30]/70">Terbagi dalam 4 kelompok kerja</p>
@@ -110,7 +110,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
             <span className="text-xs font-bold text-[#572E4A]">kg</span>
           </div>
           <p className="text-[10px] text-[#572E4A] font-semibold">Tepung Premix Bebas Gluten</p>
@@ -356,19 +356,19 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#E6E1D5]">
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Batch</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.length}</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{harvestRecords.length}</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Input</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.reduce((s, r) => s + r.weightKg, 0).toLocaleString('id-ID')} kg</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{harvestRecords.reduce((s, r) => s + r.weightKg, 0).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Output</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{Math.round(harvestRecords.reduce((s, r) => s + r.weightKg, 0) * 0.775).toLocaleString('id-ID')} kg</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{Math.round(harvestRecords.reduce((s, r) => s + r.weightKg, 0) * 0.775).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Rata-rata Rendemen</p>
-            <p className="font-title font-extrabold text-lg text-[#A8B774]">77.5%</p>
+            <p className="font-title font-bold text-lg text-[#A8B774]">77.5%</p>
           </div>
         </div>
       </div>

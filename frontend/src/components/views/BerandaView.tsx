@@ -93,7 +93,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
             }`}
           >
             <img
-              src={slide.url}
+              src={slide.url || undefined}
               alt={slide.title}
               className="w-full h-full object-cover object-center"
             />
@@ -163,7 +163,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                   <div className="space-y-3">
                     <div className="relative h-36 rounded-lg overflow-hidden bg-gray-100">
                       <img
-                        src={art.image}
+                        src={art.image || undefined}
                         alt={art.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -263,7 +263,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                 >
                   <div className="w-12 h-12 rounded-xl bg-[#2C4219] text-white flex flex-col items-center justify-center shrink-0">
                     <span className="text-xs font-bold text-[#A8B774] leading-none">{ev.monthAbbr}</span>
-                    <span className="font-title font-extrabold text-base leading-none mt-0.5">{ev.dayNumber}</span>
+                    <span className="font-title font-bold text-base leading-none mt-0.5">{ev.dayNumber}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="text-[10px] font-bold text-[#2C4219] uppercase tracking-wider">{ev.category}</span>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import EmojiPicker from 'emoji-picker-react';
 import { ForumThread, ForumComment, UserProfile } from '../../types';
 import { api } from '../../api/client';
 import {
@@ -406,7 +407,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               {/* Big, Very Visible Group Creation Button */}
               <button
                 onClick={onOpenCreateModal}
-                className="w-full py-3 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98"
+                className="w-full py-3 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98"
               >
                 <Plus className="w-4.5 h-4.5 text-[#A8B774] stroke-[3.5]" />
                 <span>BUAT GRUP BARU</span>
@@ -417,10 +418,10 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] font-black text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] transition-all cursor-pointer shadow-xs appearance-none pr-10"
+                  className="w-full p-3 rounded-xl border-2 border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] font-sans font-medium text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] transition-all cursor-pointer shadow-xs appearance-none pr-10"
                 >
                   {categoryOptions.map((cat) => (
-                    <option key={cat.name} value={cat.name} className="font-bold text-[#433A30] bg-[#FAF8F3]">
+                    <option key={cat.name} value={cat.name} className="font-normal text-[#433A30] bg-[#FAF8F3]">
                       {cat.label}
                     </option>
                   ))}
@@ -514,7 +515,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         {/* ========================================================================= */}
         {/* RIGHT STREAM AREA: Active Group Chat                                      */}
         {/* ========================================================================= */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col bg-[#FAF6EE]/50 h-full overflow-hidden">
+        <div className="md:col-span-7 lg:col-span-8 flex flex-col bg-[#FAF6EE]/50 h-full overflow-hidden relative">
 
           {activeThread ? (
             <>
@@ -756,22 +757,22 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             try {
                               const currentD = new Date(comment.createdAt);
                               const prevD = prevComment?.createdAt ? new Date(prevComment.createdAt) : null;
-                              
-                              const isDifferentDay = !prevD || 
-                                currentD.getDate() !== prevD.getDate() || 
-                                currentD.getMonth() !== prevD.getMonth() || 
+
+                              const isDifferentDay = !prevD ||
+                                currentD.getDate() !== prevD.getDate() ||
+                                currentD.getMonth() !== prevD.getMonth() ||
                                 currentD.getFullYear() !== prevD.getFullYear();
 
                               if (isDifferentDay) {
                                 showDateSeparator = true;
                                 const now = new Date();
-                                
+
                                 const isToday = currentD.getDate() === now.getDate() && currentD.getMonth() === now.getMonth() && currentD.getFullYear() === now.getFullYear();
-                                
+
                                 const yesterday = new Date(now);
                                 yesterday.setDate(now.getDate() - 1);
                                 const isYesterday = currentD.getDate() === yesterday.getDate() && currentD.getMonth() === yesterday.getMonth() && currentD.getFullYear() === yesterday.getFullYear();
-                                
+
                                 const isThisYear = currentD.getFullYear() === now.getFullYear();
 
                                 if (isToday) {
@@ -829,100 +830,100 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                               )}
                               <div className={`flex group ${isMe ? 'justify-end items-start' : 'justify-start items-start'} gap-2`}>
 
-                              {/* Avatar on left for others */}
-                              {!isMe && (
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5">
-                                  {comment.authorAvatar ? (
-                                    <img src={comment.authorAvatar} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#2C4219]">{comment.authorName.charAt(0)}</span>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Hover Actions (Outside Bubble) */}
-                              {!isMe && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 mr-2 self-center order-last">
-                                  <button onClick={() => onToggleLikeComment(activeThread.id, comment.id)} className={`p-1.5 rounded-full hover:bg-black/5 ${comment.userLiked ? 'text-red-500' : 'text-[#433A30]/50'}`} title="Suka">
-                                    <Heart className={`w-4 h-4 ${comment.userLiked ? 'fill-red-500' : ''}`} />
-                                  </button>
-                                  <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Balas">
-                                    <CornerDownRight className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-
-                              {isMe && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 ml-2 self-center order-first">
-                                  {(!comment.createdAt || Date.now() - new Date(comment.createdAt).getTime() < 15 * 60 * 1000) && (
-                                    <button onClick={() => { setEditingCommentId(comment.id); setInputMessage(comment.content); }} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Edit">
-                                      <svg xmlns="http://www.w3.org/2010/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                                    </button>
-                                  )}
-                                  <button onClick={() => onDeleteComment(activeThread.id, comment.id)} className="p-1.5 rounded-full hover:bg-red-50 text-red-500/70 hover:text-red-600" title="Hapus">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Bubble */}
-                              <div className={`max-w-[80%] sm:max-w-[70%] rounded-2xl p-2 sm:p-2.5 shadow-2xs w-fit relative ${isMe ? 'bg-[#E3EAD3] text-[#433A30] rounded-tr-none border border-[#2C4219]/10' : 'bg-white text-[#433A30] rounded-tl-none border border-[#E6E1D5]'
-                                }`}>
-
-                                {/* Header (Only for others) */}
+                                {/* Avatar on left for others */}
                                 {!isMe && (
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <span className="font-bold text-[11px] sm:text-xs text-[#2C4219]">{comment.authorName}</span>
-                                    {comment.authorRole && (
-                                      <span className="text-[9px] text-[#2C4219]/70 font-semibold">
-                                        ({comment.authorRole})
-                                      </span>
+                                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5">
+                                    {comment.authorAvatar ? (
+                                      <img src={comment.authorAvatar} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#2C4219]">{comment.authorName.charAt(0)}</span>
                                     )}
                                   </div>
                                 )}
 
-                                {/* Quoted Message */}
-                                {comment.quotedCommentText && (
-                                  <div className={`p-1.5 sm:p-2 rounded border-l-4 mb-1.5 shadow-3xs bg-black/5 ${isMe ? 'border-[#2C4219]' : 'border-[#859752]'}`}>
-                                    <p className={`text-[10px] font-bold mb-0.5 ${isMe ? 'text-[#2C4219]' : 'text-[#5B6D26]'}`}>{comment.quotedCommentAuthor}</p>
-                                    <p className="text-[11px] text-[#433A30]/80 line-clamp-2 leading-tight">{comment.quotedCommentText}</p>
+                                {/* Hover Actions (Outside Bubble) */}
+                                {!isMe && (
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 mr-2 self-center order-last">
+                                    <button onClick={() => onToggleLikeComment(activeThread.id, comment.id)} className={`p-1.5 rounded-full hover:bg-black/5 ${comment.userLiked ? 'text-red-500' : 'text-[#433A30]/50'}`} title="Suka">
+                                      <Heart className={`w-4 h-4 ${comment.userLiked ? 'fill-red-500' : ''}`} />
+                                    </button>
+                                    <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Balas">
+                                      <CornerDownRight className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 )}
 
-                                {/* Image Attachment */}
-                                {comment.imageAttachment && (
-                                  <div className="mb-1.5">
-                                    <img src={comment.imageAttachment} alt="Attachment" className="rounded-lg max-h-48 w-auto object-contain border border-[#E6E1D5]" />
+                                {isMe && (
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 ml-2 self-center order-first">
+                                    {(!comment.createdAt || Date.now() - new Date(comment.createdAt).getTime() < 15 * 60 * 1000) && (
+                                      <button onClick={() => { setEditingCommentId(comment.id); setInputMessage(comment.content); }} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Edit">
+                                        <svg xmlns="http://www.w3.org/2010/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                      </button>
+                                    )}
+                                    <button onClick={() => onDeleteComment(activeThread.id, comment.id)} className="p-1.5 rounded-full hover:bg-red-50 text-red-500/70 hover:text-red-600" title="Hapus">
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 )}
 
-                                {/* Document Attachment */}
-                                {comment.documentAttachment && (
-                                  <div className="mb-1.5 p-2 bg-black/5 rounded-lg border border-black/10 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-500 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                    <a
-                                      href={comment.documentAttachment}
-                                      download={comment.documentName || "document"}
-                                      className="text-xs font-bold text-indigo-600 hover:underline truncate"
-                                    >
-                                      {comment.documentName || "Unduh Dokumen"}
-                                    </a>
-                                  </div>
-                                )}
+                                {/* Bubble */}
+                                <div className={`max-w-[80%] sm:max-w-[70%] rounded-2xl p-2 sm:p-2.5 shadow-2xs w-fit relative ${isMe ? 'bg-[#E3EAD3] text-[#433A30] rounded-tr-none border border-[#2C4219]/10' : 'bg-white text-[#433A30] rounded-tl-none border border-[#E6E1D5]'
+                                  }`}>
 
-                                {/* Message Body & Time */}
-                                <div className="flex items-end justify-between gap-3 flex-wrap">
-                                  <p className="text-xs sm:text-sm leading-relaxed font-normal whitespace-pre-line break-words max-w-full">
-                                    {comment.content}
-                                  </p>
-                                  <span className="text-[9px] sm:text-[10px] text-[#433A30]/50 font-medium whitespace-nowrap ml-auto mt-1 flex items-center gap-1">
-                                    {comment.isEdited && <span className="italic mr-0.5">(diedit)</span>}
-                                    {timeString}
-                                    {isMe && <CheckCheck className="w-3 h-3 text-[#537233]" />}
-                                  </span>
+                                  {/* Header (Only for others) */}
+                                  {!isMe && (
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <span className="font-bold text-[11px] sm:text-xs text-[#2C4219]">{comment.authorName}</span>
+                                      {comment.authorRole && (
+                                        <span className="text-[9px] text-[#2C4219]/70 font-semibold">
+                                          ({comment.authorRole})
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Quoted Message */}
+                                  {comment.quotedCommentText && (
+                                    <div className={`p-1.5 sm:p-2 rounded border-l-4 mb-1.5 shadow-3xs bg-black/5 ${isMe ? 'border-[#2C4219]' : 'border-[#859752]'}`}>
+                                      <p className={`text-[10px] font-bold mb-0.5 ${isMe ? 'text-[#2C4219]' : 'text-[#5B6D26]'}`}>{comment.quotedCommentAuthor}</p>
+                                      <p className="text-[11px] text-[#433A30]/80 line-clamp-2 leading-tight">{comment.quotedCommentText}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Image Attachment */}
+                                  {comment.imageAttachment && (
+                                    <div className="mb-1.5">
+                                      <img src={comment.imageAttachment} alt="Attachment" className="rounded-lg max-h-48 w-auto object-contain border border-[#E6E1D5]" />
+                                    </div>
+                                  )}
+
+                                  {/* Document Attachment */}
+                                  {comment.documentAttachment && (
+                                    <div className="mb-1.5 p-2 bg-black/5 rounded-lg border border-black/10 flex items-center gap-2">
+                                      <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-500 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                      <a
+                                        href={comment.documentAttachment}
+                                        download={comment.documentName || "document"}
+                                        className="text-xs font-bold text-indigo-600 hover:underline truncate"
+                                      >
+                                        {comment.documentName || "Unduh Dokumen"}
+                                      </a>
+                                    </div>
+                                  )}
+
+                                  {/* Message Body & Time */}
+                                  <div className="flex items-end justify-between gap-3 flex-wrap">
+                                    <p className="text-xs sm:text-sm leading-relaxed font-normal whitespace-pre-line break-words max-w-full">
+                                      {comment.content}
+                                    </p>
+                                    <span className="text-[9px] sm:text-[10px] text-[#433A30]/50 font-medium whitespace-nowrap ml-auto mt-1 flex items-center gap-1">
+                                      {comment.isEdited && <span className="italic mr-0.5">(diedit)</span>}
+                                      {timeString}
+                                      {isMe && <CheckCheck className="w-3 h-3 text-[#537233]" />}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
                             </React.Fragment>
                           );
                         })}
@@ -1018,18 +1019,14 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                         </div>
                       )}
 
-                      {/* Emoji Quick Picker Overlay */}
+                      {/* Emoji Picker Package */}
                       {showEmojiPicker && (
-                        <div className="p-2 bg-white border border-[#E6E1D5] rounded-xl shadow-lg flex items-center gap-1.5 overflow-x-auto mx-4 my-1 shrink-0 z-10">
-                          {sampleEmojis.map((e, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleAddEmoji(e)}
-                              className="p-1.5 text-base hover:bg-[#FAF6EE] rounded-lg transition-transform active:scale-125"
-                            >
-                              {e}
-                            </button>
-                          ))}
+                        <div className="absolute bottom-20 left-4 sm:left-6 z-50 animate-in slide-in-from-bottom-2">
+                          <EmojiPicker 
+                            onEmojiClick={(emojiObject) => handleAddEmoji(emojiObject.emoji)}
+                            width={320}
+                            height={400}
+                          />
                         </div>
                       )}
 
@@ -1083,7 +1080,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                               }
                             }}
                           />
-                          
+
                           <div className="relative" ref={attachmentMenuRef}>
                             <button
                               type="button"
@@ -1093,7 +1090,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             >
                               <Paperclip className="w-4 h-4" />
                             </button>
-                            
+
                             {/* Attachment Popup Menu */}
                             {showAttachmentMenu && (
                               <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-[#E6E1D5] rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
@@ -1111,7 +1108,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                     </div>
                                     <span className="text-sm font-semibold text-[#433A30]">Dokumen</span>
                                   </button>
-                                  
+
                                   <button
                                     type="button"
                                     onClick={() => {

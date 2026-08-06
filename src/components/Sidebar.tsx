@@ -79,9 +79,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top Logo & App Title */}
         <div className="space-y-6">
           <div 
-            onClick={() => onGoToLanding && onGoToLanding()} 
+            onClick={() => {
+              setActiveNav('beranda');
+              if (isOpenMobile) setIsOpenMobile(false);
+            }} 
             className="flex items-center gap-3 px-2 pt-2 cursor-pointer group"
-            title="Kembali ke Landing Page Utama"
+            title="Ke Halaman Utama"
           >
             {webLogo ? (
               <img src={webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${webLogo}` : webLogo} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform" />
@@ -94,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight line-clamp-1">
                 Community App
               </h1>
-              <p className="text-[11px] font-extrabold text-[#A8B774] tracking-wider uppercase line-clamp-1">
+              <p className="text-[11px] font-bold text-[#A8B774] tracking-wider uppercase line-clamp-1">
                 {webName || 'KWT MELATI SORGUM'}
               </p>
             </div>
@@ -123,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   {item.badge && item.badge > 0 ? (
                     <span className={`
-                      px-2.5 py-0.5 rounded-full text-xs font-extrabold
+                      px-2.5 py-0.5 rounded-full text-xs font-bold
                       ${isActive ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#572E4A] text-white'}
                     `}>
                       {item.badge}

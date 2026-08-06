@@ -81,6 +81,7 @@ interface AdminPortalViewProps {
   onSelectArticle: (article: InfoArticle) => void;
   cmsData?: CmsData | null;
   onUpdateCmsData?: (data: CmsData) => void;
+  onNavigateToPage?: (page: string) => void;
 }
 
 type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
@@ -100,7 +101,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onLogout,
   onSelectArticle,
   cmsData,
-  onUpdateCmsData
+  onUpdateCmsData,
+  onNavigateToPage,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
@@ -721,6 +723,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setDeleteConfirmModal({ id, title, type: 'pengumuman' });
   };
 
+  const handleEditAnnouncement = (ann: Announcement) => {
+    setEditingAnnouncement(ann);
+    setAnnTitle(ann.title);
+    setAnnCategory(ann.category as any);
+    setAnnSummary(ann.summary || '');
+    setAnnContent(ann.content || ann.summary || '');
+    setIsAnnouncementModalOpen(true);
+  };
+
   const confirmDelete = () => {
     if (!deleteConfirmModal) return;
     const { id, title, type } = deleteConfirmModal;
@@ -939,7 +950,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {cmsWebLogo ? (
               <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5]" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-extrabold shadow-md">
+              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-bold shadow-md">
                 <Sprout className="w-5 h-5" />
               </div>
             )}
@@ -1055,7 +1066,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="pt-6 border-t border-[#E6E1D5]">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-extrabold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
           >
             <LogOut className="w-4 h-4 text-[#C53030]" />
             <span>Keluar</span>
@@ -1073,7 +1084,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header Title + Add Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Informasi
                 </h1>
               </div>
@@ -1157,7 +1168,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                 alt={art.title}
                                 className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
                               />
-                              <span className="font-extrabold text-[#2C4219] line-clamp-2">
+                              <span className="font-bold text-[#2C4219] line-clamp-2">
                                 {art.title}
                               </span>
                             </div>
@@ -1257,7 +1268,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header + Add Announcement Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Pengumuman Komunitas
                 </h1>
               </div>
@@ -1329,7 +1340,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                             <td className="py-4 px-5">
                               <div>
-                                <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
+                                <p className="font-bold text-[#2C4219] text-sm">{ann.title}</p>
                                 <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
                               </div>
                             </td>
@@ -1343,7 +1354,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </td>
                             <td className="py-4 px-5 whitespace-nowrap">
                               {isPinned ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px]">
                                   <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
                                   <span>Dipin di Atas</span>
                                 </span>
@@ -1354,21 +1365,39 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               )}
                             </td>
                             <td className="py-4 px-5">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-3">
+                                {/* Pin Button */}
                                 <button
                                   onClick={() => handleTogglePinAnnouncement(ann.id)}
-                                  title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
-                                  className={`p-1.5 rounded-lg transition-colors ${isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
-                                    }`}
+                                  title={isPinned ? 'Lepas Pin' : 'Sematkan Pin'}
+                                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] ${
+                                    isPinned
+                                      ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                                      : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200'
+                                  }`}
                                 >
                                   <Pin className="w-4 h-4" />
+                                  <span>{isPinned ? 'Lepas' : 'Pin'}</span>
                                 </button>
+
+                                {/* Edit Button */}
+                                <button
+                                  onClick={() => handleEditAnnouncement(ann)}
+                                  title="Edit Pengumuman"
+                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-[#2C4219] hover:bg-[#E3EAD3] border border-transparent hover:border-[#A8B774]"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                  <span>Edit</span>
+                                </button>
+
+                                {/* Delete Button */}
                                 <button
                                   onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
                                   title="Hapus Pengumuman"
-                                  className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
                                 >
                                   <Trash2 className="w-4 h-4" />
+                                  <span>Hapus</span>
                                 </button>
                               </div>
                             </td>
@@ -1394,7 +1423,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 text-xs">
-                  <h4 className="font-extrabold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
+                  <h4 className="font-bold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
                   <p className="text-[#5C5246] leading-relaxed font-medium">
                     Gunakan fitur Sematkan (Pin) hanya untuk pengumuman yang bersifat mendesak atau jangka panjang. Maksimal 3 pengumuman yang dapat disematkan agar tampilan aplikasi member tetap bersih dan teratur.
                   </p>
@@ -1402,7 +1431,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-[#E6E1D5] space-y-3 text-xs">
-                <h4 className="font-extrabold text-[#2C4219]">Aktivitas Terkini</h4>
+                <h4 className="font-bold text-[#2C4219]">Aktivitas Terkini</h4>
                 <div className="space-y-2.5 text-[11px] text-[#5C5246]">
                   {announcements.slice(0, 2).map((ann) => (
                     <div key={ann.id} className="flex items-start gap-2">
@@ -1434,7 +1463,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header + Add Agenda Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Agenda
                 </h1>
               </div>
@@ -1457,7 +1486,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Agenda Bulan Ini</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.length}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.length}</p>
                 </div>
               </div>
 
@@ -1468,7 +1497,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Total Peserta Terdaftar</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1479,7 +1508,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Total Kuota</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1488,9 +1517,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="absolute -right-2 -bottom-2 text-[#2C4219]/10 pointer-events-none">
                   <Sprout className="w-20 h-20" />
                 </div>
-                <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
+                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
                 <div className="mt-1">
-                  <p className="font-extrabold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
+                  <p className="font-bold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
                   <p className="text-xs font-semibold text-[#7A7062] mt-0.5">{agendaList[0]?.date || '-'}</p>
                 </div>
               </div>
@@ -1567,7 +1596,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div>
-                              <p className="font-extrabold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
+                              <p className="font-bold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
                               <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
                                 ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
                                   'bg-[#F0EBE1] text-[#7A7062]'
@@ -1592,14 +1621,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                              <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-bold text-[10px] flex items-center justify-center shrink-0">
                                 {ag.organizer ? ag.organizer.slice(0, 2).toUpperCase() : 'KS'}
                               </div>
                               <span className="font-bold text-[#2C4219] text-xs">{ag.organizer || 'Admin KWT'}</span>
                             </div>
                           </td>
                           <td className="py-4 px-5 text-center">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${ag.status === 'Selesai'
+                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${ag.status === 'Selesai'
                                 ? 'bg-gray-100 text-gray-600'
                                 : 'bg-[#E3EBD3] text-[#2C4219]'
                               }`}>
@@ -1655,7 +1684,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <button
                         key={p}
                         onClick={() => setAgendaPage(p)}
-                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-extrabold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
+                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-bold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
                       >{p}</button>
                     ))}
                     <button
@@ -1677,7 +1706,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Header Title */}
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Kelola Diskusi
               </h1>
             </div>
@@ -1696,7 +1725,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
                         />
                         <div>
-                          <p className="text-xs font-extrabold text-[#2C4219]">{thr.authorName}</p>
+                          <p className="text-xs font-bold text-[#2C4219]">{thr.authorName}</p>
                           <p className="text-[10px] text-[#7A7062] font-semibold">{thr.timeAgo || '12 Okt 2026'}</p>
                         </div>
                       </div>
@@ -1707,7 +1736,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </div>
 
                     {/* Title & Summary */}
-                    <h3 className="font-title font-extrabold text-base text-[#2C4219] leading-snug">
+                    <h3 className="font-title font-bold text-base text-[#2C4219] leading-snug">
                       {thr.title}
                     </h3>
                     <p className="text-xs text-[#5C5246] line-clamp-2 leading-relaxed">
@@ -1744,7 +1773,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Dashboard
               </h1>
             </div>
@@ -1753,7 +1782,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <FileText className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1766,7 +1795,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Calendar className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1779,7 +1808,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Megaphone className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1792,7 +1821,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Users className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1815,7 +1844,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <TrendingUp className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel pengetahuan dan pengumuman resmi</p>
                     </div>
                   </div>
@@ -1858,7 +1887,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Distribusi kategori di sistem</p>
                     </div>
                   </div>
@@ -1894,7 +1923,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                           <span className="text-[#5C5246] truncate max-w-[140px]">{item.name}</span>
                         </div>
-                        <span className="font-extrabold shrink-0">{item.value} Item</span>
+                        <span className="font-bold shrink-0">{item.value} Item</span>
                       </div>
                     ))}
                   </div>
@@ -1911,7 +1940,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <BarChart2 className="w-4 h-4 text-[#A8B774]" />
                   </div>
                   <div>
-                    <h3 className="font-title font-extrabold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
+                    <h3 className="font-title font-bold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
                     <p className="text-[11px] text-[#433A30]/80 font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
                   </div>
                 </div>
@@ -1957,7 +1986,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <Calendar className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
-                        <h3 className="font-title font-extrabold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
                         <p className="text-[11px] text-[#7A7062] font-semibold">Jadwal kegiatan kelompok tani terkonfirmasi</p>
                       </div>
                     </div>
@@ -1979,7 +2008,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider">{ag.monthAbbr || 'OKT'}</p>
                           </div>
                           <div className="min-w-0">
-                            <p className="font-extrabold text-xs text-[#2C4219] truncate">{ag.title}</p>
+                            <p className="font-bold text-xs text-[#2C4219] truncate">{ag.title}</p>
                             <div className="flex items-center gap-3 text-[10px] text-[#7A7062] font-semibold mt-1">
                               <span className="flex items-center gap-1 truncate">
                                 <MapPin className="w-3 h-3 shrink-0" />
@@ -2019,7 +2048,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <Megaphone className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
-                        <h3 className="font-title font-extrabold text-base text-[#2C4219]">Pengumuman Terkini</h3>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Terkini</h3>
                         <p className="text-[11px] text-[#7A7062] font-semibold">Informasi resmi dari kepengurusan KWT</p>
                       </div>
                     </div>
@@ -2042,7 +2071,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </span>
                           <span className="text-[10px] text-[#7A7062] font-semibold">{ann.date}</span>
                         </div>
-                        <p className="font-extrabold text-xs text-[#2C4219]">{ann.title}</p>
+                        <p className="font-bold text-xs text-[#2C4219]">{ann.title}</p>
                         <p className="text-[11px] text-[#5C5246] line-clamp-1 font-medium">{ann.content}</p>
                       </div>
                     ))}
@@ -2071,7 +2100,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <MessageSquare className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Diskusi terbaru dari para anggota KWT Sorgum</p>
                     </div>
                   </div>
@@ -2094,7 +2123,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </span>
                           <span className="text-[10px] font-semibold text-[#7A7062]">{thr.timeAgo || 'Baru'}</span>
                         </div>
-                        <p className="font-extrabold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
+                        <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
                         <p className="text-[11px] text-[#5C5246] line-clamp-2">{thr.summary}</p>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]/60 text-[10px] text-[#7A7062] font-bold">
@@ -2116,7 +2145,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Sistem Berjalan Optimal
                   </div>
-                  <h3 className="font-title font-extrabold text-lg text-white leading-snug">
+                  <h3 className="font-title font-bold text-lg text-white leading-snug">
                     Ekosistem Sorgum Terintegrasi
                   </h3>
                   <p className="text-xs text-[#E3EBD3] leading-relaxed font-medium">
@@ -2138,7 +2167,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Pengaturan Admin Portal
               </h1>
             </div>
@@ -2151,7 +2180,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="w-16 h-16 rounded-full object-cover border-2 border-[#2C4219]"
                 />
                 <div>
-                  <h3 className="font-title font-extrabold text-base text-[#2C4219]">{currentUser.name}</h3>
+                  <h3 className="font-title font-bold text-base text-[#2C4219]">{currentUser.name}</h3>
                   <p className="text-[#7A7062] font-semibold">{currentUser.role}</p>
                 </div>
               </div>
@@ -2201,7 +2230,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Konten
                 </h1>
                 <p className="text-sm text-[#433A30] font-medium mt-1">
@@ -2682,13 +2711,60 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               {/* RIGHT: Live Preview */}
               <div className="space-y-3 lg:sticky lg:top-6">
                 <div className="flex items-center justify-between px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#433A30]/60 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (cmsActivePage === 'landing' && onNavigateToPage) {
+                        onNavigateToPage('beranda');
+                      } else if (cmsActivePage === 'login' && onNavigateToPage) {
+                        onNavigateToPage('login');
+                      } else if (cmsActivePage === 'register' && onNavigateToPage) {
+                        onNavigateToPage('register');
+                      }
+                    }}
+                    className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer disabled:cursor-default disabled:no-underline disabled:text-[#433A30]/60 transition-colors"
+                    disabled={cmsActivePage === 'identitas'}
+                    title={cmsActivePage !== 'identitas' ? 'Klik untuk membuka halaman aslinya' : undefined}
+                  >
                     <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
-                  </p>
+                    {cmsActivePage !== 'identitas' && <ExternalLink className="w-3 h-3 ml-0.5" />}
+                  </button>
                   <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
-                    {cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
+                    {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
                   </span>
                 </div>
+
+                {/* Identitas Preview */}
+                {cmsActivePage === 'identitas' && (
+                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col">
+                    <div className="bg-[#2C4219] p-6 flex flex-col items-center gap-4">
+                      {cmsWebLogo ? (
+                        <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-white/40" />
+                        </div>
+                      )}
+                      <h3 className="font-title font-bold text-white text-2xl text-center leading-tight">
+                        {cmsWebName || 'Nama Website'}
+                      </h3>
+                    </div>
+                    <div className="p-6 space-y-4 bg-[#FAF6EE]">
+                      <p className="text-xs font-semibold text-[#433A30]/60 text-center">Logo dan nama website akan tampil di Sidebar, Header, dan halaman login.</p>
+                      <div className="bg-white rounded-2xl border border-[#E6E1D5] p-4 flex items-center gap-3 shadow-xs">
+                        {cmsWebLogo ? (
+                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-[#2C4219]/10 flex items-center justify-center shrink-0">
+                            <ImageIcon className="w-4 h-4 text-[#2C4219]/40" />
+                          </div>
+                        )}
+                        <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                      </div>
+                      <p className="text-[10px] text-center text-[#433A30]/50 font-medium">Contoh tampilan di Sidebar</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Landing Preview */}
                 {cmsActivePage === 'landing' && (
@@ -2700,7 +2776,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-r from-[#1E2E11]/90 via-[#2C4219]/70 to-transparent" />
                       <div className="absolute bottom-6 left-6 right-6">
                         <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#A8B774] text-[#1E2E11] uppercase tracking-wider">Komunitas KWT</span>
-                        <h3 className="font-title font-extrabold text-white text-3xl leading-tight mt-3">
+                        <h3 className="font-title font-bold text-white text-3xl leading-tight mt-3">
                           {cmsLandingTitle || 'Judul Utama'}
                         </h3>
                       </div>
@@ -2729,7 +2805,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
                       <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
                       <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
                           {cmsLoginTitle || 'Judul Login'}
                         </h3>
                       </div>
@@ -2766,7 +2842,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
                       <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
                       <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
                           {cmsRegTitle || 'Judul Register'}
                         </h3>
                       </div>
@@ -2809,7 +2885,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Pengguna
                 </h1>
                 <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
@@ -2846,7 +2922,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <tr key={u.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                         <td className="py-4 px-5">
                           <div>
-                            <p className="font-extrabold text-[#2C4219] text-sm">{u.name}</p>
+                            <p className="font-bold text-[#2C4219] text-sm">{u.name}</p>
                             <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">{u.email}</p>
                           </div>
                         </td>
@@ -2900,7 +2976,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h2 className="font-title font-extrabold text-xl text-[#2C4219]">Edit Pengguna</h2>
+              <h2 className="font-title font-bold text-xl text-[#2C4219]">Edit Pengguna</h2>
               <button onClick={() => setIsUserModalOpen(false)} className="p-2 hover:bg-[#FAF6EE] rounded-xl text-[#7A7062] transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -2992,7 +3068,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-xl text-[#2C4219]">
+              <h3 className="font-title font-bold text-xl text-[#2C4219]">
                 {editingArticle ? 'Sunting Informasi' : 'Tambah Informasi Baru'}
               </h3>
               <button
@@ -3258,7 +3334,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 border border-[#E6E1D5] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
+              <h3 className="font-title font-bold text-lg text-[#2C4219]">
                 Buat Pengumuman Baru
               </h3>
               <button
@@ -3333,7 +3409,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
+              <h3 className="font-title font-bold text-lg text-[#2C4219]">
                 {editingAgenda ? 'Sunting Agenda Kegiatan' : 'Tambah Agenda Baru'}
               </h3>
               <button
@@ -3368,7 +3444,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                   <div className="flex items-center gap-2">
                     <Mic className="w-5 h-5 text-[#2C4219]" />
-                    <span className="font-extrabold text-[#2C4219] text-sm">Asisten Suara Pintar</span>
+                    <span className="font-bold text-[#2C4219] text-sm">Asisten Suara Pintar</span>
                   </div>
 
                   <button
@@ -3521,7 +3597,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-title font-extrabold text-xl text-[#2C4219]">
+              <h3 className="font-title font-bold text-xl text-[#2C4219]">
                 {viewingAgenda.title}
               </h3>
 

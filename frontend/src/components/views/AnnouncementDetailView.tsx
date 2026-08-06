@@ -60,7 +60,7 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
           </div>
 
           {/* Title */}
-          <h1 className="font-title font-extrabold text-xl sm:text-2xl text-[#2C4219] leading-snug mb-3">
+          <h1 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug mb-3">
             {ann.title}
           </h1>
 

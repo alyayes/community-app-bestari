@@ -213,10 +213,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <Sprout className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <span className="font-title font-extrabold text-lg tracking-tight block leading-tight text-white">
+              <span className="font-title font-bold text-lg tracking-tight block leading-tight text-white">
                 Community App
               </span>
-              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-0.5">
+              <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5">
                 KWT MELATI SORGUM
               </span>
             </div>
@@ -225,7 +225,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
         {/* Left Hero Text */}
         <div className="relative z-10 my-auto py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
-          <h2 className="font-title font-extrabold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
+          <h2 className="font-title font-bold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
             {cmsData?.loginTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.loginTitle.replace('\\n', '<br />') }} />
             ) : (
@@ -252,7 +252,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           {/* Form Header */}
           <div>
-            <h1 className="font-title font-extrabold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
+            <h1 className="font-title font-bold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
               Masuk Akun
             </h1>
           </div>
@@ -294,7 +294,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(true)}
-                  className="text-[10px] text-[#2C4219] hover:underline font-extrabold"
+                  className="text-[10px] text-[#2C4219] hover:underline font-bold"
                 >
                   Lupa kata sandi?
                 </button>
@@ -325,7 +325,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-70 mt-2 border-2 border-[#A8B774]"
+              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-70 mt-2 border-2 border-[#A8B774]"
             >
               {isLoading ? (
                 <span>Memverifikasi Akun...</span>
@@ -344,7 +344,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <button
               type="button"
               onClick={onGoToRegister}
-              className="font-extrabold text-[#2C4219] hover:text-[#1E2E11] ml-1"
+              className="font-bold text-[#2C4219] hover:text-[#1E2E11] ml-1"
             >
               Daftar Akun Baru
             </button>
@@ -372,7 +372,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div className="w-16 h-16 bg-[#2C4219]/10 rounded-full flex items-center justify-center mb-4">
                 <KeyRound className="w-8 h-8 text-[#2C4219]" />
               </div>
-              <h3 className="font-title font-extrabold text-[#2C4219] text-xl">Lupa Kata Sandi?</h3>
+              <h3 className="font-title font-bold text-[#2C4219] text-xl">Lupa Kata Sandi?</h3>
               <p className="text-sm text-[#5C5246] mt-2">
                 {forgotStep === 1 
                   ? 'Masukkan email yang terdaftar, kami akan mengirimkan kode OTP untuk mengatur ulang kata sandi Anda.' 
