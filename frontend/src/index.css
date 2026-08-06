@@ -117,3 +117,9 @@
 .animate-fadeInUp {
   animation: fadeInUp 0.3s ease-out both;
 }
+
+/* Sembunyikan icon mata default dari browser agar tidak double */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
