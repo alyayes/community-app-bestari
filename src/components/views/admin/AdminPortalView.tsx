@@ -394,6 +394,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // CMS Form States
   const [cmsWebName, setCmsWebName] = useState(cmsData?.webName || 'KWT Sorgum');
+  const [cmsWebSubtitle, setCmsWebSubtitle] = useState(cmsData?.webSubtitle || 'KWT MELATI SORGUM');
   const [cmsWebLogo, setCmsWebLogo] = useState(cmsData?.webLogo || '');
   const [cmsLandingTitle, setCmsLandingTitle] = useState(cmsData?.landingTitle || '');
   const [cmsLandingDesc, setCmsLandingDesc] = useState(cmsData?.landingDesc || '');
@@ -439,6 +440,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     e.preventDefault();
     const payload: CmsData = {
       webName: cmsWebName,
+      webSubtitle: cmsWebSubtitle,
       webLogo: cmsWebLogo,
       landingTitle: cmsLandingTitle,
       landingDesc: cmsLandingDesc,
@@ -775,40 +777,31 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setDeleteConfirmModal(null);
   };
 
-  const handleSaveAnnouncement = (e: React.FormEvent) => {
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!annTitle.trim()) return;
 
-    if (editingAnnouncement) {
-      const updated = announcements.map(a => {
-        if (a.id === editingAnnouncement.id) {
-          return {
-            ...a,
-            title: annTitle,
-            category: annCategory,
-            summary: annSummary || annTitle,
-            content: annContent || annSummary
-          };
-        }
-        return a;
-      });
-      onUpdateAnnouncements(updated);
-      showToast(`Pengumuman "${annTitle}" berhasil diperbarui.`);
-    } else {
-      const newAnn: Announcement = {
-        id: `ann_${Date.now()}`,
-        title: annTitle,
-        category: annCategory,
-        badgeColor: annCategory === 'MENDESAK' ? 'bg-[#572E4A]' : 'bg-[#2C4219]',
-        timeAgo: 'Baru saja',
-        postedBy: currentUser.name || 'Admin Alya',
-        postedTime: 'Hari ini',
-        summary: annSummary || annTitle,
-        content: annContent || annSummary,
-        isUrgent: annCategory === 'MENDESAK'
-      };
-      onUpdateAnnouncements([newAnn, ...announcements]);
-      showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
+    const payload = {
+      title: annTitle,
+      category: annCategory,
+      summary: annSummary || annTitle,
+      content: annContent || annSummary,
+      isUrgent: annCategory === 'MENDESAK'
+    };
+
+    try {
+      if (editingAnnouncement) {
+        await api(`/pengumuman/${editingAnnouncement.id}`, { method: 'PUT', body: payload });
+        showToast(`Pengumuman "${annTitle}" berhasil diperbarui.`);
+      } else {
+        await api('/pengumuman', { method: 'POST', body: payload });
+        showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
+      }
+      
+      const reloaded = await api<Announcement[]>('/pengumuman');
+      onUpdateAnnouncements(reloaded);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan pengumuman');
     }
 
     setIsAnnouncementModalOpen(false);
@@ -1855,9 +1848,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Pengumuman
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-[#572E4A]" /> Diskusi Aktif
-                    </span>
                   </div>
                 </div>
 
@@ -1873,7 +1863,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       />
                       <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
                       <Bar dataKey="pembacaPengumuman" name="Pengumuman" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="diskusi" name="Diskusi Aktif" fill="#572E4A" radius={[4, 4, 0, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1946,9 +1935,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div className="flex items-center gap-4 text-xs font-bold text-[#2C4219]">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Kehadiran Agenda
-                  </span>
-                  <span className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Topik Diskusi
                   </span>
                   <span className="flex items-center gap-1.5">
@@ -1966,7 +1952,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Tooltip
                       contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
                     />
-                    <Bar dataKey="agenda" name="Kehadiran Agenda" fill="#2C4219" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -2305,6 +2290,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
                       />
                     </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWebSubtitle}
+                        onChange={(e) => setCmsWebSubtitle(e.target.value)}
+                        placeholder="Contoh: KWT MELATI SORGUM"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                    </div>
+
 
                     <div className="space-y-1.5">
                       <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
@@ -2748,6 +2747,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <h3 className="font-title font-bold text-white text-2xl text-center leading-tight">
                         {cmsWebName || 'Nama Website'}
                       </h3>
+                      <p className="text-xs font-bold text-[#A8B774] text-center tracking-widest uppercase">
+                        {cmsWebSubtitle || 'TEKS SUBTITLE'}
+                      </p>
                     </div>
                     <div className="p-6 space-y-4 bg-[#FAF6EE]">
                       <p className="text-xs font-semibold text-[#433A30]/60 text-center">Logo dan nama website akan tampil di Sidebar, Header, dan halaman login.</p>
@@ -2759,7 +2761,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <ImageIcon className="w-4 h-4 text-[#2C4219]/40" />
                           </div>
                         )}
-                        <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                        <div className="flex flex-col">
+                          <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                          <span className="text-[10px] font-bold text-[#A8B774] tracking-widest uppercase truncate">{cmsWebSubtitle || 'TEKS SUBTITLE'}</span>
+                        </div>
                       </div>
                       <p className="text-[10px] text-center text-[#433A30]/50 font-medium">Contoh tampilan di Sidebar</p>
                     </div>

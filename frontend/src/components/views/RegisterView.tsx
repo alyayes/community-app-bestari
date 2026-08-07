@@ -155,10 +155,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             )}
             <div className="text-left">
               <span className="font-title font-bold text-lg tracking-tight block leading-tight text-white line-clamp-1">
-                Community App
+                {cmsData?.webName || 'Community App'}
               </span>
               <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5 line-clamp-1">
-                {cmsData?.webName || 'KWT MELATI SORGUM'}
+                {cmsData?.webSubtitle || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>

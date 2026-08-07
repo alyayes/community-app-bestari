@@ -72,8 +72,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
       {/* 1. STICKY NAVBAR */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-            ? 'bg-[#2C4219]/95 text-white backdrop-blur-md shadow-xl py-3.5'
-            : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white py-5'
+          ? 'bg-[#2C4219]/95 text-white backdrop-blur-md shadow-xl py-3.5'
+          : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white py-5'
           }`}
       >
         <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-between">
@@ -90,10 +90,10 @@ export const LandingView: React.FC<LandingViewProps> = ({
             )}
             <div className="text-left">
               <span className="font-title font-bold text-lg sm:text-xl tracking-tight block leading-none text-white line-clamp-1">
-                Community App
+                {cmsData?.webName || 'Community App'}
               </span>
               <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-1 line-clamp-1">
-                {cmsData?.webName || 'KWT MELATI SORGUM'}
+                {cmsData?.webSubtitle || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>

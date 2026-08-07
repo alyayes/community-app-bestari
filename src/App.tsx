@@ -741,6 +741,7 @@ export function App() {
         onGoToLanding={handleGoToLanding}
         onGoToAdmin={() => setPageMode('admin')}
         webName={cmsData?.webName}
+        webSubtitle={cmsData?.webSubtitle}
         webLogo={cmsData?.webLogo}
       />
 

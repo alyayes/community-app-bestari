@@ -209,15 +209,19 @@ export const LoginView: React.FC<LoginViewProps> = ({
             onClick={onGoToLanding}
             className="flex items-center gap-3 cursor-pointer group text-left"
           >
-            <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform shrink-0">
-              <Sprout className="w-6 h-6" />
-            </div>
+            {cmsData?.webLogo ? (
+              <img src={imgUrl(cmsData.webLogo)} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform shrink-0">
+                <Sprout className="w-6 h-6" />
+              </div>
+            )}
             <div className="text-left">
               <span className="font-title font-bold text-lg tracking-tight block leading-tight text-white">
-                Community App
+                {cmsData?.webName || 'Community App'}
               </span>
               <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5">
-                KWT MELATI SORGUM
+                {cmsData?.webSubtitle || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>
