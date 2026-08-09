@@ -93,6 +93,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.post('/', authenticate, validate(createThreadSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { title, category, content, summary, images, groupAvatar, allowMemberMessages } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
 
     const t = await prisma.thread.create({
       data: {
@@ -104,7 +105,7 @@ router.post('/', authenticate, validate(createThreadSchema), async (req: Request
         groupAvatar: groupAvatar || null,
         allowMemberMessages: allowMemberMessages ?? true,
         authorName: req.user!.name!,
-        authorAvatar: '',
+        authorAvatar: user?.avatar || '',
         authorRole: req.user!.role === 'ADMIN' ? 'Administrator' : 'Anggota KWT Melati Sorgum',
         isTopicStarter: true,
         joinedMembers: [req.user!.name!],
@@ -253,15 +254,16 @@ router.post('/:id/comments', authenticate, validate(createCommentSchema), async 
     const id = String(req.params.id);
     const existing = await prisma.thread.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError('Topik');
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
 
     const comment = await prisma.threadComment.create({
       data: {
         threadId: id,
         parentId: req.body.parentId || null,
         authorName: req.user!.name!,
-        authorAvatar: '',
+        authorAvatar: user?.avatar || '',
         authorRole: req.user!.role === 'ADMIN' ? 'Administrator' : 'Anggota KWT Melati Sorgum',
-        isAuthor: req.body.parentId ? false : false,
+        isAuthor: req.user!.name! === existing.authorName,
         content: req.body.content,
         quotedCommentText: req.body.quotedText || null,
         quotedCommentAuthor: req.body.quotedAuthor || null,

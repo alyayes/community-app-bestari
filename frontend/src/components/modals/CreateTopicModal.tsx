@@ -97,6 +97,14 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
       setErrorMsg('Nama Grup / Topik dan Deskripsi tidak boleh kosong.');
       return;
     }
+    if (title.trim().length < 3) {
+      setErrorMsg('Nama Grup / Topik minimal harus terdiri dari 3 karakter.');
+      return;
+    }
+    if (description.trim().length < 3) {
+      setErrorMsg('Deskripsi Singkat Topik minimal harus terdiri dari 3 karakter.');
+      return;
+    }
 
     const categoryMapping: Record<string, 'Produksi & Pengolahan' | 'Budidaya Lahan' | 'Pemasaran & UMKM' | 'Informasi Umum'> = {
       'Produksi & Pengolahan': 'Produksi & Pengolahan',

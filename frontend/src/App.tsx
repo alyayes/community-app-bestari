@@ -38,24 +38,58 @@ import { SemuaNotifikasiModal } from './components/modals/SemuaNotifikasiModal';
 type PageMode = 'landing' | 'login' | 'register' | 'app' | 'admin';
 
 export function App() {
-  const [pageMode, setPageMode] = useState<PageMode>('landing');
-  const [activeNav, setActiveNav] = useState<NavItem>('beranda');
+  const [pageMode, setPageMode] = useState<PageMode>(() => {
+    return (sessionStorage.getItem('bestari_pagemode') as PageMode) || 'landing';
+  });
+  const [activeNav, setActiveNav] = useState<NavItem>(() => {
+    return (sessionStorage.getItem('bestari_activenav') as NavItem) || 'beranda';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('bestari_pagemode', pageMode);
+  }, [pageMode]);
+
+  useEffect(() => {
+    sessionStorage.setItem('bestari_activenav', activeNav);
+  }, [activeNav]);
   const [currentUser, setCurrentUser] = useState<UserProfile>(CURRENT_USER);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data collections
-  const [articles, setArticles] = useState<InfoArticle[]>(INITIAL_ARTICLES);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
-  const [events, setEvents] = useState<AgendaEvent[]>(INITIAL_EVENTS);
-  const [threads, setThreads] = useState<ForumThread[]>(INITIAL_THREADS);
-  const [landPlots, setLandPlots] = useState<LandPlot[]>(INITIAL_LAND_PLOTS);
-  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>(INITIAL_HARVEST_RECORDS);
-  const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number }>({ totalUsers: 48 });
+  const [articles, setArticles] = useState<InfoArticle[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [events, setEvents] = useState<AgendaEvent[]>([]);
+  const [threads, setThreads] = useState<ForumThread[]>([]);
+  const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number, totalRawMaterialKg?: number }>({ totalUsers: 48 });
   const [cmsData, setCmsData] = useState<CmsData | null>(null);
 
   // Selected State
-  const [selectedArticle, setSelectedArticle] = useState<InfoArticle | null>(null);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<InfoArticle | null>(() => {
+    const saved = sessionStorage.getItem('bestari_selectedarticle');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (selectedArticle) {
+      sessionStorage.setItem('bestari_selectedarticle', JSON.stringify(selectedArticle));
+    } else {
+      sessionStorage.removeItem('bestari_selectedarticle');
+    }
+  }, [selectedArticle]);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(() => {
+    const saved = sessionStorage.getItem('bestari_selectedannouncement');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (selectedAnnouncement) {
+      sessionStorage.setItem('bestari_selectedannouncement', JSON.stringify(selectedAnnouncement));
+    } else {
+      sessionStorage.removeItem('bestari_selectedannouncement');
+    }
+  }, [selectedAnnouncement]);
 
   // Modals & Drawers
   const [isCreateTopicOpen, setIsCreateTopicOpen] = useState(false);
@@ -144,7 +178,12 @@ export function App() {
         if (u) {
           setCurrentUser(u);
         }
-      }).catch(() => setToken(null));
+      }).catch(() => {
+        setToken(null);
+        if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
+      });
+    } else {
+      if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
     }
   }, []);
 
@@ -159,7 +198,7 @@ export function App() {
           api<ForumThread[]>('/thread').catch(() => []),
           api<LandPlot[]>('/dashboard/lahan').catch(() => []),
           api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
-          api<{ totalUsers: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
+          api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
           api<CmsData>('/cms').catch(() => null)
         ]);
         setArticles(arts.length ? arts : []);
@@ -178,6 +217,24 @@ export function App() {
     loadAll();
   }, [currentUser.id]);
 
+  useEffect(() => {
+    // Real-time polling khusus untuk Lahan & Panen (tiap 30 detik)
+    const pollSorgumData = async () => {
+      try {
+        const [lahan, panen] = await Promise.all([
+          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+          api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
+        ]);
+        if (lahan.length > 0) setLandPlots(lahan);
+        if (panen.length > 0) setHarvestRecords(panen);
+      } catch (e) {
+        console.error('[Bestari] Polling Sorgum Data gagal:', e);
+      }
+    };
+
+    const interval = setInterval(pollSorgumData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
 
   // Page Routing Navigation Handlers
@@ -493,21 +550,25 @@ export function App() {
     }
   };
 
-  const handleUpdateThread = (updatedThread: ForumThread) => {
-    // Sync ke backend (best effort)
-    api(`/thread/${updatedThread.id}`, {
-      method: 'PUT',
-      body: {
-        title: updatedThread.title,
-        category: updatedThread.category,
-        content: updatedThread.content,
-        summary: updatedThread.summary,
-        images: updatedThread.images || [],
-        groupAvatar: updatedThread.groupAvatar,
-        allowMemberMessages: updatedThread.allowMemberMessages !== false,
-        joinedMembers: updatedThread.joinedMembers || [],
-      },
-    }).catch(() => { });
+  const handleUpdateThread = (updatedThread: ForumThread, syncToBackend: boolean = true) => {
+    if (syncToBackend) {
+      // Sync ke backend (best effort)
+      api(`/thread/${updatedThread.id}`, {
+        method: 'PUT',
+        body: {
+          title: updatedThread.title,
+          category: updatedThread.category,
+          content: updatedThread.content,
+          summary: updatedThread.summary,
+          images: updatedThread.images || [],
+          groupAvatar: updatedThread.groupAvatar,
+          allowMemberMessages: updatedThread.allowMemberMessages !== false,
+          joinedMembers: updatedThread.joinedMembers || [],
+        },
+      }).catch((e) => {
+        console.error('Update Thread Error:', e);
+      });
+    }
     setThreads(prev => prev.map(t => t.id === updatedThread.id ? updatedThread : t));
   };
 
@@ -697,6 +758,7 @@ export function App() {
         landPlots={landPlots}
         harvestRecords={harvestRecords}
         cmsData={cmsData}
+        dashboardStats={dashboardStats}
         onUpdateCmsData={handleUpdateCmsData}
         onUpdateArticles={(list) => setArticles(list.filter(a => (a as any).status !== 'Draft'))}
         onUpdateAnnouncements={setAnnouncements}
@@ -847,6 +909,7 @@ export function App() {
               landPlots={landPlots}
               harvestRecords={harvestRecords}
               totalUsers={dashboardStats.totalUsers || 48}
+              totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
               onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
             />
           )}

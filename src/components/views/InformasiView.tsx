@@ -67,24 +67,114 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
   };
 
   const handleDownloadPDF = async () => {
-    if (!pdfRef.current) return;
+    if (!selectedArticle) return;
+    
     try {
-      const dataUrl = await htmlToImage.toPng(pdfRef.current, {
-        quality: 1,
-        backgroundColor: '#FAF6EE',
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPos = margin;
+
+      // Draw Header Line
+      doc.setDrawColor(168, 183, 116); // #A8B774
+      doc.setLineWidth(1);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+
+      // Draw Title
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(44, 66, 25); // #2C4219
+      const titleLines = doc.splitTextToSize(selectedArticle.title, pageWidth - margin * 2);
+      doc.text(titleLines, margin, yPos);
+      yPos += (titleLines.length * 10);
+
+      // Draw Meta (Kategori, Tanggal)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      const metaText = `Kategori: ${selectedArticle.category || 'Umum'}   |   Tanggal: ${selectedArticle.date}`;
+      doc.text(metaText, margin, yPos);
+      yPos += 10;
+
+      // Draw Line
+      doc.setDrawColor(230, 225, 213); // #E6E1D5
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+
+      // Draw Image if exists
+      const imgUrl = selectedArticle.gallery?.[0] || selectedArticle.image;
+      if (imgUrl) {
+         try {
+           const img = new Image();
+           img.crossOrigin = 'Anonymous';
+           img.src = imgUrl;
+           await new Promise((resolve, reject) => {
+             img.onload = resolve;
+             img.onerror = reject;
+           });
+           
+           const imgWidth = pageWidth - margin * 2;
+           const imgHeight = (img.height * imgWidth) / img.width;
+           
+           // Ensure image is not too tall for the page
+           let finalImgHeight = imgHeight;
+           let finalImgWidth = imgWidth;
+           if (imgHeight > 100) { 
+              finalImgHeight = 100;
+              finalImgWidth = (img.width * finalImgHeight) / img.height;
+           }
+           
+           if (yPos + finalImgHeight > pageHeight - margin) {
+              doc.addPage();
+              yPos = margin;
+           }
+           
+           // Draw to canvas to bypass direct jsPDF CORS restrictions
+           const canvas = document.createElement('canvas');
+           canvas.width = img.width;
+           canvas.height = img.height;
+           const ctx = canvas.getContext('2d');
+           if (ctx) {
+             ctx.drawImage(img, 0, 0);
+             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+             const xPos = margin + (imgWidth - finalImgWidth) / 2; // Center horizontally
+             doc.addImage(dataUrl, 'JPEG', xPos, yPos, finalImgWidth, finalImgHeight);
+             yPos += finalImgHeight + 15;
+           }
+         } catch (e) {
+           console.warn('Could not load image for PDF', e);
+         }
+      }
+
+      // Draw Content
+      doc.setFontSize(12);
+      doc.setTextColor(60, 60, 60);
+      const contentLines = doc.splitTextToSize(selectedArticle.content, pageWidth - margin * 2);
+      
+      contentLines.forEach((line: string) => {
+        if (yPos > pageHeight - margin - 15) {
+          doc.addPage();
+          yPos = margin;
         }
+        doc.text(line, margin, yPos);
+        yPos += 7;
       });
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(dataUrl);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${selectedArticle?.title || 'informasi'}.pdf`);
+
+      // Footer
+      if (yPos > pageHeight - margin) {
+        doc.addPage();
+        yPos = margin;
+      }
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Diunduh dari Sistem Informasi Komunitas', pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+      doc.save(`${selectedArticle.title.substring(0, 25)}.pdf`);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
+      alert('Maaf, terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.');
     }
   };
 

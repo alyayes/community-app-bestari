@@ -517,9 +517,38 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
             {/* Calendar Top Navigation Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219]">
-                  {monthNamesFull[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                </h2>
+                <div className="relative flex items-center group cursor-pointer gap-2 bg-[#FAF6EE] px-3 py-1.5 rounded-xl border border-[#E6E1D5] hover:border-[#A8B774] transition-all shadow-xs">
+                  <CalendarIcon className="w-5 h-5 text-[#2C4219] group-hover:text-[#A8B774] transition-colors" />
+                  <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] group-hover:text-[#A8B774] transition-colors">
+                    {monthNamesFull[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                  </h2>
+                  <input
+                    type="date"
+                    value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const [year, month, day] = e.target.value.split('-');
+                        setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1, 1));
+                        
+                        // Select the first event on that specific date if any
+                        const selectedDateStr = `${year}-${month}-${day}`;
+                        const eventOnDate = events.find(ev => ev.date === selectedDateStr);
+                        if (eventOnDate) {
+                          setSelectedEvent(eventOnDate);
+                        }
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    title="Pilih Tanggal, Bulan, & Tahun"
+                    onClick={(e) => {
+                      try {
+                        if (typeof e.currentTarget.showPicker === 'function') {
+                          e.currentTarget.showPicker();
+                        }
+                      } catch (err) {}
+                    }}
+                  />
+                </div>
                 <div className="flex items-center gap-1">
                   <button onClick={handlePrevMonth} className="p-1 rounded-lg border border-[#E6E1D5] hover:bg-[#FAF6EE] text-[#433A30]/70 hover:text-[#2C4219] transition-colors">
                     <ChevronLeft className="w-4 h-4" />
@@ -671,73 +700,79 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
           {/* RIGHT COLUMN: EVENT DETAILS CARD & UPCOMING EVENTS LIST (4 COLS ON DESKTOP) */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6">
             {/* TOP CARD: SELECTED EVENT DETAIL CARD */}
-            <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5">
-              {/* Header: Category & Date */}
-              <div className="flex items-center justify-between">
-                <span className="inline-block bg-[#A8B774] text-[#2C4219] text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs">
-                  {selectedEvent.category}
-                </span>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-[#7A7062] font-semibold text-sm">
-                    {selectedEvent.dayNumber === '10' ? '10 OKT 2026' : `${selectedEvent.dayNumber} ${selectedEvent.monthAbbr} 2026`}
+            {selectedEvent ? (
+              <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5">
+                {/* Header: Category & Date */}
+                <div className="flex items-center justify-between">
+                  <span className="inline-block bg-[#A8B774] text-[#2C4219] text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs">
+                    {selectedEvent.category}
                   </span>
-                  {selectedEvent.creatorId === currentUser.id && (
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => openEditModal(selectedEvent)} className="p-1.5 rounded-lg border border-[#E6E1D5] bg-white text-[#433A30]/70 hover:bg-[#FAF6EE] hover:text-[#2C4219] transition-colors shadow-xs" title="Edit Agenda">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(selectedEvent.id)} className="p-1.5 rounded-lg border border-[#E6E1D5] bg-white text-[#433A30]/70 hover:bg-rose-50 hover:text-red-600 transition-colors shadow-xs" title="Hapus Agenda">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#7A7062] font-semibold text-sm">
+                      {`${selectedEvent.dayNumber} ${selectedEvent.monthAbbr} ${selectedEvent.date?.split('-')[0] || '2026'}`}
+                    </span>
+                    {selectedEvent.creatorId === currentUser.id && (
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => openEditModal(selectedEvent)} className="p-1.5 rounded-lg border border-[#E6E1D5] bg-white text-[#433A30]/70 hover:bg-[#FAF6EE] hover:text-[#2C4219] transition-colors shadow-xs" title="Edit Agenda">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(selectedEvent.id)} className="p-1.5 rounded-lg border border-[#E6E1D5] bg-white text-[#433A30]/70 hover:bg-rose-50 hover:text-red-600 transition-colors shadow-xs" title="Hapus Agenda">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug">
+                  {selectedEvent.title}
+                </h2>
+
+                {/* Description */}
+                <p className="text-sm text-[#433A30]/90 leading-relaxed">
+                  {selectedEvent.description}
+                </p>
+
+                <hr className="border-[#E6E1D5]" />
+
+                {/* Time */}
+                <div className="flex items-center gap-2.5 text-[#433A30]">
+                  <Clock className="w-5 h-5 text-[#2C4219]" />
+                  <span className="font-medium text-sm">{selectedEvent.time}</span>
+                </div>
+
+                <hr className="border-[#E6E1D5]" />
+
+                {/* Footer: Rincian & Daftar */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => setShowDetailModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#2C4219] border border-[#2C4219]/30 bg-[#FAF6EE] hover:bg-[#A8B774]/20 hover:border-[#2C4219]/60 transition-all shadow-xs hover:shadow-sm active:scale-95"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Rincian Kegiatan
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleRegistration(selectedEvent.id);
+                    }}
+                    className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${selectedEvent.isRegistered
+                      ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
+                      : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
+                      }`}
+                  >
+                    {selectedEvent.isRegistered ? 'Terdaftar' : 'Daftar'}
+                  </button>
                 </div>
               </div>
-
-              {/* Title */}
-              <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug">
-                {selectedEvent.title}
-              </h2>
-
-              {/* Description */}
-              <p className="text-sm text-[#433A30]/90 leading-relaxed">
-                {selectedEvent.description}
-              </p>
-
-              <hr className="border-[#E6E1D5]" />
-
-              {/* Time */}
-              <div className="flex items-center gap-2.5 text-[#433A30]">
-                <Clock className="w-5 h-5 text-[#2C4219]" />
-                <span className="font-medium text-sm">{selectedEvent.time}</span>
+            ) : (
+              <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs flex flex-col items-center justify-center min-h-[250px] text-center">
+                <p className="text-[#7A7062] font-medium">Belum ada agenda tersedia.</p>
               </div>
-
-              <hr className="border-[#E6E1D5]" />
-
-              {/* Footer: Rincian & Daftar */}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  onClick={() => setShowDetailModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#2C4219] border border-[#2C4219]/30 bg-[#FAF6EE] hover:bg-[#A8B774]/20 hover:border-[#2C4219]/60 transition-all shadow-xs hover:shadow-sm active:scale-95"
-                >
-                  <FileText className="w-4 h-4" />
-                  Rincian Kegiatan
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleRegistration(selectedEvent.id);
-                  }}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${selectedEvent.isRegistered
-                    ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
-                    : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
-                    }`}
-                >
-                  {selectedEvent.isRegistered ? 'Terdaftar' : 'Daftar'}
-                </button>
-              </div>
-            </div>
+            )}
 
             {/* BOTTOM CARD: KEGIATAN MENDATANG (UPCOMING EVENTS LIST) */}
             <div className="bg-[#FAF6EE]/90 p-5 rounded-3xl border border-[#E6E1D5] space-y-4">
@@ -757,7 +792,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
               {/* List of Upcoming Items */}
               <div className="space-y-2.5">
                 {events.slice(0, 3).map((ev) => {
-                  const isSelected = selectedEvent.id === ev.id;
+                  const isSelected = selectedEvent?.id === ev.id;
                   const isUpcomingNov = ev.monthAbbr === 'NOV';
                   return (
                     <div
@@ -832,7 +867,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                       {ev.category}
                     </span>
                     <span className="text-xs text-[#433A30]/70 font-semibold">
-                      {ev.dayNumber} {ev.monthAbbr} 2026
+                      {ev.dayNumber} {ev.monthAbbr} {ev.date?.split('-')[0] || '2026'}
                     </span>
                   </div>
 

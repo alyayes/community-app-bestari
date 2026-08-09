@@ -257,7 +257,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     type="tel"
                     placeholder="081234567890"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Phone className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />

@@ -37,13 +37,13 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
 
   useEffect(() => {
     api<UserProfile[]>('/admin/users')
-      .then((data) => setMembers(Array.isArray(data) ? data : []))
+      .then((data) => setMembers(Array.isArray(data) ? data.filter(u => u.role !== 'ADMIN') : []))
       .catch(() => setMembers([]));
   }, []);
 
   const totalHarvestKg = harvestRecords.reduce((acc, r) => acc + r.weightKg, 0);
   const totalAreaValue = landPlots.reduce((acc, p) => acc + (parseFloat(p.areaSize) || 0), 0);
-  const totalAreaHa = `${(totalAreaValue / 10000).toFixed(1)} Ha`;
+  const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
   const totalMembers = totalUsers; // Using real data from backend
   const readyFlourKg = totalHarvestKg;
 
@@ -83,7 +83,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
-            <span className="text-xs font-bold text-[#433A30]/70">4 Blok Utama</span>
+            <span className="text-xs font-bold text-[#433A30]/70">{Array.from(new Set(landPlots.map(p => p.blockName))).length} Blok Utama</span>
           </div>
           <p className="text-[10px] text-[#2C4219] font-medium">(Data diintegrasikan dari Aplikasi SCM)</p>
         </div>
@@ -99,21 +99,21 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalMembers}</h3>
             <span className="text-xs font-bold text-[#572E4A]">Ibu Tani</span>
           </div>
-          <p className="text-[10px] text-[#433A30]/70">Terbagi dalam 4 kelompok kerja</p>
+          <p className="text-[10px] text-[#572E4A]/70 font-semibold">Terbagi dalam 4 kelompok kerja</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#433A30]">Stok Tepung Siap Jual</span>
+            <span className="text-xs font-semibold text-[#433A30]">Stok Bahan Mentah</span>
             <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] text-[#572E4A] flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="font-title font-bold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
-            <span className="text-xs font-bold text-[#572E4A]">kg</span>
+            <span className="text-xs font-bold text-[#A8B774]">kg</span>
           </div>
-          <p className="text-[10px] text-[#572E4A] font-semibold">Tepung Premix Bebas Gluten</p>
+          <p className="text-[10px] text-[#A8B774] font-semibold">Sorgum Mentah Siap Olah</p>
         </div>
       </div>
 

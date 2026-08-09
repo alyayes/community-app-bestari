@@ -49,7 +49,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
         email,
         password: await bcrypt.hash(password, 12),
         phone: phone || '',
-        memberSince: 'Hari ini',
+        memberSince: new Date().toISOString().split('T')[0],
       },
     });
 
@@ -102,7 +102,7 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
 router.put('/profile', authenticate, validate(updateProfileSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.userId;
-    const { firstName, lastName, dob, email, phone, avatar, country, city, postalCode, lahanLocation, sorghumType } = req.body;
+    const { firstName, lastName, dob, email, phone, avatar, country, city, postalCode, lahanLocation, sorghumType, memberSince } = req.body;
 
     const dataToUpdate: any = {};
     if (firstName !== undefined) dataToUpdate.firstName = firstName;
@@ -124,6 +124,7 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
     if (postalCode !== undefined) dataToUpdate.postalCode = postalCode;
     if (lahanLocation !== undefined) dataToUpdate.lahanLocation = lahanLocation;
     if (sorghumType !== undefined) dataToUpdate.sorghumType = sorghumType;
+    if (memberSince !== undefined) dataToUpdate.memberSince = memberSince;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },

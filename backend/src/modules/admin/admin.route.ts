@@ -14,7 +14,7 @@ router.use(authenticate, authorize('ADMIN'));
 router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [totalUser, totalArtikel, totalPengumuman, totalAgenda, totalThread] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { role: 'USER' } }),
       prisma.artikel.count(),
       prisma.pengumuman.count(),
       prisma.agenda.count(),
@@ -52,7 +52,7 @@ router.get('/stats', async (_req: Request, res: Response, next: NextFunction) =>
       prisma.pengumuman.findMany({ select: { createdAt: true } }),
       prisma.thread.findMany({ select: { createdAt: true } }),
       prisma.agenda.findMany({ select: { createdAt: true } }),
-      prisma.user.findMany({ select: { createdAt: true } }),
+      prisma.user.findMany({ where: { role: 'USER' }, select: { createdAt: true } }),
     ]);
 
     const inMonth = (items: { createdAt: Date }[], m: { start: Date; end: Date }) =>

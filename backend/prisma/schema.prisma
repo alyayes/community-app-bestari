@@ -129,7 +129,7 @@ model Thread {
   id                   String    @id @default(uuid())
   title                String
   authorName           String    @map("author_name")
-  authorAvatar         String?   @db.Text @map("author_avatar")
+  authorAvatar         String?   @db.LongText @map("author_avatar")
   authorRole           String?   @map("author_role")
   isTopicStarter       Boolean   @default(false) @map("is_topic_starter")
   category             String    // Produksi & Pengolahan | Budidaya Lahan | Pemasaran & UMKM | Informasi Umum
@@ -137,7 +137,7 @@ model Thread {
   summary              String    @db.Text
   content              String    @db.Text
   images               Json?     // string[]
-  groupAvatar          String?   @db.Text @map("group_avatar")
+  groupAvatar          String?   @db.LongText @map("group_avatar")
   allowMemberMessages  Boolean   @default(true) @map("allow_member_messages")
   joinedMembers        Json?     @map("joined_members") // string[]
   likes                Int       @default(0)
@@ -156,7 +156,7 @@ model ThreadComment {
   threadId     String    @map("thread_id")
   parentId     String?   @map("parent_id")
   authorName   String    @map("author_name")
-  authorAvatar String?   @db.Text @map("author_avatar")
+  authorAvatar String?   @db.LongText @map("author_avatar")
   authorRole   String?   @map("author_role")
   isAuthor     Boolean   @default(false) @map("is_author")
   content             String    @db.Text

@@ -82,6 +82,7 @@ interface AdminPortalViewProps {
   cmsData?: CmsData | null;
   onUpdateCmsData?: (data: CmsData) => void;
   onNavigateToPage?: (page: string) => void;
+  dashboardStats?: { totalUsers?: number; totalRawMaterialKg?: number };
 }
 
 type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
@@ -103,8 +104,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   cmsData,
   onUpdateCmsData,
   onNavigateToPage,
+  dashboardStats
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    return (sessionStorage.getItem('bestari_admintab') as AdminTab) || 'dashboard';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('bestari_admintab', activeTab);
+  }, [activeTab]);
+
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
   const [subTabAgenda, setSubTabAgenda] = useState<'list' | 'tambah'>('list');
 
@@ -193,6 +202,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const [agendaList, setAgendaList] = useState<AgendaEvent[]>(agendas && agendas.length > 0 ? agendas : DEFAULT_AGENDAS);
 
+  React.useEffect(() => {
+    if (agendas) setAgendaList(agendas.length > 0 ? agendas : DEFAULT_AGENDAS);
+  }, [agendas]);
   // Agenda Filter & Search
   const [agendaSearchQuery, setAgendaSearchQuery] = useState('');
   const [agendaCategoryFilter, setAgendaCategoryFilter] = useState('Semua');
@@ -316,7 +328,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               }
             }
           } else {
-            console.error('STT Failed:', data.message);
+            const errorMsg = data.message || 'Suara tidak terdeteksi atau kosong. Coba bicara lebih keras.';
+            console.error('STT Failed:', errorMsg);
+            showToast(errorMsg);
           }
         } catch (error) {
           console.error('STT Request Error:', error);
@@ -543,8 +557,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
-          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
         } : a
       );
       setAgendaList(updated);
@@ -565,8 +579,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             description: agDescription,
             targetParticipants: agTargetParticipants,
             contactPerson: { name: agContactName, phone: agContactPhone },
-            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
           }
         }).catch(err => console.error('Failed to update agenda on backend:', err));
       }
@@ -588,8 +602,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         description: agDescription,
         targetParticipants: agTargetParticipants,
         contactPerson: { name: agContactName, phone: agContactPhone },
-        requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-        benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+        requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+        benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
       };
       const updated = [newAg, ...agendaList];
       setAgendaList(updated);
@@ -609,8 +623,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
-          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
         }
       }).catch(err => console.error('Failed to create agenda on backend:', err));
     }
@@ -680,7 +694,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       summary: artSummary || artTitle,
       content: artContent ? artContent.split('\n\n') : [artSummary],
       image: artImage,
-      gallery: artGallery.length > 0 ? artGallery : undefined,
+      gallery: artGallery,
       status: artStatus,
     };
 
@@ -1156,11 +1170,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-3 max-w-sm">
-                              <img
-                                src={art.image}
-                                alt={art.title}
-                                className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
-                              />
+                              {art.image ? (
+                                <img
+                                  src={art.image}
+                                  alt={art.title}
+                                  className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
+                                />
+                              ) : (
+                                <div className="w-14 h-10 rounded-lg bg-[#FAF6EE] shrink-0 border border-[#E6E1D5] flex items-center justify-center">
+                                  <span className="text-[#A8B774] text-[8px] font-bold">No Img</span>
+                                </div>
+                              )}
                               <span className="font-bold text-[#2C4219] line-clamp-2">
                                 {art.title}
                               </span>
@@ -1175,7 +1195,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             {art.date || '12 Okt 2026'}
                           </td>
                           <td className="py-4 px-5 text-[#2C4219] font-bold whitespace-nowrap">
-                            {art.author?.name || 'Admin Alya'}
+                            {art.author?.name || currentUser.name}
                           </td>
                           <td className="py-4 px-5 whitespace-nowrap">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] border ${(art as any).status === 'Draft' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
@@ -1334,7 +1354,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <td className="py-4 px-5">
                               <div>
                                 <p className="font-bold text-[#2C4219] text-sm">{ann.title}</p>
-                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
+                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || currentUser.name}</p>
                               </div>
                             </td>
                             <td className="py-4 px-5">
@@ -1713,7 +1733,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={thr.authorAvatar}
+                          src={thr.authorAvatar ? (thr.authorAvatar.startsWith('http') ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
                           alt={thr.authorName}
                           className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
                         />
@@ -2204,7 +2224,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           <DashboardDesaView
             landPlots={landPlots}
             harvestRecords={harvestRecords}
-            totalUsers={stats?.totalUser ?? 3}
+            totalUsers={dashboardStats?.totalUsers ?? 3}
+            totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
             onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
           />
         )}
@@ -2951,13 +2972,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
-                              className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
-                              title="Hapus Pengguna"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {u.role !== 'ADMIN' && (
+                              <button
+                                onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
+                                className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
+                                title="Hapus Pengguna"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -3006,17 +3029,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Role (Hak Akses)</label>
-                <select
-                  value={userFormData.role}
-                  onChange={e => setUserFormData({ ...userFormData, role: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
-                >
-                  <option value="USER">Anggota KWT</option>
-                  <option value="ADMIN">Admin Portal</option>
-                </select>
-              </div>
+
               <div>
                 <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">No Telepon (Opsional)</label>
                 <input
@@ -3150,29 +3163,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         const file = e.target.files?.[0];
                         if (!file) return;
                         try {
-                          const form = new FormData();
-                          form.append('file', file);
-                          const res = await fetch(`${BASE_URL}/upload`, {
-                            method: 'POST',
-                            headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                            body: form,
-                          });
-                          const json = await res.json();
-                          if (json.success && json.data?.url) {
-                            setArtImage(json.data.url);
-                            showToast('Foto berhasil diupload');
-                          } else {
-                            showToast(json.message || 'Gagal upload foto');
-                          }
-                        } catch {
-                          showToast('Gagal upload foto');
+                          const url = await handleCmsUpload(file);
+                          setArtImage(url);
+                          showToast('Foto berhasil diupload');
+                        } catch (err: any) {
+                          showToast(err.message || 'Gagal upload foto');
                         }
                       }}
                     />
                   </label>
                 ) : (
                   <div className="relative w-full h-48 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
-                    <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    {artImage ? (
+                      <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-[#FAF6EE] flex items-center justify-center text-[#A8B774] font-bold">
+                        Tanpa Foto
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                       <label htmlFor="artImageUploadChange" className="px-4 py-2 bg-white/90 rounded-xl text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-white transition-colors">
                         Ganti Foto
@@ -3185,20 +3193,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              const form = new FormData();
-                              form.append('file', file);
-                              const res = await fetch(`${BASE_URL}/upload`, {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                                body: form,
-                              });
-                              const json = await res.json();
-                              if (json.success && json.data?.url) {
-                                setArtImage(json.data.url);
-                                showToast('Foto berhasil diganti');
-                              }
-                            } catch {
-                              showToast('Gagal upload foto');
+                              const url = await handleCmsUpload(file);
+                              setArtImage(url);
+                              showToast('Foto berhasil diganti');
+                            } catch (err: any) {
+                              showToast(err.message || 'Gagal upload foto');
                             }
                           }}
                         />
@@ -3267,19 +3266,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         e.target.value = '';
                         for (const file of files) {
                           try {
-                            const form = new FormData();
-                            form.append('file', file as Blob);
-                            const res = await fetch(`${BASE_URL}/upload`, {
-                              method: 'POST',
-                              headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                              body: form,
-                            });
-                            const json = await res.json();
-                            if (json.success && json.data?.url) {
-                              setArtGallery(prev => [...prev, json.data.url]);
-                            }
-                          } catch {
-                            showToast('Gagal upload salah satu foto');
+                            const url = await handleCmsUpload(file);
+                            setArtGallery(prev => [...prev, url]);
+                            showToast('Foto berhasil ditambahkan ke gallery');
+                          } catch (err: any) {
+                            showToast(err.message || 'Gagal upload foto');
                           }
                         }
                       }}

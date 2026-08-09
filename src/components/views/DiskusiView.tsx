@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ForumThread, ForumComment, UserProfile } from '../../types';
 import { api } from '../../api/client';
 import {
@@ -37,7 +37,7 @@ interface DiskusiViewProps {
   onEditComment: (threadId: string, commentId: string, newContent: string) => void;
   onDeleteComment: (threadId: string, commentId: string) => void;
   onDeleteThread: (threadId: string) => void;
-  onUpdateThread: (updatedThread: ForumThread) => void;
+  onUpdateThread: (updatedThread: ForumThread, syncToBackend?: boolean) => void;
 }
 
 export const DiskusiView: React.FC<DiskusiViewProps> = ({
@@ -57,7 +57,15 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Active chat group selection state
-  const [activeThreadId, setActiveThreadId] = useState<string>(threads[0]?.id || '');
+  const [activeThreadId, setActiveThreadId] = useState<string>(() => {
+    return sessionStorage.getItem('bestari_activethread') || '';
+  });
+
+  useEffect(() => {
+    if (activeThreadId) {
+      sessionStorage.setItem('bestari_activethread', activeThreadId);
+    }
+  }, [activeThreadId]);
 
   // Quoted reply state inside chat
   const [quotedComment, setQuotedComment] = useState<{ id: string; authorName: string; text: string } | null>(null);
@@ -242,7 +250,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         comments: [...activeThread.comments, systemComment]
       };
 
-      onUpdateThread(updatedThread);
+      onUpdateThread(updatedThread, false); // Don't trigger PUT /thread/:id
     } catch (e) {
       console.error('Failed to join', e);
     }
@@ -269,7 +277,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         comments: [...activeThread.comments, systemComment]
       };
 
-      onUpdateThread(updatedThread);
+      onUpdateThread(updatedThread, false); // Don't trigger PUT /thread/:id
       setIsDetailModalOpen(false);
     } catch (e) {
       console.error('Failed to leave', e);
@@ -304,7 +312,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         comments: [...activeThread.comments, systemComment]
       };
 
-      onUpdateThread(updatedThread);
+      onUpdateThread(updatedThread, false); // Don't trigger PUT /thread/:id
     } catch (e) {
       console.error('Failed to kick', e);
       alert('Gagal mengeluarkan anggota. Pastikan Anda adalah pembuat grup.');
@@ -349,6 +357,14 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
     e.preventDefault();
     if (!editTitle.trim() || !editDescription.trim()) {
       setEditErrorMsg('Nama grup dan deskripsi tidak boleh kosong.');
+      return;
+    }
+    if (editTitle.trim().length < 3) {
+      setEditErrorMsg('Nama Grup / Topik minimal harus terdiri dari 3 karakter.');
+      return;
+    }
+    if (editDescription.trim().length < 3) {
+      setEditErrorMsg('Deskripsi Singkat Topik minimal harus terdiri dari 3 karakter.');
       return;
     }
 
@@ -410,7 +426,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                 className="w-full py-3 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-sans font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-98"
               >
                 <Plus className="w-4.5 h-4.5 text-[#A8B774] stroke-[3.5]" />
-                <span>BUAT GRUP BARU</span>
+                <span>BUAT KOMUNITAS BARU</span>
               </button>
 
               {/* Category Dropdown Selector */}
@@ -498,7 +514,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               <div className="p-8 text-center space-y-1.5">
                 <MessageSquare className="w-7 h-7 text-[#A8B774] mx-auto opacity-70" />
                 <p className="font-title font-bold text-xs text-[#2C4219]">Tidak ada topik ditemukan</p>
-                <p className="text-[11px] text-[#433A30]/60">Coba ubah kata kunci atau buat grup baru.</p>
+                <p className="text-[11px] text-[#433A30]/60">Coba ubah kata kunci atau buat komunitas baru.</p>
               </div>
             )}
           </div>
@@ -636,7 +652,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             <div className="w-6 h-6 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#2C4219]/20 flex items-center justify-center">
                               {activeThread.authorAvatar ? (
                                 <img
-                                  src={activeThread.authorAvatar}
+                                  src={activeThread.authorAvatar.startsWith('http') ? activeThread.authorAvatar : SERVER_BASE + activeThread.authorAvatar}
                                   alt={activeThread.authorName}
                                   className="w-full h-full object-cover"
                                 />
@@ -834,7 +850,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                 {!isMe && (
                                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5">
                                     {comment.authorAvatar ? (
-                                      <img src={comment.authorAvatar} className="w-full h-full object-cover" />
+                                      <img src={comment.authorAvatar.startsWith('http') ? comment.authorAvatar : SERVER_BASE + comment.authorAvatar} className="w-full h-full object-cover" />
                                     ) : (
                                       <span className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#2C4219]">{comment.authorName.charAt(0)}</span>
                                     )}
@@ -1026,6 +1042,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             onEmojiClick={(emojiObject) => handleAddEmoji(emojiObject.emoji)}
                             width={320}
                             height={400}
+                            emojiStyle={EmojiStyle.NATIVE}
                           />
                         </div>
                       )}
@@ -1500,7 +1517,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
             </div>
 
             <div className="p-6 pt-2 bg-white">
-              {hasJoined(activeThread) && (
+              {hasJoined(activeThread) && activeThread.authorName !== currentUser.name && (
                 <button
                   onClick={() => {
                     if (window.confirm('Yakin ingin keluar dari komunitas ini?')) {
