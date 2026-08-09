@@ -238,119 +238,129 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [inputModeAgenda, setInputModeAgenda] = useState<'manual' | 'voice'>('manual');
   const [isRecordingAgenda, setIsRecordingAgenda] = useState(false);
   const [isProcessingSTTAgenda, setIsProcessingSTTAgenda] = useState(false);
-  const mediaRecorderAgendaRef = React.useRef<MediaRecorder | null>(null);
-  const audioChunksAgendaRef = React.useRef<Blob[]>([]);
+  const recognitionAgendaRef = React.useRef<any>(null);
 
-  const startRecordingAgenda = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderAgendaRef.current = mediaRecorder;
-      audioChunksAgendaRef.current = [];
+  const startRecordingAgenda = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("Browser Anda tidak mendukung fitur Asisten Suara. Gunakan Google Chrome atau Edge.");
+      return;
+    }
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksAgendaRef.current.push(event.data);
-        }
-      };
+    setIsRecordingAgenda(true);
+    setIsProcessingSTTAgenda(true);
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksAgendaRef.current, { type: 'audio/webm' });
-        setIsProcessingSTTAgenda(true);
+    const recognition = new SpeechRecognition();
+    recognitionAgendaRef.current = recognition;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-        try {
-          const formData = new FormData();
-          formData.append('audio', audioBlob, 'recording.webm');
+    recognition.onresult = (event: any) => {
+      setIsProcessingSTTAgenda(false);
+      const text = event.results[0][0].transcript;
+      if (text) {
+        const cleanText = text.replace(/[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
 
-          const response = await fetch(`${BASE_URL}/stt`, {
-            method: 'POST',
-            body: formData,
-          });
+        const keywords = [
+          { key: 'title', match: /(?:judul)\s*/i },
+          { key: 'category', match: /(?:kategori)\s*/i },
+          { key: 'date', match: /(?:tanggal)\s*/i },
+          { key: 'time', match: /(?:waktu|jam)\s*/i },
+          { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
+        ];
 
-          const data = await response.json();
-          if (data.success && data.text) {
-            // Hapus tanda baca agar tidak mengganggu parser
-            const cleanText = data.text.replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim();
-
-            const keywords = [
-              { key: 'title', match: /(?:judul)[^\w]*/i },
-              { key: 'category', match: /(?:kategori)[^\w]*/i },
-              { key: 'date', match: /(?:tanggal)[^\w]*/i },
-              { key: 'time', match: /(?:waktu|jam)[^\w]*/i },
-              { key: 'desc', match: /(?:deskripsi)[^\w]*/i }
-            ];
-
-            let foundPositions: any[] = [];
-            keywords.forEach(kw => {
-              const match = cleanText.match(kw.match);
-              if (match) {
-                foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
-              }
-            });
-
-            if (foundPositions.length === 0) {
-              setAgDescription(prev => prev ? `${prev}\n\n${cleanText}` : cleanText);
-            } else {
-              foundPositions.sort((a, b) => a.index - b.index);
-
-              for (let i = 0; i < foundPositions.length; i++) {
-                const curr = foundPositions[i];
-                const next = foundPositions[i + 1];
-
-                const start = curr.index + curr.length;
-                const end = next ? next.index : cleanText.length;
-
-                const val = cleanText.substring(start, end).trim();
-                if (!val) continue;
-
-                if (curr.key === 'title') {
-                  setAgTitle(val);
-                } else if (curr.key === 'category') {
-                  const upper = val.toUpperCase();
-                  if (upper.includes('WORKSHOP')) setAgCategory('WORKSHOP');
-                  else if (upper.includes('PANEN')) setAgCategory('PANEN BERSAMA');
-                  else if (upper.includes('RAPAT')) setAgCategory('RAPAT');
-                  else if (upper.includes('PELATIHAN')) setAgCategory('PELATIHAN');
-                  else if (upper.includes('INSPEKSI')) setAgCategory('INSPEKSI');
-                } else if (curr.key === 'date') {
-                  const matchDate = val.match(/(\d{1,2})\s+(jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
-                  if (matchDate) {
-                    const day = matchDate[1].padStart(2, '0');
-                    const mMap: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12' };
-                    const month = mMap[matchDate[2].toLowerCase()];
-                    setAgDate(`${matchDate[3]}-${month}-${day}`);
-                  }
-                } else if (curr.key === 'time') {
-                  setAgTime(val);
-                } else if (curr.key === 'desc') {
-                  setAgDescription(val);
-                }
-              }
-            }
-          } else {
-            const errorMsg = data.message || 'Suara tidak terdeteksi atau kosong. Coba bicara lebih keras.';
-            console.error('STT Failed:', errorMsg);
-            showToast(errorMsg);
+        let foundPositions: { key: string; index: number; length: number }[] = [];
+        keywords.forEach(kw => {
+          const match = cleanText.match(kw.match);
+          if (match && match.index !== undefined) {
+            foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
           }
-        } catch (error) {
-          console.error('STT Request Error:', error);
-        } finally {
-          setIsProcessingSTTAgenda(false);
-          stream.getTracks().forEach(track => track.stop());
-        }
-      };
+        });
 
-      mediaRecorder.start();
-      setIsRecordingAgenda(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('Tidak dapat mengakses mikrofon. Pastikan Anda telah memberikan izin.');
+        if (foundPositions.length === 0) {
+          setAgDescription(prev => prev ? `${prev}\n\n${cleanText}` : cleanText);
+        } else {
+          foundPositions.sort((a, b) => a.index - b.index);
+
+          for (let i = 0; i < foundPositions.length; i++) {
+            const curr = foundPositions[i];
+            const next = foundPositions[i + 1];
+
+            const start = curr.index + curr.length;
+            const end = next ? next.index : cleanText.length;
+
+            const val = cleanText.substring(start, end).trim();
+            if (!val) continue;
+
+            if (curr.key === 'title') {
+              setAgTitle(val);
+            } else if (curr.key === 'category') {
+              const upper = val.toUpperCase();
+              if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setAgCategory('WORKSHOP');
+              else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setAgCategory('PANEN BERSAMA');
+              else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setAgCategory('RAPAT');
+              else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setAgCategory('PELATIHAN');
+              else setAgCategory('INSPEKSI'); 
+            } else if (curr.key === 'date') {
+              const matchDate = val.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
+              if (matchDate) {
+                const day = matchDate[1].padStart(2, '0');
+                const mMap: Record<string, string> = {
+                  januari: '01', jan: '01', februari: '02', feb: '02',
+                  maret: '03', mar: '03', april: '04', apr: '04',
+                  mei: '05', juni: '06', jun: '06', juli: '07', jul: '07',
+                  agustus: '08', agu: '08', september: '09', sep: '09',
+                  oktober: '10', okt: '10', november: '11', nov: '11',
+                  desember: '12', des: '12'
+                };
+                const month = mMap[matchDate[2].toLowerCase().substring(0, 3)] || mMap[matchDate[2].toLowerCase()];
+                if (month) setAgDate(`${matchDate[3]}-${month}-${day}`);
+              } else {
+                const isoDate = val.match(/(\d{4})-(\d{2})-(\d{2})/);
+                const slashDate = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (isoDate) setAgDate(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`);
+                else if (slashDate) setAgDate(`${slashDate[3]}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
+              }
+            } else if (curr.key === 'time') {
+              setAgTime(val);
+            } else if (curr.key === 'desc') {
+              setAgDescription(val);
+            }
+          }
+        }
+      } else {
+        showToast('Suara tidak terdeteksi. Coba lagi.');
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+      if (event.error === 'no-speech') {
+        showToast('Tidak ada suara terdeteksi. Silakan coba lagi.');
+      } else {
+        showToast(`Error pengenalan suara: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e: any) {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+      showToast(e.message || 'Gagal memulai mikrofon.');
     }
   };
 
   const stopRecordingAgenda = () => {
-    if (mediaRecorderAgendaRef.current && isRecordingAgenda) {
-      mediaRecorderAgendaRef.current.stop();
+    if (recognitionAgendaRef.current && isRecordingAgenda) {
+      recognitionAgendaRef.current.stop();
       setIsRecordingAgenda(false);
     }
   };

@@ -82,155 +82,143 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
   const [isProcessingSTT, setIsProcessingSTT] = useState(false);
   const [sttError, setSTTError] = useState<string | null>(null);
   const [sttSuccess, setSTTSuccess] = useState(false);
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const streamRef = React.useRef<MediaStream | null>(null);
+  const recognitionRef = React.useRef<any>(null);
 
-  const toggleRecording = async () => {
+  const toggleRecording = () => {
     if (isRecording) {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
       setIsRecording(false);
       return;
     }
 
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSTTError("Browser Anda tidak mendukung fitur Asisten Suara. Gunakan Google Chrome atau Edge.");
+      return;
+    }
+
     setSTTError(null);
     setSTTSuccess(false);
+    setIsRecording(true);
+    setIsProcessingSTT(true);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      const audioChunks: BlobPart[] = [];
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
+    recognition.onresult = (event: any) => {
+      setIsProcessingSTT(false);
+      const text = event.results[0][0].transcript;
+      if (text) {
+        // Hapus tanda baca agar tidak mengganggu parser
+        const cleanText = text.replace(/[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
 
-      mediaRecorder.onstop = async () => {
-        // Stop all mic tracks immediately
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-          streamRef.current = null;
-        }
+        const keywords = [
+          { key: 'title', match: /(?:judul)\s*/i },
+          { key: 'category', match: /(?:kategori)\s*/i },
+          { key: 'date', match: /(?:tanggal)\s*/i },
+          { key: 'time', match: /(?:waktu|jam)\s*/i },
+          { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
+        ];
 
-        setIsProcessingSTT(true);
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
-
-        try {
-          const response = await fetch(`${BASE_URL}/stt`, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.message || `Server error ${response.status}`);
+        let foundPositions: { key: string; index: number; length: number }[] = [];
+        keywords.forEach(kw => {
+          const match = cleanText.match(kw.match);
+          if (match && match.index !== undefined) {
+            foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
           }
+        });
 
-          const data = await response.json();
+        if (foundPositions.length === 0) {
+          // No keywords found, put entire text in title
+          setNewTitle(cleanText);
+        } else {
+          foundPositions.sort((a, b) => a.index - b.index);
 
-          if (data.success && data.text) {
-            // Hapus tanda baca agar tidak mengganggu parser
-            const cleanText = data.text.replace(/[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
+          for (let i = 0; i < foundPositions.length; i++) {
+            const curr = foundPositions[i];
+            const next = foundPositions[i + 1];
 
-            const keywords = [
-              { key: 'title', match: /(?:judul)\s*/i },
-              { key: 'category', match: /(?:kategori)\s*/i },
-              { key: 'date', match: /(?:tanggal)\s*/i },
-              { key: 'time', match: /(?:waktu|jam)\s*/i },
-              { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
-            ];
+            const start = curr.index + curr.length;
+            const end = next ? next.index : cleanText.length;
 
-            let foundPositions: { key: string; index: number; length: number }[] = [];
-            keywords.forEach(kw => {
-              const match = cleanText.match(kw.match);
-              if (match && match.index !== undefined) {
-                foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
-              }
-            });
+            const val = cleanText.substring(start, end).trim();
+            if (!val) continue;
 
-            if (foundPositions.length === 0) {
-              // No keywords found, put entire text in title
-              setNewTitle(cleanText);
-            } else {
-              foundPositions.sort((a, b) => a.index - b.index);
-
-              for (let i = 0; i < foundPositions.length; i++) {
-                const curr = foundPositions[i];
-                const next = foundPositions[i + 1];
-
-                const start = curr.index + curr.length;
-                const end = next ? next.index : cleanText.length;
-
-                const val = cleanText.substring(start, end).trim();
-                if (!val) continue;
-
-                if (curr.key === 'title') {
-                  setNewTitle(val);
-                } else if (curr.key === 'category') {
-                  const upper = val.toUpperCase();
-                  if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setNewCategory('WORKSHOP KREATIF');
-                  else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setNewCategory('PANEN BERSAMA');
-                  else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setNewCategory('RAPAT RUTIN');
-                  else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setNewCategory('PELATIHAN UMKM');
-                  else setNewCategory(val); // Fallback: put as-is
-                } else if (curr.key === 'date') {
-                  // Try "20 november 2026" format (Indonesian months)
-                  const matchDate = val.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
-                  if (matchDate) {
-                    const day = matchDate[1].padStart(2, '0');
-                    const mMap: Record<string, string> = {
-                      januari: '01', jan: '01', februari: '02', feb: '02',
-                      maret: '03', mar: '03', april: '04', apr: '04',
-                      mei: '05', juni: '06', jun: '06', juli: '07', jul: '07',
-                      agustus: '08', agu: '08', september: '09', sep: '09',
-                      oktober: '10', okt: '10', november: '11', nov: '11',
-                      desember: '12', des: '12'
-                    };
-                    const month = mMap[matchDate[2].toLowerCase().substring(0, 3)] ||
-                      mMap[matchDate[2].toLowerCase()];
-                    if (month) setNewDate(`${matchDate[3]}-${month}-${day}`);
-                  } else {
-                    // Try YYYY-MM-DD or DD/MM/YYYY
-                    const isoDate = val.match(/(\d{4})-(\d{2})-(\d{2})/);
-                    const slashDate = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-                    if (isoDate) {
-                      setNewDate(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`);
-                    } else if (slashDate) {
-                      setNewDate(`${slashDate[3]}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
-                    }
-                  }
-                } else if (curr.key === 'time') {
-                  setNewTime(val);
-                } else if (curr.key === 'desc') {
-                  setNewDesc(val);
+            if (curr.key === 'title') {
+              setNewTitle(val);
+            } else if (curr.key === 'category') {
+              const upper = val.toUpperCase();
+              if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setNewCategory('WORKSHOP KREATIF');
+              else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setNewCategory('PANEN BERSAMA');
+              else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setNewCategory('RAPAT RUTIN');
+              else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setNewCategory('PELATIHAN UMKM');
+              else setNewCategory(val); // Fallback: put as-is
+            } else if (curr.key === 'date') {
+              // Try "20 november 2026" format (Indonesian months)
+              const matchDate = val.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
+              if (matchDate) {
+                const day = matchDate[1].padStart(2, '0');
+                const mMap: Record<string, string> = {
+                  januari: '01', jan: '01', februari: '02', feb: '02',
+                  maret: '03', mar: '03', april: '04', apr: '04',
+                  mei: '05', juni: '06', jun: '06', juli: '07', jul: '07',
+                  agustus: '08', agu: '08', september: '09', sep: '09',
+                  oktober: '10', okt: '10', november: '11', nov: '11',
+                  desember: '12', des: '12'
+                };
+                const month = mMap[matchDate[2].toLowerCase().substring(0, 3)] ||
+                  mMap[matchDate[2].toLowerCase()];
+                if (month) setNewDate(`${matchDate[3]}-${month}-${day}`);
+              } else {
+                // Try YYYY-MM-DD or DD/MM/YYYY
+                const isoDate = val.match(/(\d{4})-(\d{2})-(\d{2})/);
+                const slashDate = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (isoDate) {
+                  setNewDate(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`);
+                } else if (slashDate) {
+                  setNewDate(`${slashDate[3]}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
                 }
               }
+            } else if (curr.key === 'time') {
+              setNewTime(val);
+            } else if (curr.key === 'desc') {
+              setNewDesc(val);
             }
-            setSTTSuccess(true);
-            setTimeout(() => setSTTSuccess(false), 3000);
-          } else {
-            setSTTError('Suara tidak terdeteksi. Coba lagi.');
           }
-        } catch (error: any) {
-          console.error('Error transcribing audio:', error);
-          setSTTError(error.message || 'Gagal memproses suara. Coba lagi.');
-        } finally {
-          setIsProcessingSTT(false);
         }
-      };
+        setSTTSuccess(true);
+        setTimeout(() => setSTTSuccess(false), 3000);
+      } else {
+        setSTTError('Suara tidak terdeteksi. Coba lagi.');
+      }
+    };
 
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      setSTTError('Tidak bisa mengakses mikrofon. Pastikan izin mikrofon sudah diberikan.');
+    recognition.onerror = (event: any) => {
+      setIsRecording(false);
+      setIsProcessingSTT(false);
+      if (event.error === 'no-speech') {
+        setSTTError('Tidak ada suara terdeteksi. Silakan coba lagi.');
+      } else {
+        setSTTError(`Error pengenalan suara: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      setIsProcessingSTT(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e: any) {
+      setIsRecording(false);
+      setIsProcessingSTT(false);
+      setSTTError(e.message || 'Gagal memulai mikrofon.');
     }
   };
 
