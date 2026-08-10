@@ -1080,7 +1080,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               if (e.target.files && e.target.files.length > 0) {
-                                const files = Array.from(e.target.files);
+                                const files = Array.from(e.target.files) as File[];
                                 const validFiles = files.filter(f => f.type.match('image/(jpeg|jpg|png)'));
                                 if (validFiles.length === 0) {
                                   showToast('Hanya gambar (JPG/PNG) yang diperbolehkan', 'error');
@@ -1106,7 +1106,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               if (e.target.files && e.target.files.length > 0) {
-                                const files = Array.from(e.target.files);
+                                const files = Array.from(e.target.files) as File[];
                                 files.forEach(file => {
                                   const reader = new FileReader();
                                   reader.onloadend = () => {
