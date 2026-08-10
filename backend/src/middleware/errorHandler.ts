@@ -14,6 +14,10 @@ export const errorHandler = (
     return errorResponse(res, err.message, err.statusCode);
   }
 
+  if ((err as any).type === 'entity.too.large') {
+    return errorResponse(res, 'Ukuran file terlalu besar. Maksimal 50MB.', 413);
+  }
+
   // Prisma errors
   if (err.constructor?.name === 'PrismaClientKnownRequestError') {
     const prismaErr = err as any;

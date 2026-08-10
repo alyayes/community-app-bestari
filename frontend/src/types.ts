@@ -108,9 +108,8 @@ export interface ForumComment {
   likes: number;
   userLiked?: boolean;
   replies?: ForumComment[];
-  imageAttachment?: string;
-  documentAttachment?: string;
-  documentName?: string;
+  imageAttachments?: string[];
+  documentAttachments?: { url: string; name: string }[];
   quotedCommentText?: string;
   quotedCommentAuthor?: string;
   createdAt?: number | string;

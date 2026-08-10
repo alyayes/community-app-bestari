@@ -26,8 +26,8 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: config.cors.origin, credentials: true }));
-app.use(express.json({ limit: '10mb' })); // Increased limit for base64 images
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' })); // Increased limit for base64 files
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(process.cwd(), config.upload.dir)));
 
 // Health

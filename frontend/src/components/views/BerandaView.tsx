@@ -8,7 +8,8 @@ import {
   BookOpen, 
   Clock,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface BerandaViewProps {
@@ -173,11 +174,17 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                 >
                   <div className="space-y-3">
                     <div className="relative h-36 rounded-lg overflow-hidden bg-gray-100">
-                      <img
-                        src={art.image || undefined}
-                        alt={art.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {art.image ? (
+                        <img
+                          src={art.image}
+                          alt={art.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#433A30]/30 bg-[#E6E1D5]/30 group-hover:scale-105 transition-transform duration-300">
+                          <ImageIcon className="w-8 h-8 opacity-50" />
+                        </div>
+                      )}
                       <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#2C4219] text-white">
                         {art.category}
                       </span>

@@ -13,7 +13,8 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
-  ArrowLeft
+  ArrowLeft,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface InformasiViewProps {
@@ -217,12 +218,16 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                ))
             ) : (
                 <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
-                  {selectedArticle.image && (
+                  {selectedArticle.image ? (
                     <img
                       src={selectedArticle.image}
                       alt={selectedArticle.title}
                       className="w-full h-full object-cover object-center"
                     />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[#433A30]/30 bg-[#E6E1D5]/30">
+                      <ImageIcon className="w-16 h-16 opacity-50" />
+                    </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent print:hidden" />
                 </div>
@@ -432,11 +437,17 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             <div>
               {/* Image Header */}
               <div className="relative h-48 w-full overflow-hidden bg-[#FAF6EE]">
-                <img
-                  src={art.image || undefined}
-                  alt={art.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                {art.image ? (
+                  <img
+                    src={art.image}
+                    alt={art.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[#433A30]/30 group-hover:scale-105 transition-transform duration-500 bg-[#E6E1D5]/30">
+                    <ImageIcon className="w-10 h-10 opacity-50" />
+                  </div>
+                )}
                 <span className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider uppercase shadow-xs ${getCategoryBadgeClass(art.category)}`}>
                   {art.category}
                 </span>

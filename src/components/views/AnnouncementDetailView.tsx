@@ -28,7 +28,7 @@ export const getBadgeColor = (cat: string) => {
   if (cat === 'MENDESAK') return '#dc2626';
   if (cat === 'PENTING') return '#ea580c';
   if (cat === 'HASIL PANEN') return '#2C4219';
-  if (cat === 'INFORMASI ANGGOTA') return '#0284c7';
+  if (cat === 'INFORMASI ANGGOTA') return '#572E4A';
   return '#7A7062';
 };
 

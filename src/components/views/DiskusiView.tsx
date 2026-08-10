@@ -33,8 +33,8 @@ interface DiskusiViewProps {
   onOpenCreateModal: () => void;
   onToggleLikeThread: (threadId: string) => void;
   onToggleLikeComment: (threadId: string, commentId: string) => void;
-  onAddComment: (threadId: string, content: string, imageAttachment?: string, quotedText?: string, quotedAuthor?: string, documentAttachment?: string, documentName?: string) => void;
-  onEditComment: (threadId: string, commentId: string, newContent: string) => void;
+  onAddComment: (threadId: string, content: string, imageAttachments?: string[], quotedText?: string, quotedAuthor?: string, documentAttachments?: { url: string; name: string }[]) => void;
+  onEditComment: (threadId: string, commentId: string, newContent: string, imageAttachments?: string[], documentAttachments?: { url: string; name: string }[]) => void;
   onDeleteComment: (threadId: string, commentId: string) => void;
   onDeleteThread: (threadId: string) => void;
   onUpdateThread: (updatedThread: ForumThread, syncToBackend?: boolean) => void;
@@ -78,7 +78,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
 
   // File attachment state
-  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
 
   // Edit comment state
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -88,6 +88,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
   // Detail Modal state
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+  const [showLeaveModal, setShowLeaveModal] = useState<boolean>(false);
 
   // Chat scroll container ref
   const chatStreamRef = useRef<HTMLDivElement>(null);
@@ -95,8 +96,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   const docInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
 
-  const [documentAttachment, setDocumentAttachment] = useState<string | null>(null);
-  const [documentName, setDocumentName] = useState<string | null>(null);
+  const [documentAttachments, setDocumentAttachments] = useState<{ url: string; name: string }[]>([]);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState<boolean>(false);
   const attachmentMenuRef = useRef<HTMLDivElement>(null);
 
@@ -163,29 +163,27 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!inputMessage.trim() && !attachmentPreview && !documentAttachment) || !activeThread) return;
+    if ((!inputMessage.trim() && attachmentPreviews.length === 0 && documentAttachments.length === 0) || !activeThread) return;
 
     if (editingCommentId) {
-      onEditComment(activeThread.id, editingCommentId, inputMessage.trim());
+      onEditComment(activeThread.id, editingCommentId, inputMessage.trim(), attachmentPreviews, documentAttachments);
       setEditingCommentId(null);
     } else {
       onAddComment(
         activeThread.id,
         inputMessage.trim(),
-        attachmentPreview || undefined,
+        attachmentPreviews,
         quotedComment ? quotedComment.text : undefined,
         quotedComment ? quotedComment.authorName : undefined,
-        documentAttachment || undefined,
-        documentName || undefined
+        documentAttachments
       );
     }
 
     setInputMessage('');
     setQuotedComment(null);
     setShowEmojiPicker(false);
-    setAttachmentPreview(null);
-    setDocumentAttachment(null);
-    setDocumentName(null);
+    setAttachmentPreviews([]);
+    setDocumentAttachments([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (docInputRef.current) docInputRef.current.value = '';
   };
@@ -874,7 +872,12 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                 {isMe && (
                                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 ml-2 self-center order-first">
                                     {(!comment.createdAt || Date.now() - new Date(comment.createdAt).getTime() < 15 * 60 * 1000) && (
-                                      <button onClick={() => { setEditingCommentId(comment.id); setInputMessage(comment.content); }} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Edit">
+                                      <button onClick={() => { 
+                                        setEditingCommentId(comment.id); 
+                                        setInputMessage(comment.content); 
+                                        setAttachmentPreviews(comment.imageAttachments || []);
+                                        setDocumentAttachments(comment.documentAttachments || []);
+                                      }} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Edit">
                                         <svg xmlns="http://www.w3.org/2010/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                       </button>
                                     )}
@@ -908,32 +911,40 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                     </div>
                                   )}
 
-                                  {/* Image Attachment */}
-                                  {comment.imageAttachment && (
-                                    <div className="mb-1.5">
-                                      <img src={comment.imageAttachment} alt="Attachment" onClick={() => setZoomedImage(comment.imageAttachment!)} className="rounded-lg max-h-48 w-auto object-contain border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity" />
+                                  {/* Image Attachments */}
+                                  {comment.imageAttachments && comment.imageAttachments.length > 0 && (
+                                    <div className="mb-1.5 grid grid-cols-2 gap-1.5">
+                                      {comment.imageAttachments.map((img, idx) => (
+                                        <img key={idx} src={img} alt="Attachment" onClick={() => setZoomedImage(img)} className="rounded-lg max-h-48 w-full object-cover border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity" />
+                                      ))}
                                     </div>
                                   )}
 
-                                  {/* Document Attachment */}
-                                  {comment.documentAttachment && (
-                                    <div className="mb-1.5 p-2 bg-black/5 rounded-lg border border-black/10 flex items-center gap-2">
-                                      <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-500 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                                      <a
-                                        href={comment.documentAttachment}
-                                        download={comment.documentName || "document"}
-                                        className="text-xs font-bold text-indigo-600 hover:underline truncate"
-                                      >
-                                        {comment.documentName || "Unduh Dokumen"}
-                                      </a>
+                                  {/* Document Attachments */}
+                                  {comment.documentAttachments && comment.documentAttachments.length > 0 && (
+                                    <div className="mb-1.5 space-y-1.5">
+                                      {comment.documentAttachments.map((doc, idx) => (
+                                        <div key={idx} className="p-2 bg-black/5 rounded-lg border border-black/10 flex items-center gap-2">
+                                          <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-500 shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                          <a
+                                            href={doc.url}
+                                            download={doc.name || "document"}
+                                            className="text-xs font-bold text-indigo-600 hover:underline truncate"
+                                          >
+                                            {doc.name || "Unduh Dokumen"}
+                                          </a>
+                                        </div>
+                                      ))}
                                     </div>
                                   )}
 
                                   {/* Message Body & Time */}
                                   <div className="flex items-end justify-between gap-3 flex-wrap">
-                                    <p className="text-xs sm:text-sm leading-relaxed font-normal whitespace-pre-line break-words max-w-full">
-                                      {comment.content}
-                                    </p>
+                                    {comment.content && (
+                                      <p className="text-xs sm:text-sm leading-relaxed font-normal whitespace-pre-line break-words max-w-full">
+                                        {comment.content}
+                                      </p>
+                                    )}
                                     <span className="text-[9px] sm:text-[10px] text-[#433A30]/50 font-medium whitespace-nowrap ml-auto mt-1 flex items-center gap-1">
                                       {comment.isEdited && <span className="italic mr-0.5">(diedit)</span>}
                                       {timeString}
@@ -992,48 +1003,49 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                       )}
 
                       {/* Attachment Preview Box */}
-                      {attachmentPreview && (
-                        <div className="p-2 px-4 bg-white border-t border-[#E6E1D5] flex items-center justify-between gap-2 shrink-0">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <img src={attachmentPreview} alt="Preview" className="w-12 h-12 object-cover rounded shadow-2xs border border-[#E6E1D5]" />
-                            <div className="min-w-0 text-xs">
-                              <span className="font-bold text-[#2C4219]">Gambar terlampir</span>
+                      {attachmentPreviews.length > 0 && (
+                        <div className="p-2 px-4 bg-white border-t border-[#E6E1D5] flex gap-2 shrink-0 overflow-x-auto">
+                          {attachmentPreviews.map((preview, idx) => (
+                            <div key={idx} className="relative group shrink-0">
+                              <img src={preview} alt="Preview" className="w-12 h-12 object-cover rounded shadow-2xs border border-[#E6E1D5]" />
+                              <button
+                                onClick={() => {
+                                  setAttachmentPreviews(prev => prev.filter((_, i) => i !== idx));
+                                  if (fileInputRef.current) fileInputRef.current.value = '';
+                                }}
+                                className="absolute -top-1.5 -right-1.5 p-0.5 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setAttachmentPreview(null);
-                              if (fileInputRef.current) fileInputRef.current.value = '';
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-[#433A30]/70 transition-colors shrink-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          ))}
                         </div>
                       )}
 
                       {/* Document Preview */}
-                      {documentName && (
-                        <div className="p-2 px-4 bg-white border-t border-[#E6E1D5] flex items-center justify-between gap-2 shrink-0">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                              <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-indigo-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      {documentAttachments.length > 0 && (
+                        <div className="p-2 px-4 bg-white border-t border-[#E6E1D5] flex flex-col gap-2 shrink-0 max-h-32 overflow-y-auto">
+                          {documentAttachments.map((doc, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-2 bg-indigo-50/50 p-2 rounded-lg border border-indigo-100">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-500 flex items-center justify-center shrink-0">
+                                  <svg xmlns="http://www.w3.org/2010/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-[#2C4219] text-xs truncate max-w-[200px]">{doc.name}</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setDocumentAttachments(prev => prev.filter((_, i) => i !== idx));
+                                  if (docInputRef.current) docInputRef.current.value = '';
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-white text-[#433A30]/70 transition-colors shrink-0"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-bold text-[#2C4219] text-xs truncate max-w-[200px]">{documentName}</span>
-                              <span className="text-[10px] text-[#433A30]/60">Dokumen terlampir</span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => {
-                              setDocumentAttachment(null);
-                              setDocumentName(null);
-                              if (docInputRef.current) docInputRef.current.value = '';
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-[#433A30]/70 transition-colors shrink-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          ))}
                         </div>
                       )}
 
@@ -1062,40 +1074,47 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
                           <input
                             type="file"
+                            multiple
                             ref={fileInputRef}
                             accept="image/png,image/jpeg,image/jpg"
                             style={{ display: 'none' }}
                             onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                const file = e.target.files[0];
-                                if (!file.type.match('image/(jpeg|jpg|png)')) {
+                              if (e.target.files && e.target.files.length > 0) {
+                                const files = Array.from(e.target.files);
+                                const validFiles = files.filter(f => f.type.match('image/(jpeg|jpg|png)'));
+                                if (validFiles.length === 0) {
                                   showToast('Hanya gambar (JPG/PNG) yang diperbolehkan', 'error');
                                   return;
                                 }
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setAttachmentPreview(reader.result as string);
-                                  showToast(`File "${file.name}" siap dilampirkan.`, 'success');
-                                };
-                                reader.readAsDataURL(file);
+                                
+                                validFiles.forEach(file => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setAttachmentPreviews(prev => [...prev, reader.result as string]);
+                                  };
+                                  reader.readAsDataURL(file);
+                                });
+                                showToast(`${validFiles.length} gambar siap dilampirkan.`, 'success');
                               }
                             }}
                           />
                           <input
                             type="file"
+                            multiple
                             ref={docInputRef}
                             accept=".pdf"
                             style={{ display: 'none' }}
                             onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                const file = e.target.files[0];
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setDocumentAttachment(reader.result as string);
-                                  setDocumentName(file.name);
-                                  showToast(`Dokumen "${file.name}" dilampirkan.`, 'success');
-                                };
-                                reader.readAsDataURL(file);
+                              if (e.target.files && e.target.files.length > 0) {
+                                const files = Array.from(e.target.files);
+                                files.forEach(file => {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setDocumentAttachments(prev => [...prev, { url: reader.result as string, name: file.name }]);
+                                  };
+                                  reader.readAsDataURL(file);
+                                });
+                                showToast(`${files.length} dokumen dilampirkan.`, 'success');
                               }
                             }}
                           />
@@ -1156,7 +1175,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
                           <button
                             type="submit"
-                            disabled={!inputMessage.trim() && !attachmentPreview}
+                            disabled={!inputMessage.trim() && attachmentPreviews.length === 0 && documentAttachments.length === 0}
                             className="w-9 h-9 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] disabled:opacity-40 text-white flex items-center justify-center transition-all shadow-2xs shrink-0 active:scale-95"
                             title="Kirim Pesan"
                           >
@@ -1521,11 +1540,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
             <div className="p-6 pt-2 bg-white">
               {hasJoined(activeThread) && activeThread.authorName !== currentUser.name && (
                 <button
-                  onClick={() => {
-                    if (window.confirm('Yakin ingin keluar dari komunitas ini?')) {
-                      handleLeaveGroup();
-                    }
-                  }}
+                  onClick={() => setShowLeaveModal(true)}
                   className="px-4 py-2.5 rounded-xl border border-red-500/30 text-red-600 font-bold hover:bg-red-50 transition-colors text-sm w-full flex justify-center"
                 >
                   Keluar dari Komunitas
@@ -1551,6 +1566,42 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Leave Modal */}
+      {showLeaveModal && activeThread && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLeaveModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-bold text-[#2C4219] mb-2 font-title">Keluar dari Komunitas?</h3>
+              <p className="text-sm text-[#433A30]/80 mb-6 leading-relaxed">
+                Anda yakin ingin keluar dari komunitas <strong>"{activeThread.title}"</strong>? Anda akan kehilangan akses ke percakapan dan riwayat dokumen yang ada.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setShowLeaveModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-bold text-[#433A30] bg-[#FAF6EE] hover:bg-[#E6E1D5] transition-colors text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLeaveModal(false);
+                    handleLeaveGroup();
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors text-sm shadow-md hover:shadow-lg"
+                >
+                  Ya, Keluar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
