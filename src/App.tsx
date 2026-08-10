@@ -415,19 +415,18 @@ export function App() {
     }));
   };
 
-  const handleAddComment = async (threadId: string, content: string, imageAttachment?: string, quotedText?: string, quotedAuthor?: string, documentAttachment?: string, documentName?: string) => {
+  const handleAddComment = async (threadId: string, content: string, imageAttachments?: string[], quotedText?: string, quotedAuthor?: string, documentAttachments?: { url: string; name: string }[]) => {
     // Simpan ke backend, fallback ke lokal
     try {
       let newComment = await api<any>(`/thread/${threadId}/comments`, {
         method: 'POST',
-        body: { content, imageAttachment, quotedText, quotedAuthor, documentAttachment, documentName },
+        body: { content, imageAttachments, quotedText, quotedAuthor, documentAttachments },
       });
       // Attach fields the backend might have stripped
       newComment = {
         ...newComment,
-        imageAttachment: imageAttachment || newComment.imageAttachment,
-        documentAttachment: documentAttachment || newComment.documentAttachment,
-        documentName: documentName || newComment.documentName,
+        imageAttachments: imageAttachments || newComment.imageAttachments,
+        documentAttachments: documentAttachments || newComment.documentAttachments,
         quotedCommentText: quotedText || newComment.quotedCommentText,
         quotedCommentAuthor: quotedAuthor || newComment.quotedCommentAuthor,
         createdAt: Date.now(),
@@ -448,9 +447,8 @@ export function App() {
         content,
         likes: 0,
         userLiked: false,
-        imageAttachment,
-        documentAttachment,
-        documentName,
+        imageAttachments,
+        documentAttachments,
         quotedCommentText: quotedText,
         quotedCommentAuthor: quotedAuthor,
         createdAt: Date.now(),
@@ -465,18 +463,18 @@ export function App() {
     }
   };
 
-  const handleEditComment = async (threadId: string, commentId: string, newContent: string) => {
+  const handleEditComment = async (threadId: string, commentId: string, newContent: string, imageAttachments?: string[], documentAttachments?: { url: string; name: string }[]) => {
     try {
       await api(`/thread/${threadId}/comments/${commentId}`, {
         method: 'PUT',
-        body: { content: newContent },
+        body: { content: newContent, imageAttachments, documentAttachments },
       });
       setThreads(prev => prev.map(t => {
         if (t.id === threadId) {
           return {
             ...t,
             comments: t.comments.map(c =>
-              c.id === commentId ? { ...c, content: newContent, isEdited: true } : c
+              c.id === commentId ? { ...c, content: newContent, imageAttachments, documentAttachments, isEdited: true } : c
             )
           };
         }
@@ -489,7 +487,7 @@ export function App() {
           return {
             ...t,
             comments: t.comments.map(c =>
-              c.id === commentId ? { ...c, content: newContent, isEdited: true } : c
+              c.id === commentId ? { ...c, content: newContent, imageAttachments, documentAttachments, isEdited: true } : c
             )
           };
         }

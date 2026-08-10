@@ -112,17 +112,24 @@ export const updateThreadSchema = z.object({
 });
 
 export const createCommentSchema = z.object({
-  content: z.string().min(1).max(2000),
+  content: z.string().max(2000).optional().default(''),
   parentId: z.string().nullable().optional(),
   quotedText: z.string().optional(),
   quotedAuthor: z.string().optional(),
-  imageAttachment: z.string().optional(),
-  documentAttachment: z.string().optional(),
-  documentName: z.string().optional(),
+  imageAttachments: z.array(z.string()).optional(),
+  documentAttachments: z.array(z.object({
+    url: z.string(),
+    name: z.string()
+  })).optional(),
 });
 
 export const updateCommentSchema = z.object({
-  content: z.string().min(1).max(2000).optional(),
+  content: z.string().max(2000).optional(),
+  imageAttachments: z.array(z.string()).optional(),
+  documentAttachments: z.array(z.object({
+    url: z.string(),
+    name: z.string()
+  })).optional(),
 });
 
 // ── Banner ──────────────────────────────────────────

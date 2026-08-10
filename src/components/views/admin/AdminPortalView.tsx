@@ -260,7 +260,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setIsProcessingSTTAgenda(false);
       const text = event.results[0][0].transcript;
       if (text) {
-        const cleanText = text.replace(/[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanText = text.replace(/[,.!?\-]/g, ' ').replace(/\s+/g, ' ').trim();
 
         const keywords = [
           { key: 'title', match: /(?:judul)\s*/i },
@@ -303,7 +303,35 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setAgCategory('PELATIHAN');
               else setAgCategory('INSPEKSI'); 
             } else if (curr.key === 'date') {
-              const matchDate = val.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
+              // Fix STT numeric spacing issues for dates
+              let dateVal = val.toLowerCase();
+              const numMap: Record<string, string> = {
+                'satu': '1', 'dua': '2', 'tiga': '3', 'empat': '4', 'lima': '5',
+                'enam': '6', 'tujuh': '7', 'delapan': '8', 'sembilan': '9', 'sepuluh': '10',
+                'sebelas': '11', 'belas': '1', // fallback for 'dua belas' if 'dua' is replaced first
+                'dua puluh': '20', 'tiga puluh': '30', 'puluh': '0'
+              };
+              // Sort keys by length descending to replace longer phrases first
+              Object.keys(numMap).sort((a, b) => b.length - a.length).forEach(k => {
+                dateVal = dateVal.replace(new RegExp(`\\b${k}\\b`, 'g'), numMap[k]);
+              });
+
+              // Handle cases where STT outputs digit + word (e.g., "2 puluh")
+              dateVal = dateVal.replace(/(\d)\s*puluh/g, '$10');
+              dateVal = dateVal.replace(/(\d)\s*belas/g, '1$1');
+
+              // Run the spacing fixes repeatedly to ensure cascading merges (e.g., "2 0 7" -> "20 7" -> "27")
+              for (let i = 0; i < 2; i++) {
+                dateVal = dateVal
+                  .replace(/\b([123]0)\s+([1-9])\b/g, (m, p1, p2) => String(parseInt(p1) + parseInt(p2)))
+                  .replace(/\b([123])\s+([0-9])\b/g, '$1$2');
+              }
+              
+              dateVal = dateVal
+                .replace(/\b(2002)\s+(\d)\b/g, '202$2')
+                .replace(/\b(200|20)\s+(\d{2})\b/g, '20$2');
+
+              const matchDate = dateVal.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*(?:\s+(\d{4}))?/i);
               if (matchDate) {
                 const day = matchDate[1].padStart(2, '0');
                 const mMap: Record<string, string> = {
@@ -315,12 +343,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   desember: '12', des: '12'
                 };
                 const month = mMap[matchDate[2].toLowerCase().substring(0, 3)] || mMap[matchDate[2].toLowerCase()];
-                if (month) setAgDate(`${matchDate[3]}-${month}-${day}`);
+                const year = matchDate[3] || new Date().getFullYear();
+                if (month) setAgDate(`${year}-${month}-${day}`);
               } else {
-                const isoDate = val.match(/(\d{4})-(\d{2})-(\d{2})/);
-                const slashDate = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                const isoDate = dateVal.match(/(\d{4})-(\d{2})-(\d{2})/);
+                const slashDate = dateVal.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
                 if (isoDate) setAgDate(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`);
-                else if (slashDate) setAgDate(`${slashDate[3]}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
+                else if (slashDate) {
+                  const year = slashDate[3] || new Date().getFullYear();
+                  setAgDate(`${year}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
+                }
               }
             } else if (curr.key === 'time') {
               setAgTime(val);
@@ -707,11 +739,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       image: artImage,
       gallery: artGallery,
       status: artStatus,
-      author: {
-        name: currentUser.name,
-        role: currentUser.role,
-        avatar: currentUser.avatar
-      }
+      authorName: currentUser.name,
+      authorRole: currentUser.role,
+      authorAvatar: currentUser.avatar
     };
 
     try {

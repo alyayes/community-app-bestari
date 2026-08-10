@@ -22,9 +22,8 @@ function mapComments(comments: any[]): any[] {
     content: c.content,
     quotedCommentText: c.quotedCommentText || null,
     quotedCommentAuthor: c.quotedCommentAuthor || null,
-    imageAttachment: c.imageAttachment || null,
-    documentAttachment: c.documentAttachment || null,
-    documentName: c.documentName || null,
+    imageAttachments: (typeof c.imageAttachment === 'string' && c.imageAttachment.startsWith('[')) ? JSON.parse(c.imageAttachment) : (c.imageAttachment ? [c.imageAttachment] : []),
+    documentAttachments: (typeof c.documentAttachment === 'string' && c.documentAttachment.startsWith('[')) ? JSON.parse(c.documentAttachment) : (c.documentAttachment ? [{url: c.documentAttachment, name: c.documentName || 'Document'}] : []),
     isEdited: c.isEdited || false,
     likes: c.likes,
     userLiked: c.userLiked,
@@ -267,9 +266,9 @@ router.post('/:id/comments', authenticate, validate(createCommentSchema), async 
         content: req.body.content,
         quotedCommentText: req.body.quotedText || null,
         quotedCommentAuthor: req.body.quotedAuthor || null,
-        imageAttachment: req.body.imageAttachment || null,
-        documentAttachment: req.body.documentAttachment || null,
-        documentName: req.body.documentName || null,
+        imageAttachment: Array.isArray(req.body.imageAttachments) ? JSON.stringify(req.body.imageAttachments) : null,
+        documentAttachment: Array.isArray(req.body.documentAttachments) ? JSON.stringify(req.body.documentAttachments) : null,
+        documentName: null,
         likes: 0,
         userLiked: false,
       },
@@ -286,9 +285,8 @@ router.post('/:id/comments', authenticate, validate(createCommentSchema), async 
       content: comment.content,
       quotedCommentText: comment.quotedCommentText,
       quotedCommentAuthor: comment.quotedCommentAuthor,
-      imageAttachment: comment.imageAttachment,
-      documentAttachment: comment.documentAttachment,
-      documentName: comment.documentName,
+      imageAttachments: (typeof comment.imageAttachment === 'string' && comment.imageAttachment.startsWith('[')) ? JSON.parse(comment.imageAttachment) : (comment.imageAttachment ? [comment.imageAttachment] : []),
+      documentAttachments: (typeof comment.documentAttachment === 'string' && comment.documentAttachment.startsWith('[')) ? JSON.parse(comment.documentAttachment) : (comment.documentAttachment ? [{url: comment.documentAttachment, name: comment.documentName || 'Document'}] : []),
       isEdited: comment.isEdited,
       likes: comment.likes,
       userLiked: comment.userLiked,
@@ -310,12 +308,26 @@ router.put('/:id/comments/:commentId', authenticate, async (req: Request, res: R
       throw new AppError('Hanya pembuat pesan yang bisa mengedit', 403);
     }
 
+    const dataToUpdate: any = { content: String(req.body.content ?? ''), isEdited: true };
+    if (req.body.imageAttachments !== undefined) {
+      dataToUpdate.imageAttachment = Array.isArray(req.body.imageAttachments) ? JSON.stringify(req.body.imageAttachments) : null;
+    }
+    if (req.body.documentAttachments !== undefined) {
+      dataToUpdate.documentAttachment = Array.isArray(req.body.documentAttachments) ? JSON.stringify(req.body.documentAttachments) : null;
+    }
+
     const comment = await prisma.threadComment.update({
       where: { id: String(commentId) },
-      data: { content: String(req.body.content ?? ''), isEdited: true }
+      data: dataToUpdate
     });
 
-    return successResponse(res, { id: comment.id, content: comment.content, isEdited: comment.isEdited });
+    return successResponse(res, { 
+      id: comment.id, 
+      content: comment.content, 
+      isEdited: comment.isEdited,
+      imageAttachments: (typeof comment.imageAttachment === 'string' && comment.imageAttachment.startsWith('[')) ? JSON.parse(comment.imageAttachment) : (comment.imageAttachment ? [comment.imageAttachment] : []),
+      documentAttachments: (typeof comment.documentAttachment === 'string' && comment.documentAttachment.startsWith('[')) ? JSON.parse(comment.documentAttachment) : (comment.documentAttachment ? [{url: comment.documentAttachment, name: comment.documentName || 'Document'}] : []),
+    });
   } catch (err) {
     next(err);
   }
