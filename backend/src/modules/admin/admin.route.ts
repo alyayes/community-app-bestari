@@ -14,7 +14,7 @@ router.use(authenticate, authorize('ADMIN'));
 router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [totalUser, totalArtikel, totalPengumuman, totalAgenda, totalThread] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { role: 'USER' } }),
       prisma.artikel.count(),
       prisma.pengumuman.count(),
       prisma.agenda.count(),
@@ -52,7 +52,7 @@ router.get('/stats', async (_req: Request, res: Response, next: NextFunction) =>
       prisma.pengumuman.findMany({ select: { createdAt: true } }),
       prisma.thread.findMany({ select: { createdAt: true } }),
       prisma.agenda.findMany({ select: { createdAt: true } }),
-      prisma.user.findMany({ select: { createdAt: true } }),
+      prisma.user.findMany({ where: { role: 'USER' }, select: { createdAt: true } }),
     ]);
 
     const inMonth = (items: { createdAt: Date }[], m: { start: Date; end: Date }) =>
@@ -153,6 +153,8 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       dataToUpdate.password = await bcrypt.hash(password, 12);
     }
 
+    const oldUser = await prisma.user.findUnique({ where: { id } });
+
     const user = await prisma.user.update({
       where: { id },
       data: dataToUpdate,
@@ -161,6 +163,17 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
         phone: true, memberSince: true, createdAt: true,
       },
     });
+
+    if (oldUser && dataToUpdate.name !== undefined) {
+      await prisma.threadComment.updateMany({
+        where: { authorName: oldUser.name },
+        data: { authorName: user.name, authorAvatar: user.avatar || '' }
+      });
+      await prisma.thread.updateMany({
+        where: { authorName: oldUser.name },
+        data: { authorName: user.name, authorAvatar: user.avatar || '' }
+      });
+    }
     return successResponse(res, user, 'Data pengguna berhasil diperbarui');
   } catch (err) {
     next(err);

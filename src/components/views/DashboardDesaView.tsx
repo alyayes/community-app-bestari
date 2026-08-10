@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Sprout, 
-  TrendingUp, 
-  Users, 
-  Package, 
-  MapPin, 
-  CheckCircle2, 
-  Calendar, 
-  Plus, 
-  Filter, 
+import {
+  BarChart3,
+  Sprout,
+  TrendingUp,
+  Users,
+  Package,
+  MapPin,
+  CheckCircle2,
+  Calendar,
+  Plus,
+  Filter,
   ChevronRight,
   Truck,
   Layers,
@@ -22,6 +22,7 @@ interface DashboardDesaViewProps {
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
   totalUsers: number;
+  isAdmin?: boolean;
   onOpenMulaiPanen: () => void;
 }
 
@@ -29,6 +30,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   landPlots,
   harvestRecords,
   totalUsers,
+  isAdmin = false,
   onOpenMulaiPanen,
 }) => {
   const [selectedBlock, setSelectedBlock] = useState<string>('Semua');
@@ -36,19 +38,21 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   const [members, setMembers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
-    api<UserProfile[]>('/admin/users')
-      .then((data) => setMembers(Array.isArray(data) ? data : []))
-      .catch(() => setMembers([]));
-  }, []);
+    if (isAdmin) {
+      api<UserProfile[]>('/admin/users')
+        .then((data) => setMembers(Array.isArray(data) ? data.filter(u => u.role !== 'ADMIN') : []))
+        .catch(() => setMembers([]));
+    }
+  }, [isAdmin]);
 
   const totalHarvestKg = harvestRecords.reduce((acc, r) => acc + r.weightKg, 0);
   const totalAreaValue = landPlots.reduce((acc, p) => acc + (parseFloat(p.areaSize) || 0), 0);
-  const totalAreaHa = `${(totalAreaValue / 10000).toFixed(1)} Ha`;
+  const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
   const totalMembers = totalUsers; // Using real data from backend
   const readyFlourKg = totalHarvestKg;
 
-  const filteredPlots = selectedBlock === 'Semua' 
-    ? landPlots 
+  const filteredPlots = selectedBlock === 'Semua'
+    ? landPlots
     : landPlots.filter(p => p.blockName.includes(selectedBlock));
 
   // Blok unik dari data real
@@ -66,7 +70,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalHarvestKg.toLocaleString('id-ID')}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalHarvestKg.toLocaleString('id-ID')}</h3>
             <span className="text-xs font-bold text-[#A8B774]">kg</span>
           </div>
           <p className="text-[10px] text-[#A8B774] font-semibold flex items-center gap-1">
@@ -82,8 +86,8 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
-            <span className="text-xs font-bold text-[#433A30]/70">4 Blok Utama</span>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalAreaHa}</h3>
+            <span className="text-xs font-bold text-[#433A30]/70">{Array.from(new Set(landPlots.map(p => p.blockName))).length} Blok Utama</span>
           </div>
           <p className="text-[10px] text-[#2C4219] font-medium">(Data diintegrasikan dari Aplikasi SCM)</p>
         </div>
@@ -96,31 +100,31 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{totalMembers}</h3>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{totalMembers}</h3>
             <span className="text-xs font-bold text-[#572E4A]">Ibu Tani</span>
           </div>
-          <p className="text-[10px] text-[#433A30]/70">Terbagi dalam 4 kelompok kerja</p>
+          <p className="text-[10px] text-[#572E4A]/70 font-semibold">Terbagi dalam 4 kelompok kerja</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#433A30]">Stok Tepung Siap Jual</span>
+            <span className="text-xs font-semibold text-[#433A30]">Stok Bahan Mentah</span>
             <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] text-[#572E4A] flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="font-title font-extrabold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
-            <span className="text-xs font-bold text-[#572E4A]">kg</span>
+            <h3 className="font-title font-bold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
+            <span className="text-xs font-bold text-[#A8B774]">kg</span>
           </div>
-          <p className="text-[10px] text-[#572E4A] font-semibold">Tepung Premix Bebas Gluten</p>
+          <p className="text-[10px] text-[#A8B774] font-semibold">Sorgum Mentah Siap Olah</p>
         </div>
       </div>
 
       {/* Supply Chain Flow Pipeline */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
         <h3 className="font-title font-bold text-base text-[#2C4219]">Status Tahapan Rantai Pasok (SCM)</h3>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-2">
             <div className="flex items-center justify-between">
@@ -203,7 +207,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                   <span className="font-bold text-[#2C4219]">{plot.growthProgress}%</span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-[#E6E1D5] overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-[#2C4219] transition-all duration-500 rounded-full"
                     style={{ width: `${plot.growthProgress}%` }}
                   />
@@ -262,7 +266,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
       {/* Community Members Table - Task 7.3 & Admin 6.3 */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
         <h3 className="font-title font-bold text-base text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -356,19 +360,19 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#E6E1D5]">
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Batch</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.length}</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{harvestRecords.length}</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Input</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{harvestRecords.reduce((s, r) => s + r.weightKg, 0).toLocaleString('id-ID')} kg</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{harvestRecords.reduce((s, r) => s + r.weightKg, 0).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Output</p>
-            <p className="font-title font-extrabold text-lg text-[#2C4219]">{Math.round(harvestRecords.reduce((s, r) => s + r.weightKg, 0) * 0.775).toLocaleString('id-ID')} kg</p>
+            <p className="font-title font-bold text-lg text-[#2C4219]">{Math.round(harvestRecords.reduce((s, r) => s + r.weightKg, 0) * 0.775).toLocaleString('id-ID')} kg</p>
           </div>
           <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
             <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Rata-rata Rendemen</p>
-            <p className="font-title font-extrabold text-lg text-[#A8B774]">77.5%</p>
+            <p className="font-title font-bold text-lg text-[#A8B774]">77.5%</p>
           </div>
         </div>
       </div>

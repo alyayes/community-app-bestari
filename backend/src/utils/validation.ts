@@ -24,7 +24,8 @@ export const updateProfileSchema = z.object({
   city: z.string().optional(),
   postalCode: z.string().optional(),
   lahanLocation: z.string().optional(),
-  sorghumType: z.string().optional()
+  sorghumType: z.string().optional(),
+  memberSince: z.string().optional()
 });
 
 // ── Artikel ───────────────────────────────────────
@@ -90,9 +91,9 @@ export const updateAgendaSchema = createAgendaSchema.partial();
 
 // ── Thread / Forum ────────────────────────────────
 export const createThreadSchema = z.object({
-  title: z.string().min(3).max(200),
+  title: z.string().min(1).max(200),
   category: z.string(),
-  content: z.string().min(3),
+  content: z.string().min(1),
   summary: z.string().optional(),
   images: z.array(z.string()).optional(),
   groupAvatar: z.string().optional(),

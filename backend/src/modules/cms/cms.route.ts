@@ -64,6 +64,7 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
       where: { id: 'global' },
       update: {
         webName: data.webName,
+        webSubtitle: data.webSubtitle,
         webLogo: data.webLogo,
         landingTitle: data.landingTitle,
         landingDesc: data.landingDesc,
@@ -80,6 +81,7 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
       create: {
         id: 'global',
         webName: data.webName || 'KWT Sorgum',
+        webSubtitle: data.webSubtitle || 'KWT MELATI SORGUM',
         webLogo: data.webLogo || '',
         landingTitle: data.landingTitle,
         landingDesc: data.landingDesc,

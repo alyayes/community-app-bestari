@@ -34,19 +34,20 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Section 1: Personal Info Form States
-  const [firstName, setFirstName] = useState(currentUser.firstName || 'Hj. Kartini');
-  const [lastName, setLastName] = useState(currentUser.lastName || 'Suharto');
-  const [dob, setDob] = useState(currentUser.dob || '15-05-1978');
-  const [email, setEmail] = useState(currentUser.email || 'kartini@kwt-melatisorgum.id');
-  const [phone, setPhone] = useState(currentUser.phone || '0812-7890-4321');
+  const [firstName, setFirstName] = useState(currentUser.firstName || '');
+  const [lastName, setLastName] = useState(currentUser.lastName || '');
+  const [dob, setDob] = useState(currentUser.dob || '');
+  const [email, setEmail] = useState(currentUser.email || '');
+  const [phone, setPhone] = useState(currentUser.phone || '');
   const [avatar, setAvatar] = useState(currentUser.avatar);
 
   // Section 2: Address & Lahan Form States
-  const [country, setCountry] = useState(currentUser.country || 'Indonesia');
-  const [city, setCity] = useState(currentUser.city || 'Sleman, Yogyakarta');
-  const [postalCode, setPostalCode] = useState(currentUser.postalCode || '55581');
-  const [lahanLocation, setLahanLocation] = useState(currentUser.lahanLocation || 'Blok B - Lahan Utara');
-  const [sorghumType, setSorghumType] = useState(currentUser.sorghumType || 'Sorgum Bioguma Agritan');
+  const [country, setCountry] = useState(currentUser.country || '');
+  const [city, setCity] = useState(currentUser.city || '');
+  const [postalCode, setPostalCode] = useState(currentUser.postalCode || '');
+  const [lahanLocation, setLahanLocation] = useState(currentUser.lahanLocation || '');
+  const [sorghumType, setSorghumType] = useState(currentUser.sorghumType || '');
+  const [memberSince, setMemberSince] = useState(currentUser.memberSince || '');
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -76,7 +77,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
     e.preventDefault();
     setIsLoading(true);
     try {
-      const payload = { country, city, postalCode, lahanLocation, sorghumType };
+      const payload = { country, city, postalCode, lahanLocation, sorghumType, memberSince };
       const updatedProfile = await apiUpdateProfile(payload);
       setCurrentUser(updatedProfile);
       setIsEditAddress(false);
@@ -186,7 +187,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {showSuccessToast && (
         <div className="fixed top-5 right-5 z-50 bg-[#2C4219] text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 border border-[#A8B774] animate-in fade-in slide-in-from-top-4 duration-300">
           <Check className="w-4 h-4 text-[#A8B774] stroke-[3]" />
-          <span className="text-xs sm:text-sm font-extrabold">{toastMessage}</span>
+          <span className="text-xs sm:text-sm font-bold">{toastMessage}</span>
         </div>
       )}
 
@@ -294,7 +295,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         <form onSubmit={handleSavePersonal} className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-12">
           {/* First Name */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nama Depan
             </span>
             {isEditPersonal ? (
@@ -312,7 +313,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Last Name */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nama Belakang
             </span>
             {isEditPersonal ? (
@@ -330,14 +331,13 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Date of Birth */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Tanggal Lahir
             </span>
             {isEditPersonal ? (
               <input
-                type="text"
+                type="date"
                 value={dob}
-                placeholder="DD-MM-YYYY"
                 onChange={(e) => setDob(e.target.value)}
                 className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold"
               />
@@ -350,7 +350,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Email Address */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Alamat Email
             </span>
             {isEditPersonal ? (
@@ -369,7 +369,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Phone Number */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Nomor WhatsApp
             </span>
             {isEditPersonal ? (
@@ -388,7 +388,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* User Role */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Peran Pengguna
             </span>
             <span className="text-xs sm:text-sm font-black text-[#2C4219] flex items-center gap-1.5">
@@ -436,7 +436,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         <form onSubmit={handleSaveAddress} className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-12">
           {/* Lahan Location */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Lokasi Lahan Kerja KWT
             </span>
             {isEditAddress ? (
@@ -460,7 +460,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Sorghum Type */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Varietas Sorgum Utama
             </span>
             {isEditAddress ? (
@@ -484,12 +484,21 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
           {/* Member Since */}
           <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-extrabold text-[#7A7062] uppercase tracking-wider">
+            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Tanggal Bergabung KWT
             </span>
-            <span className="block text-xs sm:text-sm font-black text-[#2C4219]">
-              {currentUser.memberSince || 'Maret 2024'}
-            </span>
+            {isEditAddress ? (
+              <input
+                type="date"
+                value={memberSince}
+                onChange={(e) => setMemberSince(e.target.value)}
+                className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold"
+              />
+            ) : (
+              <span className="block text-xs sm:text-sm font-black text-[#2C4219]">
+                {memberSince || '-'}
+              </span>
+            )}
           </div>
         </form>
       </div>

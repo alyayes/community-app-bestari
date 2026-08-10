@@ -4,41 +4,65 @@ import { successResponse } from '../../utils/response';
 
 const router = Router();
 
-// Mapping Lahan -> LandPlot frontend
+const EXTERNAL_API_BASE = 'https://scm-bestari.kolab.top/api';
+const EXTERNAL_API_KEY = process.env.EXTERNAL_SCM_API_KEY || '';
+
+// Mapping Lahan (External) -> LandPlot frontend
 function toLandPlot(l: any) {
+  let status = 'Vegetatif';
+  if (l.statusKesiapan === 'Masa Pertumbuhan') status = 'Generatif';
+  else if (l.statusKesiapan === 'Masa Panen') status = 'Siap Panen';
+  else if (l.statusKesiapan === 'Bera (Istirahat)') status = 'Pasca Panen';
+
+  let progress = 10;
+  if (status === 'Generatif') progress = 50;
+  else if (status === 'Siap Panen') progress = 90;
+  else if (status === 'Pasca Panen') progress = 100;
+
   return {
     id: l.id,
-    blockName: l.blockName,
-    cropVariety: l.cropVariety,
-    areaSize: l.areaSize,
-    plantingDate: l.plantingDate,
-    expectedHarvestDate: l.expectedHarvestDate,
-    growthProgress: l.growthProgress,
-    status: l.status,
-    leaderName: l.leaderName,
-    estimatedYieldKg: l.estimatedYieldKg,
+    blockName: l.namaLahan || 'Tanpa Nama',
+    cropVariety: l.varietasSorgum || '-',
+    areaSize: l.luasHektar ? `${l.luasHektar} Ha` : '-',
+    plantingDate: l.createdAt?.split('T')[0] || '-',
+    expectedHarvestDate: '-',
+    growthProgress: progress,
+    status: status,
+    leaderName: l.pemilikKelompokTani || '-',
+    estimatedYieldKg: l.panenLaluTon ? l.panenLaluTon * 1000 : 0,
   };
 }
 
-// Mapping Panen -> HarvestRecord frontend
+// Mapping Panen (External) -> HarvestRecord frontend
 function toHarvestRecord(p: any) {
+  let quality = 'Grade A';
+  if (p.kualitasGrade?.includes('Premium')) quality = 'Super Premium';
+  else if (p.kualitasGrade?.includes('Standar')) quality = 'Grade A';
+  else if (p.kualitasGrade?.includes('Pakan')) quality = 'Grade B';
+
   return {
     id: p.id,
-    date: p.date,
-    blockName: p.blockName,
-    cropVariety: p.cropVariety,
-    weightKg: p.weightKg,
-    quality: p.quality,
-    recordedBy: p.recordedBy,
-    notes: p.notes || '',
+    date: p.tanggalPanen || '-',
+    blockName: p.namaLahan || '-',
+    cropVariety: p.varietas || '-',
+    weightKg: p.jumlahHasilKg || 0,
+    quality: quality,
+    recordedBy: p.petaniPenanggungJawab || '-',
+    notes: p.catatan || '',
   };
 }
 
 // ── GET /api/lahan ─────────────────────────────────
 router.get('/lahan', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await prisma.lahan.findMany({ orderBy: { createdAt: 'asc' } });
-    return successResponse(res, data.map(toLandPlot));
+    const response = await fetch(`${EXTERNAL_API_BASE}/land?limit=100`, {
+      headers: { 'x-api-key': EXTERNAL_API_KEY }
+    });
+    const result = await response.json();
+    if (result.success && result.data) {
+      return successResponse(res, result.data.map(toLandPlot));
+    }
+    return successResponse(res, []);
   } catch (err) {
     next(err);
   }
@@ -47,8 +71,14 @@ router.get('/lahan', async (_req: Request, res: Response, next: NextFunction) =>
 // ── GET /api/panen ─────────────────────────────────
 router.get('/panen', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await prisma.panen.findMany({ orderBy: { createdAt: 'desc' } });
-    return successResponse(res, data.map(toHarvestRecord));
+    const response = await fetch(`${EXTERNAL_API_BASE}/harvest?limit=100`, {
+      headers: { 'x-api-key': EXTERNAL_API_KEY }
+    });
+    const result = await response.json();
+    if (result.success && result.data) {
+      return successResponse(res, result.data.map(toHarvestRecord));
+    }
+    return successResponse(res, []);
   } catch (err) {
     next(err);
   }
@@ -57,8 +87,8 @@ router.get('/panen', async (_req: Request, res: Response, next: NextFunction) =>
 // ── POST /api/panen ────────────────────────────────
 router.post('/panen', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const record = await prisma.panen.create({ data: req.body });
-    return successResponse(res, toHarvestRecord(record), 'Catatan panen berhasil disimpan', 201);
+    // API Eksternal membutuhkan JWT untuk tulis, kita tolak via API Key
+    throw new Error("Penambahan panen sementara dinonaktifkan karena migrasi ke API eksternal (Read-Only).");
   } catch (err) {
     next(err);
   }

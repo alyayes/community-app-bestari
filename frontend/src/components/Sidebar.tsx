@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavItem, UserProfile } from '../types';
 import { SERVER_BASE } from '../api/client';
-import { 
-  Home, 
-  Calendar, 
-  Info, 
-  Bell, 
-  MessageSquare, 
-  BarChart3, 
-  Sprout, 
-  HelpCircle, 
+import {
+  Home,
+  Calendar,
+  Info,
+  Bell,
+  MessageSquare,
+  BarChart3,
+  Sprout,
+  HelpCircle,
   LogOut,
   ChevronRight,
   Sparkles,
@@ -30,6 +30,7 @@ interface SidebarProps {
   onLogout?: () => void;
   onGoToAdmin?: () => void;
   webName?: string;
+  webSubtitle?: string;
   webLogo?: string;
 }
 
@@ -46,6 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onGoToAdmin,
   webName,
+  webSubtitle,
   webLogo
 }) => {
   const navItems: { id: NavItem; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -66,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Backdrop */}
       {isOpenMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden"
           onClick={() => setIsOpenMobile(false)}
         />
@@ -78,10 +80,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       `}>
         {/* Top Logo & App Title */}
         <div className="space-y-6">
-          <div 
-            onClick={() => onGoToLanding && onGoToLanding()} 
+          <div
+            onClick={() => {
+              setActiveNav('beranda');
+              if (isOpenMobile) setIsOpenMobile(false);
+            }}
             className="flex items-center gap-3 px-2 pt-2 cursor-pointer group"
-            title="Kembali ke Landing Page Utama"
+            title="Ke Halaman Utama"
           >
             {webLogo ? (
               <img src={webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${webLogo}` : webLogo} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform" />
@@ -92,10 +97,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             <div>
               <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight line-clamp-1">
-                Community App
+                {webName || 'Community App'}
               </h1>
-              <p className="text-[11px] font-extrabold text-[#A8B774] tracking-wider uppercase line-clamp-1">
-                {webName || 'KWT MELATI SORGUM'}
+              <p className="text-[11px] font-bold text-[#A8B774] tracking-wider uppercase line-clamp-1">
+                {webSubtitle || 'KWT MELATI SORGUM'}
               </p>
             </div>
           </div>
@@ -110,8 +115,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => handleNavClick(item.id)}
                   className={`
                     w-full flex items-center justify-between px-4 py-2.5 rounded-full font-bold text-sm transition-all duration-200
-                    ${isActive 
-                      ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30' 
+                    ${isActive
+                      ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                       : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'}
                   `}
                 >
@@ -123,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   {item.badge && item.badge > 0 ? (
                     <span className={`
-                      px-2.5 py-0.5 rounded-full text-xs font-extrabold
+                      px-2.5 py-0.5 rounded-full text-xs font-bold
                       ${isActive ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#572E4A] text-white'}
                     `}>
                       {item.badge}

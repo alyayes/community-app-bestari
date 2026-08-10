@@ -2,6 +2,7 @@ export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'disku
 
 export interface CmsData {
   webName?: string;
+  webSubtitle?: string;
   webLogo?: string;
   landingTitle: string;
   landingDesc: string;

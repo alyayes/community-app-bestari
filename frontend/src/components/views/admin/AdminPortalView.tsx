@@ -81,6 +81,8 @@ interface AdminPortalViewProps {
   onSelectArticle: (article: InfoArticle) => void;
   cmsData?: CmsData | null;
   onUpdateCmsData?: (data: CmsData) => void;
+  onNavigateToPage?: (page: string) => void;
+  dashboardStats?: { totalUsers?: number; totalRawMaterialKg?: number };
 }
 
 type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
@@ -100,9 +102,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onLogout,
   onSelectArticle,
   cmsData,
-  onUpdateCmsData
+  onUpdateCmsData,
+  onNavigateToPage,
+  dashboardStats
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    return (sessionStorage.getItem('bestari_admintab') as AdminTab) || 'dashboard';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('bestari_admintab', activeTab);
+  }, [activeTab]);
+
   const [subTabInformasi, setSubTabInformasi] = useState<'list' | 'tambah'>('list');
   const [subTabAgenda, setSubTabAgenda] = useState<'list' | 'tambah'>('list');
 
@@ -191,6 +202,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const [agendaList, setAgendaList] = useState<AgendaEvent[]>(agendas && agendas.length > 0 ? agendas : DEFAULT_AGENDAS);
 
+  React.useEffect(() => {
+    if (agendas) setAgendaList(agendas.length > 0 ? agendas : DEFAULT_AGENDAS);
+  }, [agendas]);
   // Agenda Filter & Search
   const [agendaSearchQuery, setAgendaSearchQuery] = useState('');
   const [agendaCategoryFilter, setAgendaCategoryFilter] = useState('Semua');
@@ -224,117 +238,129 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [inputModeAgenda, setInputModeAgenda] = useState<'manual' | 'voice'>('manual');
   const [isRecordingAgenda, setIsRecordingAgenda] = useState(false);
   const [isProcessingSTTAgenda, setIsProcessingSTTAgenda] = useState(false);
-  const mediaRecorderAgendaRef = React.useRef<MediaRecorder | null>(null);
-  const audioChunksAgendaRef = React.useRef<Blob[]>([]);
+  const recognitionAgendaRef = React.useRef<any>(null);
 
-  const startRecordingAgenda = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderAgendaRef.current = mediaRecorder;
-      audioChunksAgendaRef.current = [];
+  const startRecordingAgenda = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("Browser Anda tidak mendukung fitur Asisten Suara. Gunakan Google Chrome atau Edge.");
+      return;
+    }
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksAgendaRef.current.push(event.data);
-        }
-      };
+    setIsRecordingAgenda(true);
+    setIsProcessingSTTAgenda(true);
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksAgendaRef.current, { type: 'audio/webm' });
-        setIsProcessingSTTAgenda(true);
+    const recognition = new SpeechRecognition();
+    recognitionAgendaRef.current = recognition;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-        try {
-          const formData = new FormData();
-          formData.append('audio', audioBlob, 'recording.webm');
+    recognition.onresult = (event: any) => {
+      setIsProcessingSTTAgenda(false);
+      const text = event.results[0][0].transcript;
+      if (text) {
+        const cleanText = text.replace(/[,.!?]/g, ' ').replace(/\s+/g, ' ').trim();
 
-          const response = await fetch(`${BASE_URL}/stt`, {
-            method: 'POST',
-            body: formData,
-          });
+        const keywords = [
+          { key: 'title', match: /(?:judul)\s*/i },
+          { key: 'category', match: /(?:kategori)\s*/i },
+          { key: 'date', match: /(?:tanggal)\s*/i },
+          { key: 'time', match: /(?:waktu|jam)\s*/i },
+          { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
+        ];
 
-          const data = await response.json();
-          if (data.success && data.text) {
-            // Hapus tanda baca agar tidak mengganggu parser
-            const cleanText = data.text.replace(/[,.]/g, ' ').replace(/\s+/g, ' ').trim();
-
-            const keywords = [
-              { key: 'title', match: /(?:judul)[^\w]*/i },
-              { key: 'category', match: /(?:kategori)[^\w]*/i },
-              { key: 'date', match: /(?:tanggal)[^\w]*/i },
-              { key: 'time', match: /(?:waktu|jam)[^\w]*/i },
-              { key: 'desc', match: /(?:deskripsi)[^\w]*/i }
-            ];
-
-            let foundPositions: any[] = [];
-            keywords.forEach(kw => {
-              const match = cleanText.match(kw.match);
-              if (match) {
-                foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
-              }
-            });
-
-            if (foundPositions.length === 0) {
-              setAgDescription(prev => prev ? `${prev}\n\n${cleanText}` : cleanText);
-            } else {
-              foundPositions.sort((a, b) => a.index - b.index);
-
-              for (let i = 0; i < foundPositions.length; i++) {
-                const curr = foundPositions[i];
-                const next = foundPositions[i + 1];
-
-                const start = curr.index + curr.length;
-                const end = next ? next.index : cleanText.length;
-
-                const val = cleanText.substring(start, end).trim();
-                if (!val) continue;
-
-                if (curr.key === 'title') {
-                  setAgTitle(val);
-                } else if (curr.key === 'category') {
-                  const upper = val.toUpperCase();
-                  if (upper.includes('WORKSHOP')) setAgCategory('WORKSHOP');
-                  else if (upper.includes('PANEN')) setAgCategory('PANEN BERSAMA');
-                  else if (upper.includes('RAPAT')) setAgCategory('RAPAT');
-                  else if (upper.includes('PELATIHAN')) setAgCategory('PELATIHAN');
-                  else if (upper.includes('INSPEKSI')) setAgCategory('INSPEKSI');
-                } else if (curr.key === 'date') {
-                  const matchDate = val.match(/(\d{1,2})\s+(jan|feb|mar|apr|mei|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
-                  if (matchDate) {
-                    const day = matchDate[1].padStart(2, '0');
-                    const mMap: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', mei: '05', jun: '06', jul: '07', agu: '08', sep: '09', okt: '10', nov: '11', des: '12' };
-                    const month = mMap[matchDate[2].toLowerCase()];
-                    setAgDate(`${matchDate[3]}-${month}-${day}`);
-                  }
-                } else if (curr.key === 'time') {
-                  setAgTime(val);
-                } else if (curr.key === 'desc') {
-                  setAgDescription(val);
-                }
-              }
-            }
-          } else {
-            console.error('STT Failed:', data.message);
+        let foundPositions: { key: string; index: number; length: number }[] = [];
+        keywords.forEach(kw => {
+          const match = cleanText.match(kw.match);
+          if (match && match.index !== undefined) {
+            foundPositions.push({ key: kw.key, index: match.index, length: match[0].length });
           }
-        } catch (error) {
-          console.error('STT Request Error:', error);
-        } finally {
-          setIsProcessingSTTAgenda(false);
-          stream.getTracks().forEach(track => track.stop());
-        }
-      };
+        });
 
-      mediaRecorder.start();
-      setIsRecordingAgenda(true);
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('Tidak dapat mengakses mikrofon. Pastikan Anda telah memberikan izin.');
+        if (foundPositions.length === 0) {
+          setAgDescription(prev => prev ? `${prev}\n\n${cleanText}` : cleanText);
+        } else {
+          foundPositions.sort((a, b) => a.index - b.index);
+
+          for (let i = 0; i < foundPositions.length; i++) {
+            const curr = foundPositions[i];
+            const next = foundPositions[i + 1];
+
+            const start = curr.index + curr.length;
+            const end = next ? next.index : cleanText.length;
+
+            const val = cleanText.substring(start, end).trim();
+            if (!val) continue;
+
+            if (curr.key === 'title') {
+              setAgTitle(val);
+            } else if (curr.key === 'category') {
+              const upper = val.toUpperCase();
+              if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setAgCategory('WORKSHOP');
+              else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setAgCategory('PANEN BERSAMA');
+              else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setAgCategory('RAPAT');
+              else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setAgCategory('PELATIHAN');
+              else setAgCategory('INSPEKSI'); 
+            } else if (curr.key === 'date') {
+              const matchDate = val.match(/(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agu|sep|okt|nov|des)[a-z]*\s+(\d{4})/i);
+              if (matchDate) {
+                const day = matchDate[1].padStart(2, '0');
+                const mMap: Record<string, string> = {
+                  januari: '01', jan: '01', februari: '02', feb: '02',
+                  maret: '03', mar: '03', april: '04', apr: '04',
+                  mei: '05', juni: '06', jun: '06', juli: '07', jul: '07',
+                  agustus: '08', agu: '08', september: '09', sep: '09',
+                  oktober: '10', okt: '10', november: '11', nov: '11',
+                  desember: '12', des: '12'
+                };
+                const month = mMap[matchDate[2].toLowerCase().substring(0, 3)] || mMap[matchDate[2].toLowerCase()];
+                if (month) setAgDate(`${matchDate[3]}-${month}-${day}`);
+              } else {
+                const isoDate = val.match(/(\d{4})-(\d{2})-(\d{2})/);
+                const slashDate = val.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (isoDate) setAgDate(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`);
+                else if (slashDate) setAgDate(`${slashDate[3]}-${slashDate[2].padStart(2, '0')}-${slashDate[1].padStart(2, '0')}`);
+              }
+            } else if (curr.key === 'time') {
+              setAgTime(val);
+            } else if (curr.key === 'desc') {
+              setAgDescription(val);
+            }
+          }
+        }
+      } else {
+        showToast('Suara tidak terdeteksi. Coba lagi.');
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+      if (event.error === 'no-speech') {
+        showToast('Tidak ada suara terdeteksi. Silakan coba lagi.');
+      } else {
+        showToast(`Error pengenalan suara: ${event.error}`);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e: any) {
+      setIsRecordingAgenda(false);
+      setIsProcessingSTTAgenda(false);
+      showToast(e.message || 'Gagal memulai mikrofon.');
     }
   };
 
   const stopRecordingAgenda = () => {
-    if (mediaRecorderAgendaRef.current && isRecordingAgenda) {
-      mediaRecorderAgendaRef.current.stop();
+    if (recognitionAgendaRef.current && isRecordingAgenda) {
+      recognitionAgendaRef.current.stop();
       setIsRecordingAgenda(false);
     }
   };
@@ -384,6 +410,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [annCategory, setAnnCategory] = useState<'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA' | 'MENDESAK'>('PENTING');
   const [annSummary, setAnnSummary] = useState('');
   const [annContent, setAnnContent] = useState('');
+  const [annError, setAnnError] = useState('');
 
   // Pinned announcements tracking — pakai isUrgent real dari backend
   const [pinnedIds, setPinnedIds] = useState<string[]>(
@@ -392,6 +419,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // CMS Form States
   const [cmsWebName, setCmsWebName] = useState(cmsData?.webName || 'KWT Sorgum');
+  const [cmsWebSubtitle, setCmsWebSubtitle] = useState(cmsData?.webSubtitle || 'KWT MELATI SORGUM');
   const [cmsWebLogo, setCmsWebLogo] = useState(cmsData?.webLogo || '');
   const [cmsLandingTitle, setCmsLandingTitle] = useState(cmsData?.landingTitle || '');
   const [cmsLandingDesc, setCmsLandingDesc] = useState(cmsData?.landingDesc || '');
@@ -437,6 +465,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     e.preventDefault();
     const payload: CmsData = {
       webName: cmsWebName,
+      webSubtitle: cmsWebSubtitle,
       webLogo: cmsWebLogo,
       landingTitle: cmsLandingTitle,
       landingDesc: cmsLandingDesc,
@@ -539,8 +568,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
-          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
         } : a
       );
       setAgendaList(updated);
@@ -561,8 +590,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             description: agDescription,
             targetParticipants: agTargetParticipants,
             contactPerson: { name: agContactName, phone: agContactPhone },
-            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
           }
         }).catch(err => console.error('Failed to update agenda on backend:', err));
       }
@@ -584,8 +613,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         description: agDescription,
         targetParticipants: agTargetParticipants,
         contactPerson: { name: agContactName, phone: agContactPhone },
-        requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-        benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+        requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+        benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
       };
       const updated = [newAg, ...agendaList];
       setAgendaList(updated);
@@ -605,8 +634,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
-          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined,
-          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : []
         }
       }).catch(err => console.error('Failed to create agenda on backend:', err));
     }
@@ -676,8 +705,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       summary: artSummary || artTitle,
       content: artContent ? artContent.split('\n\n') : [artSummary],
       image: artImage,
-      gallery: artGallery.length > 0 ? artGallery : undefined,
+      gallery: artGallery,
       status: artStatus,
+      author: {
+        name: currentUser.name,
+        role: currentUser.role,
+        avatar: currentUser.avatar
+      }
     };
 
     try {
@@ -719,6 +753,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const handleDeleteAnnouncement = (id: string, title: string) => {
     setDeleteConfirmModal({ id, title, type: 'pengumuman' });
+  };
+
+  const handleEditAnnouncement = (ann: Announcement) => {
+    setEditingAnnouncement(ann);
+    setAnnTitle(ann.title);
+    setAnnCategory(ann.category as any);
+    setAnnSummary(ann.summary || '');
+    setAnnContent(ann.content || ann.summary || '');
+    setAnnError('');
+    setIsAnnouncementModalOpen(true);
   };
 
   const confirmDelete = () => {
@@ -764,40 +808,42 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setDeleteConfirmModal(null);
   };
 
-  const handleSaveAnnouncement = (e: React.FormEvent) => {
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!annTitle.trim()) return;
+    if (annTitle.trim().length < 3) {
+      setAnnError('Judul pengumuman minimal 3 karakter.');
+      return;
+    }
 
-    if (editingAnnouncement) {
-      const updated = announcements.map(a => {
-        if (a.id === editingAnnouncement.id) {
-          return {
-            ...a,
-            title: annTitle,
-            category: annCategory,
-            summary: annSummary || annTitle,
-            content: annContent || annSummary
-          };
-        }
-        return a;
-      });
-      onUpdateAnnouncements(updated);
-      showToast(`Pengumuman "${annTitle}" berhasil diperbarui.`);
-    } else {
-      const newAnn: Announcement = {
-        id: `ann_${Date.now()}`,
-        title: annTitle,
-        category: annCategory,
-        badgeColor: annCategory === 'MENDESAK' ? 'bg-[#572E4A]' : 'bg-[#2C4219]',
-        timeAgo: 'Baru saja',
-        postedBy: currentUser.name || 'Admin Alya',
-        postedTime: 'Hari ini',
-        summary: annSummary || annTitle,
-        content: annContent || annSummary,
-        isUrgent: annCategory === 'MENDESAK'
-      };
-      onUpdateAnnouncements([newAnn, ...announcements]);
-      showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
+    const finalSummary = annSummary.trim() || annTitle.trim();
+    if (finalSummary.length < 5) {
+      setAnnError('Ringkasan pengumuman minimal 5 karakter.');
+      return;
+    }
+
+    const finalContent = annContent.trim() || finalSummary;
+    
+    const payload = {
+      title: annTitle.trim(),
+      category: annCategory,
+      summary: finalSummary,
+      content: finalContent,
+      isUrgent: annCategory === 'MENDESAK'
+    };
+
+    try {
+      if (editingAnnouncement) {
+        await api(`/pengumuman/${editingAnnouncement.id}`, { method: 'PUT', body: payload });
+        showToast(`Pengumuman "${annTitle}" berhasil diperbarui.`);
+      } else {
+        await api('/pengumuman', { method: 'POST', body: payload });
+        showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
+      }
+      
+      const reloaded = await api<Announcement[]>('/pengumuman');
+      onUpdateAnnouncements(reloaded);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal menyimpan pengumuman');
     }
 
     setIsAnnouncementModalOpen(false);
@@ -812,9 +858,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const confirmDeleteThread = () => {
     if (threadToDeleteModal) {
-      const updated = threads.filter(t => t.id !== threadToDeleteModal.id);
+      const { id, title } = threadToDeleteModal;
+      const updated = threads.filter(t => t.id !== id);
       onUpdateThreads(updated);
-      showToast(`Utas "${threadToDeleteModal.title}" telah dihapus.`);
+      showToast(`Utas "${title}" telah dihapus.`);
+      
+      // Hapus dari backend (agar tidak muncul lagi saat refresh)
+      api(`/thread/${id}`, { method: 'DELETE' }).catch(err => {
+        console.error('Failed to delete thread on backend:', err);
+        showToast('Gagal menghapus diskusi di server.');
+      });
+      
       setThreadToDeleteModal(null);
     }
   };
@@ -931,7 +985,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {cmsWebLogo ? (
               <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5]" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-extrabold shadow-md">
+              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-bold shadow-md">
                 <Sprout className="w-5 h-5" />
               </div>
             )}
@@ -1047,7 +1101,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="pt-6 border-t border-[#E6E1D5]">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-extrabold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
           >
             <LogOut className="w-4 h-4 text-[#C53030]" />
             <span>Keluar</span>
@@ -1065,7 +1119,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header Title + Add Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Informasi
                 </h1>
               </div>
@@ -1144,12 +1198,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-3 max-w-sm">
-                              <img
-                                src={art.image}
-                                alt={art.title}
-                                className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
-                              />
-                              <span className="font-extrabold text-[#2C4219] line-clamp-2">
+                              {art.image ? (
+                                <img
+                                  src={art.image}
+                                  alt={art.title}
+                                  className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
+                                />
+                              ) : (
+                                <div className="w-14 h-10 rounded-lg bg-[#FAF6EE] shrink-0 border border-[#E6E1D5] flex items-center justify-center">
+                                  <span className="text-[#A8B774] text-[8px] font-bold">No Img</span>
+                                </div>
+                              )}
+                              <span className="font-bold text-[#2C4219] line-clamp-2">
                                 {art.title}
                               </span>
                             </div>
@@ -1163,7 +1223,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             {art.date || '12 Okt 2026'}
                           </td>
                           <td className="py-4 px-5 text-[#2C4219] font-bold whitespace-nowrap">
-                            {art.author?.name || 'Admin Alya'}
+                            {art.author?.name || currentUser.name}
                           </td>
                           <td className="py-4 px-5 whitespace-nowrap">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] border ${(art as any).status === 'Draft' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
@@ -1249,7 +1309,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header + Add Announcement Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Pengumuman Komunitas
                 </h1>
               </div>
@@ -1261,6 +1321,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   setAnnCategory('PENTING');
                   setAnnSummary('');
                   setAnnContent('');
+                  setAnnError('');
                   setIsAnnouncementModalOpen(true);
                 }}
                 className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
@@ -1321,8 +1382,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                             <td className="py-4 px-5">
                               <div>
-                                <p className="font-extrabold text-[#2C4219] text-sm">{ann.title}</p>
-                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || 'Admin Alya'}</p>
+                                <p className="font-bold text-[#2C4219] text-sm">{ann.title}</p>
+                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || currentUser.name}</p>
                               </div>
                             </td>
                             <td className="py-4 px-5">
@@ -1335,7 +1396,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </td>
                             <td className="py-4 px-5 whitespace-nowrap">
                               {isPinned ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[10px]">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px]">
                                   <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
                                   <span>Dipin di Atas</span>
                                 </span>
@@ -1346,21 +1407,39 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               )}
                             </td>
                             <td className="py-4 px-5">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-3">
+                                {/* Pin Button */}
                                 <button
                                   onClick={() => handleTogglePinAnnouncement(ann.id)}
-                                  title={isPinned ? "Lepas Pin" : "Sematkan Pin"}
-                                  className={`p-1.5 rounded-lg transition-colors ${isPinned ? 'text-amber-700 bg-amber-50' : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50'
-                                    }`}
+                                  title={isPinned ? 'Lepas Pin' : 'Sematkan Pin'}
+                                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] ${
+                                    isPinned
+                                      ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                                      : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200'
+                                  }`}
                                 >
                                   <Pin className="w-4 h-4" />
+                                  <span>{isPinned ? 'Lepas' : 'Pin'}</span>
                                 </button>
+
+                                {/* Edit Button */}
+                                <button
+                                  onClick={() => handleEditAnnouncement(ann)}
+                                  title="Edit Pengumuman"
+                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-[#2C4219] hover:bg-[#E3EAD3] border border-transparent hover:border-[#A8B774]"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                  <span>Edit</span>
+                                </button>
+
+                                {/* Delete Button */}
                                 <button
                                   onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
                                   title="Hapus Pengumuman"
-                                  className="p-1.5 rounded-lg text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
                                 >
                                   <Trash2 className="w-4 h-4" />
+                                  <span>Hapus</span>
                                 </button>
                               </div>
                             </td>
@@ -1386,7 +1465,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="space-y-1 text-xs">
-                  <h4 className="font-extrabold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
+                  <h4 className="font-bold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
                   <p className="text-[#5C5246] leading-relaxed font-medium">
                     Gunakan fitur Sematkan (Pin) hanya untuk pengumuman yang bersifat mendesak atau jangka panjang. Maksimal 3 pengumuman yang dapat disematkan agar tampilan aplikasi member tetap bersih dan teratur.
                   </p>
@@ -1394,7 +1473,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-[#E6E1D5] space-y-3 text-xs">
-                <h4 className="font-extrabold text-[#2C4219]">Aktivitas Terkini</h4>
+                <h4 className="font-bold text-[#2C4219]">Aktivitas Terkini</h4>
                 <div className="space-y-2.5 text-[11px] text-[#5C5246]">
                   {announcements.slice(0, 2).map((ann) => (
                     <div key={ann.id} className="flex items-start gap-2">
@@ -1426,7 +1505,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header + Add Agenda Button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Agenda
                 </h1>
               </div>
@@ -1449,7 +1528,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Agenda Bulan Ini</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.length}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.length}</p>
                 </div>
               </div>
 
@@ -1460,7 +1539,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Total Peserta Terdaftar</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1471,7 +1550,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-[#7A7062]">Total Kuota</p>
-                  <p className="font-title font-extrabold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
+                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
                 </div>
               </div>
 
@@ -1480,9 +1559,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="absolute -right-2 -bottom-2 text-[#2C4219]/10 pointer-events-none">
                   <Sprout className="w-20 h-20" />
                 </div>
-                <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
+                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
                 <div className="mt-1">
-                  <p className="font-extrabold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
+                  <p className="font-bold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
                   <p className="text-xs font-semibold text-[#7A7062] mt-0.5">{agendaList[0]?.date || '-'}</p>
                 </div>
               </div>
@@ -1559,7 +1638,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div>
-                              <p className="font-extrabold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
+                              <p className="font-bold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
                               <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
                                 ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
                                   'bg-[#F0EBE1] text-[#7A7062]'
@@ -1584,14 +1663,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                              <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-bold text-[10px] flex items-center justify-center shrink-0">
                                 {ag.organizer ? ag.organizer.slice(0, 2).toUpperCase() : 'KS'}
                               </div>
                               <span className="font-bold text-[#2C4219] text-xs">{ag.organizer || 'Admin KWT'}</span>
                             </div>
                           </td>
                           <td className="py-4 px-5 text-center">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-extrabold ${ag.status === 'Selesai'
+                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${ag.status === 'Selesai'
                                 ? 'bg-gray-100 text-gray-600'
                                 : 'bg-[#E3EBD3] text-[#2C4219]'
                               }`}>
@@ -1647,7 +1726,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <button
                         key={p}
                         onClick={() => setAgendaPage(p)}
-                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-extrabold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
+                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-bold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
                       >{p}</button>
                     ))}
                     <button
@@ -1669,7 +1748,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Header Title */}
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Kelola Diskusi
               </h1>
             </div>
@@ -1683,12 +1762,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={thr.authorAvatar}
+                          src={thr.authorAvatar ? ((thr.authorAvatar.startsWith('http') || thr.authorAvatar.startsWith('data:')) ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
                           alt={thr.authorName}
                           className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`;
+                          }}
                         />
                         <div>
-                          <p className="text-xs font-extrabold text-[#2C4219]">{thr.authorName}</p>
+                          <p className="text-xs font-bold text-[#2C4219]">{thr.authorName}</p>
                           <p className="text-[10px] text-[#7A7062] font-semibold">{thr.timeAgo || '12 Okt 2026'}</p>
                         </div>
                       </div>
@@ -1699,7 +1782,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </div>
 
                     {/* Title & Summary */}
-                    <h3 className="font-title font-extrabold text-base text-[#2C4219] leading-snug">
+                    <h3 className="font-title font-bold text-base text-[#2C4219] leading-snug">
                       {thr.title}
                     </h3>
                     <p className="text-xs text-[#5C5246] line-clamp-2 leading-relaxed">
@@ -1736,7 +1819,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Dashboard
               </h1>
             </div>
@@ -1745,7 +1828,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <FileText className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1758,7 +1841,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Calendar className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1771,7 +1854,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Megaphone className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1784,7 +1867,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-extrabold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
                   <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
                     <Users className="w-4 h-4 text-[#2C4219]" />
                   </div>
@@ -1807,7 +1890,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <TrendingUp className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel pengetahuan dan pengumuman resmi</p>
                     </div>
                   </div>
@@ -1817,9 +1900,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Pengumuman
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-[#572E4A]" /> Diskusi Aktif
                     </span>
                   </div>
                 </div>
@@ -1836,7 +1916,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       />
                       <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
                       <Bar dataKey="pembacaPengumuman" name="Pengumuman" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="diskusi" name="Diskusi Aktif" fill="#572E4A" radius={[4, 4, 0, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1850,7 +1929,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Distribusi kategori di sistem</p>
                     </div>
                   </div>
@@ -1886,7 +1965,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                           <span className="text-[#5C5246] truncate max-w-[140px]">{item.name}</span>
                         </div>
-                        <span className="font-extrabold shrink-0">{item.value} Item</span>
+                        <span className="font-bold shrink-0">{item.value} Item</span>
                       </div>
                     ))}
                   </div>
@@ -1903,14 +1982,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <BarChart2 className="w-4 h-4 text-[#A8B774]" />
                   </div>
                   <div>
-                    <h3 className="font-title font-extrabold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
+                    <h3 className="font-title font-bold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
                     <p className="text-[11px] text-[#433A30]/80 font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-bold text-[#2C4219]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Kehadiran Agenda
-                  </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Topik Diskusi
                   </span>
@@ -1929,7 +2005,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Tooltip
                       contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
                     />
-                    <Bar dataKey="agenda" name="Kehadiran Agenda" fill="#2C4219" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -1949,7 +2024,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <Calendar className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
-                        <h3 className="font-title font-extrabold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
                         <p className="text-[11px] text-[#7A7062] font-semibold">Jadwal kegiatan kelompok tani terkonfirmasi</p>
                       </div>
                     </div>
@@ -1971,7 +2046,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider">{ag.monthAbbr || 'OKT'}</p>
                           </div>
                           <div className="min-w-0">
-                            <p className="font-extrabold text-xs text-[#2C4219] truncate">{ag.title}</p>
+                            <p className="font-bold text-xs text-[#2C4219] truncate">{ag.title}</p>
                             <div className="flex items-center gap-3 text-[10px] text-[#7A7062] font-semibold mt-1">
                               <span className="flex items-center gap-1 truncate">
                                 <MapPin className="w-3 h-3 shrink-0" />
@@ -2011,7 +2086,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <Megaphone className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
-                        <h3 className="font-title font-extrabold text-base text-[#2C4219]">Pengumuman Terkini</h3>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Terkini</h3>
                         <p className="text-[11px] text-[#7A7062] font-semibold">Informasi resmi dari kepengurusan KWT</p>
                       </div>
                     </div>
@@ -2034,7 +2109,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </span>
                           <span className="text-[10px] text-[#7A7062] font-semibold">{ann.date}</span>
                         </div>
-                        <p className="font-extrabold text-xs text-[#2C4219]">{ann.title}</p>
+                        <p className="font-bold text-xs text-[#2C4219]">{ann.title}</p>
                         <p className="text-[11px] text-[#5C5246] line-clamp-1 font-medium">{ann.content}</p>
                       </div>
                     ))}
@@ -2063,7 +2138,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <MessageSquare className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-extrabold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
                       <p className="text-[11px] text-[#7A7062] font-semibold">Diskusi terbaru dari para anggota KWT Sorgum</p>
                     </div>
                   </div>
@@ -2086,7 +2161,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </span>
                           <span className="text-[10px] font-semibold text-[#7A7062]">{thr.timeAgo || 'Baru'}</span>
                         </div>
-                        <p className="font-extrabold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
+                        <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
                         <p className="text-[11px] text-[#5C5246] line-clamp-2">{thr.summary}</p>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]/60 text-[10px] text-[#7A7062] font-bold">
@@ -2108,7 +2183,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     Sistem Berjalan Optimal
                   </div>
-                  <h3 className="font-title font-extrabold text-lg text-white leading-snug">
+                  <h3 className="font-title font-bold text-lg text-white leading-snug">
                     Ekosistem Sorgum Terintegrasi
                   </h3>
                   <p className="text-xs text-[#E3EBD3] leading-relaxed font-medium">
@@ -2130,7 +2205,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {activeTab === 'settings' && (
           <div className="space-y-6 max-w-2xl">
             <div>
-              <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                 Pengaturan Admin Portal
               </h1>
             </div>
@@ -2143,7 +2218,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="w-16 h-16 rounded-full object-cover border-2 border-[#2C4219]"
                 />
                 <div>
-                  <h3 className="font-title font-extrabold text-base text-[#2C4219]">{currentUser.name}</h3>
+                  <h3 className="font-title font-bold text-base text-[#2C4219]">{currentUser.name}</h3>
                   <p className="text-[#7A7062] font-semibold">{currentUser.role}</p>
                 </div>
               </div>
@@ -2182,7 +2257,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           <DashboardDesaView
             landPlots={landPlots}
             harvestRecords={harvestRecords}
-            totalUsers={stats?.totalUser ?? 3}
+            totalUsers={dashboardStats?.totalUsers ?? 3}
+            totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
             onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
           />
         )}
@@ -2193,7 +2269,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Konten
                 </h1>
                 <p className="text-sm text-[#433A30] font-medium mt-1">
@@ -2268,6 +2344,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
                       />
                     </div>
+
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                        <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsWebSubtitle}
+                        onChange={(e) => setCmsWebSubtitle(e.target.value)}
+                        placeholder="Contoh: KWT MELATI SORGUM"
+                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                      />
+                    </div>
+
 
                     <div className="space-y-1.5">
                       <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
@@ -2673,14 +2763,68 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* RIGHT: Live Preview */}
               <div className="space-y-3 lg:sticky lg:top-6">
-                <div className="flex items-center justify-between px-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#433A30]/60 flex items-center gap-1.5">
-                    <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
-                  </p>
+                <div className={`flex items-center px-1 ${cmsActivePage === 'identitas' ? 'justify-end' : 'justify-between'}`}>
+                  {cmsActivePage !== 'identitas' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cmsActivePage === 'landing' && onNavigateToPage) {
+                          onNavigateToPage('beranda');
+                        } else if (cmsActivePage === 'login' && onNavigateToPage) {
+                          onNavigateToPage('login');
+                        } else if (cmsActivePage === 'register' && onNavigateToPage) {
+                          onNavigateToPage('register');
+                        }
+                      }}
+                      className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer transition-colors"
+                      title="Klik untuk membuka halaman aslinya"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
+                      <ExternalLink className="w-3 h-3 ml-0.5" />
+                    </button>
+                  )}
                   <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
-                    {cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
+                    {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
                   </span>
                 </div>
+
+                {/* Identitas Preview */}
+                {cmsActivePage === 'identitas' && (
+                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col">
+                    <div className="bg-[#2C4219] p-6 flex flex-col items-center gap-4">
+                      {cmsWebLogo ? (
+                        <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-white/40" />
+                        </div>
+                      )}
+                      <h3 className="font-title font-bold text-white text-2xl text-center leading-tight">
+                        {cmsWebName || 'Nama Website'}
+                      </h3>
+                      <p className="text-xs font-bold text-[#A8B774] text-center tracking-widest uppercase">
+                        {cmsWebSubtitle || 'TEKS SUBTITLE'}
+                      </p>
+                    </div>
+                    <div className="p-6 space-y-4 bg-[#FAF6EE]">
+                      <p className="text-xs font-semibold text-[#433A30]/60 text-center">Logo dan nama website akan tampil di Sidebar, Header, dan halaman login.</p>
+                      <div className="bg-white rounded-2xl border border-[#E6E1D5] p-4 flex items-center gap-3 shadow-xs">
+                        {cmsWebLogo ? (
+                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-[#2C4219]/10 flex items-center justify-center shrink-0">
+                            <ImageIcon className="w-4 h-4 text-[#2C4219]/40" />
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                          <span className="text-[10px] font-bold text-[#A8B774] tracking-widest uppercase truncate">{cmsWebSubtitle || 'TEKS SUBTITLE'}</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-center text-[#433A30]/50 font-medium">Contoh tampilan di Sidebar</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Landing Preview */}
                 {cmsActivePage === 'landing' && (
@@ -2692,7 +2836,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-r from-[#1E2E11]/90 via-[#2C4219]/70 to-transparent" />
                       <div className="absolute bottom-6 left-6 right-6">
                         <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#A8B774] text-[#1E2E11] uppercase tracking-wider">Komunitas KWT</span>
-                        <h3 className="font-title font-extrabold text-white text-3xl leading-tight mt-3">
+                        <h3 className="font-title font-bold text-white text-3xl leading-tight mt-3">
                           {cmsLandingTitle || 'Judul Utama'}
                         </h3>
                       </div>
@@ -2721,7 +2865,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
                       <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
                       <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
                           {cmsLoginTitle || 'Judul Login'}
                         </h3>
                       </div>
@@ -2758,7 +2902,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
                       <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
                       <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-extrabold text-white text-2xl leading-tight">
+                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
                           {cmsRegTitle || 'Judul Register'}
                         </h3>
                       </div>
@@ -2801,7 +2945,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-title font-extrabold text-2xl sm:text-3xl text-[#2C4219]">
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Pengguna
                 </h1>
                 <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
@@ -2812,6 +2956,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="relative w-full sm:w-72">
                 <input
                   type="text"
+                  name="user-search-query-disable-autofill"
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="Cari nama atau email..."
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
@@ -2838,7 +2985,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <tr key={u.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
                         <td className="py-4 px-5">
                           <div>
-                            <p className="font-extrabold text-[#2C4219] text-sm">{u.name}</p>
+                            <p className="font-bold text-[#2C4219] text-sm">{u.name}</p>
                             <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">{u.email}</p>
                           </div>
                         </td>
@@ -2862,13 +3009,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
-                              className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
-                              title="Hapus Pengguna"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {u.role !== 'ADMIN' && (
+                              <button
+                                onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
+                                className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
+                                title="Hapus Pengguna"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -2892,7 +3041,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h2 className="font-title font-extrabold text-xl text-[#2C4219]">Edit Pengguna</h2>
+              <h2 className="font-title font-bold text-xl text-[#2C4219]">Edit Pengguna</h2>
               <button onClick={() => setIsUserModalOpen(false)} className="p-2 hover:bg-[#FAF6EE] rounded-xl text-[#7A7062] transition-colors">
                 <X className="w-5 h-5" />
               </button>
@@ -2917,17 +3066,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Role (Hak Akses)</label>
-                <select
-                  value={userFormData.role}
-                  onChange={e => setUserFormData({ ...userFormData, role: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] focus:outline-none focus:border-[#A8B774] text-sm text-[#2C4219] font-semibold"
-                >
-                  <option value="USER">Anggota KWT</option>
-                  <option value="ADMIN">Admin Portal</option>
-                </select>
-              </div>
+
               <div>
                 <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">No Telepon (Opsional)</label>
                 <input
@@ -2941,6 +3080,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Password Baru (Opsional)</label>
                 <input
                   type="password"
+                  name="new-password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   placeholder="Isi jika ingin ganti kata sandi"
                   value={userFormData.password}
                   onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
@@ -2984,7 +3126,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-3xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-xl text-[#2C4219]">
+              <h3 className="font-title font-bold text-xl text-[#2C4219]">
                 {editingArticle ? 'Sunting Informasi' : 'Tambah Informasi Baru'}
               </h3>
               <button
@@ -3061,29 +3203,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         const file = e.target.files?.[0];
                         if (!file) return;
                         try {
-                          const form = new FormData();
-                          form.append('file', file);
-                          const res = await fetch(`${BASE_URL}/upload`, {
-                            method: 'POST',
-                            headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                            body: form,
-                          });
-                          const json = await res.json();
-                          if (json.success && json.data?.url) {
-                            setArtImage(json.data.url);
-                            showToast('Foto berhasil diupload');
-                          } else {
-                            showToast(json.message || 'Gagal upload foto');
-                          }
-                        } catch {
-                          showToast('Gagal upload foto');
+                          const url = await handleCmsUpload(file);
+                          setArtImage(url);
+                          showToast('Foto berhasil diupload');
+                        } catch (err: any) {
+                          showToast(err.message || 'Gagal upload foto');
                         }
                       }}
                     />
                   </label>
                 ) : (
                   <div className="relative w-full h-48 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
-                    <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    {artImage ? (
+                      <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-[#FAF6EE] flex items-center justify-center text-[#A8B774] font-bold">
+                        Tanpa Foto
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                       <label htmlFor="artImageUploadChange" className="px-4 py-2 bg-white/90 rounded-xl text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-white transition-colors">
                         Ganti Foto
@@ -3096,20 +3233,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              const form = new FormData();
-                              form.append('file', file);
-                              const res = await fetch(`${BASE_URL}/upload`, {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                                body: form,
-                              });
-                              const json = await res.json();
-                              if (json.success && json.data?.url) {
-                                setArtImage(json.data.url);
-                                showToast('Foto berhasil diganti');
-                              }
-                            } catch {
-                              showToast('Gagal upload foto');
+                              const url = await handleCmsUpload(file);
+                              setArtImage(url);
+                              showToast('Foto berhasil diganti');
+                            } catch (err: any) {
+                              showToast(err.message || 'Gagal upload foto');
                             }
                           }}
                         />
@@ -3174,23 +3302,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       multiple
                       className="hidden"
                       onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
+                        const files = Array.from(e.target.files || []) as File[];
                         e.target.value = '';
                         for (const file of files) {
                           try {
-                            const form = new FormData();
-                            form.append('file', file as Blob);
-                            const res = await fetch(`${BASE_URL}/upload`, {
-                              method: 'POST',
-                              headers: { Authorization: `Bearer ${localStorage.getItem('bestari_token')}` },
-                              body: form,
-                            });
-                            const json = await res.json();
-                            if (json.success && json.data?.url) {
-                              setArtGallery(prev => [...prev, json.data.url]);
-                            }
-                          } catch {
-                            showToast('Gagal upload salah satu foto');
+                            const url = await handleCmsUpload(file);
+                            setArtGallery(prev => [...prev, url]);
+                            showToast('Foto berhasil ditambahkan ke gallery');
+                          } catch (err: any) {
+                            showToast(err.message || 'Gagal upload foto');
                           }
                         }
                       }}
@@ -3250,7 +3370,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 border border-[#E6E1D5] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
+              <h3 className="font-title font-bold text-lg text-[#2C4219]">
                 Buat Pengumuman Baru
               </h3>
               <button
@@ -3262,6 +3382,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             <form onSubmit={handleSaveAnnouncement} className="space-y-4 text-xs font-medium">
+              {annError && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
+                  {annError}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="block font-bold text-[#2C4219]">Judul Pengumuman</label>
                 <input
@@ -3325,7 +3450,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-extrabold text-lg text-[#2C4219]">
+              <h3 className="font-title font-bold text-lg text-[#2C4219]">
                 {editingAgenda ? 'Sunting Agenda Kegiatan' : 'Tambah Agenda Baru'}
               </h3>
               <button
@@ -3360,7 +3485,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                   <div className="flex items-center gap-2">
                     <Mic className="w-5 h-5 text-[#2C4219]" />
-                    <span className="font-extrabold text-[#2C4219] text-sm">Asisten Suara Pintar</span>
+                    <span className="font-bold text-[#2C4219] text-sm">Asisten Suara Pintar</span>
                   </div>
 
                   <button
@@ -3513,7 +3638,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-title font-extrabold text-xl text-[#2C4219]">
+              <h3 className="font-title font-bold text-xl text-[#2C4219]">
                 {viewingAgenda.title}
               </h3>
 

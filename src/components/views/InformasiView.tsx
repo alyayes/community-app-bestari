@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { InfoArticle } from '../../types';
 import { 
   Search, 
@@ -30,6 +32,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
   const [localSearch, setLocalSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [activeImageIdx, setActiveImageIdx] = useState<number>(0);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   // Reset activeImageIdx when selected article changes
   useEffect(() => {
@@ -63,10 +66,122 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
     return 'bg-[#FAF6EE] text-[#433A30] border border-[#E6E1D5]';
   };
 
+  const handleDownloadPDF = async () => {
+    if (!selectedArticle) return;
+    
+    try {
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPos = margin;
+
+      // Draw Header Line
+      doc.setDrawColor(168, 183, 116); // #A8B774
+      doc.setLineWidth(1);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+
+      // Draw Title
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(44, 66, 25); // #2C4219
+      const titleLines = doc.splitTextToSize(selectedArticle.title, pageWidth - margin * 2);
+      doc.text(titleLines, margin, yPos);
+      yPos += (titleLines.length * 10);
+
+      // Draw Meta (Kategori, Tanggal)
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
+      const metaText = `Kategori: ${selectedArticle.category || 'Umum'}   |   Tanggal: ${selectedArticle.date}`;
+      doc.text(metaText, margin, yPos);
+      yPos += 10;
+
+      // Draw Line
+      doc.setDrawColor(230, 225, 213); // #E6E1D5
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+
+      // Draw Image if exists
+      const imgUrl = selectedArticle.gallery?.[0] || selectedArticle.image;
+      if (imgUrl) {
+         try {
+           const img = new Image();
+           img.crossOrigin = 'Anonymous';
+           img.src = imgUrl;
+           await new Promise((resolve, reject) => {
+             img.onload = resolve;
+             img.onerror = reject;
+           });
+           
+           const imgWidth = pageWidth - margin * 2;
+           const imgHeight = (img.height * imgWidth) / img.width;
+           
+           // Ensure image is not too tall for the page
+           let finalImgHeight = imgHeight;
+           let finalImgWidth = imgWidth;
+           if (imgHeight > 100) { 
+              finalImgHeight = 100;
+              finalImgWidth = (img.width * finalImgHeight) / img.height;
+           }
+           
+           if (yPos + finalImgHeight > pageHeight - margin) {
+              doc.addPage();
+              yPos = margin;
+           }
+           
+           // Draw to canvas to bypass direct jsPDF CORS restrictions
+           const canvas = document.createElement('canvas');
+           canvas.width = img.width;
+           canvas.height = img.height;
+           const ctx = canvas.getContext('2d');
+           if (ctx) {
+             ctx.drawImage(img, 0, 0);
+             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+             const xPos = margin + (imgWidth - finalImgWidth) / 2; // Center horizontally
+             doc.addImage(dataUrl, 'JPEG', xPos, yPos, finalImgWidth, finalImgHeight);
+             yPos += finalImgHeight + 15;
+           }
+         } catch (e) {
+           console.warn('Could not load image for PDF', e);
+         }
+      }
+
+      // Draw Content
+      doc.setFontSize(12);
+      doc.setTextColor(60, 60, 60);
+      const contentLines = doc.splitTextToSize(selectedArticle.content, pageWidth - margin * 2);
+      
+      contentLines.forEach((line: string) => {
+        if (yPos > pageHeight - margin - 15) {
+          doc.addPage();
+          yPos = margin;
+        }
+        doc.text(line, margin, yPos);
+        yPos += 7;
+      });
+
+      // Footer
+      if (yPos > pageHeight - margin) {
+        doc.addPage();
+        yPos = margin;
+      }
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Diunduh dari Sistem Informasi Komunitas', pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+      doc.save(`${selectedArticle.title.substring(0, 25)}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      alert('Maaf, terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.');
+    }
+  };
+
   // If an article is selected, render the Detail Informasi view matching the screenshot!
   if (selectedArticle) {
     return (
-      <div className="space-y-6 pb-16 w-full">
+      <div ref={pdfRef} className="space-y-6 pb-16 w-full">
         {/* Back Button */}
         <button
           onClick={() => onSelectArticle(null)}
@@ -77,7 +192,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         </button>
 
         {/* Article Title */}
-        <h1 className="font-title font-extrabold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] leading-tight pt-2">
+        <h1 className="font-title font-bold text-2xl sm:text-3xl lg:text-4xl text-[#2C4219] leading-tight pt-2">
           {selectedArticle.title}
         </h1>
 
@@ -102,11 +217,13 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                ))
             ) : (
                 <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
-                  <img
-                    src={selectedArticle.image}
-                    alt={selectedArticle.title}
-                    className="w-full h-full object-cover object-center"
-                  />
+                  {selectedArticle.image && (
+                    <img
+                      src={selectedArticle.image}
+                      alt={selectedArticle.title}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent print:hidden" />
                 </div>
             )}
@@ -154,7 +271,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
           {/* Left Column: Detail Informasi */}
           <div className="lg:col-span-2 print:col-span-3 space-y-4">
-            <h2 className="font-title font-extrabold text-lg sm:text-xl text-[#2C4219] print:hidden">
+            <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] print:hidden">
               Detail Informasi
             </h2>
             <div className="space-y-4 text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
@@ -171,7 +288,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
           {/* Right Column: Informasi Utama Card */}
           <div className="lg:col-span-1 print:hidden">
             <div className="bg-white/90 p-6 rounded-2xl border border-[#E6E1D5] shadow-2xs space-y-6">
-              <h3 className="font-title font-extrabold text-base text-[#2C4219]">
+              <h3 className="font-title font-bold text-base text-[#2C4219]">
                 Informasi Utama
               </h3>
 
@@ -207,7 +324,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#433A30]/70 uppercase tracking-wider">PENULIS</p>
-                    <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.author?.name || 'Sekretariat KWT Sorgum'}</p>
+                    <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.author?.name || 'Admin'}</p>
                   </div>
                 </div>
 
@@ -226,7 +343,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Action Buttons */}
               <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
                 <button
-                  onClick={() => window.print()}
+                  onClick={handleDownloadPDF}
                   className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -316,11 +433,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Image Header */}
               <div className="relative h-48 w-full overflow-hidden bg-[#FAF6EE]">
                 <img
-                  src={art.image}
+                  src={art.image || undefined}
                   alt={art.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <span className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold tracking-wider uppercase shadow-xs ${getCategoryBadgeClass(art.category)}`}>
+                <span className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-lg text-[10px] font-bold tracking-wider uppercase shadow-xs ${getCategoryBadgeClass(art.category)}`}>
                   {art.category}
                 </span>
               </div>

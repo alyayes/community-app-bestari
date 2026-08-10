@@ -154,11 +154,11 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
               </div>
             )}
             <div className="text-left">
-              <span className="font-title font-extrabold text-lg tracking-tight block leading-tight text-white line-clamp-1">
-                Community App
+              <span className="font-title font-bold text-lg tracking-tight block leading-tight text-white line-clamp-1">
+                {cmsData?.webName || 'Community App'}
               </span>
-              <span className="text-[11px] text-[#A8B774] font-extrabold tracking-widest uppercase block mt-0.5 line-clamp-1">
-                {cmsData?.webName || 'KWT MELATI SORGUM'}
+              <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5 line-clamp-1">
+                {cmsData?.webSubtitle || 'KWT MELATI SORGUM'}
               </span>
             </div>
           </div>
@@ -166,7 +166,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
         {/* Left Content Header */}
         <div className="relative z-10 my-auto py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
-          <h2 className="font-title font-extrabold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
+          <h2 className="font-title font-bold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
             {cmsData?.registerTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.registerTitle.replace('\\n', '<br />') }} />
             ) : (
@@ -195,7 +195,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
           {/* Header */}
           <div>
-            <h1 className="font-title font-extrabold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
+            <h1 className="font-title font-bold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
               Buat Akun Baru
             </h1>
           </div>
@@ -257,7 +257,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     type="tel"
                     placeholder="081234567890"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                     className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Phone className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -318,7 +318,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-70 border-2 border-[#A8B774] mt-2"
+              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-70 border-2 border-[#A8B774] mt-2"
             >
               {isLoading ? (
                 <span>Mendaftarkan Akun...</span>
@@ -337,7 +337,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             <button
               type="button"
               onClick={onGoToLogin}
-              className="font-extrabold text-[#2C4219] hover:text-[#1E2E11] ml-1"
+              className="font-bold text-[#2C4219] hover:text-[#1E2E11] ml-1"
             >
               Masuk di sini
             </button>
