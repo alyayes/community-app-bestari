@@ -7,19 +7,22 @@
   --color-neutral: #433A30;
   --color-canvas: #FAF6EE;
 
-  --font-title: 'Poppins', sans-serif;
-  --font-sans: 'Poppins', sans-serif;
+  --font-title: 'Playfair Display', serif;
+  --font-sans: 'Lora', serif;
 }
 
 @layer base {
+  html {
+    font-size: 14.5px;
+  }
   body {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Lora', serif;
     background-color: #FAF6EE;
     color: #433A30;
   }
 
   h1, h2, h3, h4, h5, h6, .font-title {
-    font-family: 'Poppins', sans-serif;
+    font-family: 'Playfair Display', serif;
   }
 }
 
