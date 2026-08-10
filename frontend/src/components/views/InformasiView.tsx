@@ -324,7 +324,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#433A30]/70 uppercase tracking-wider">PENULIS</p>
-                    <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.author?.name || 'Sekretariat KWT Sorgum'}</p>
+                    <p className="font-bold text-[#2C4219] mt-0.5">{selectedArticle.author?.name || 'Admin'}</p>
                   </div>
                 </div>
 

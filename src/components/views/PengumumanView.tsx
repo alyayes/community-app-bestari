@@ -16,10 +16,18 @@ interface PengumumanViewProps {
 }
 
 const categoryIcon = (cat: string) => {
-  if (cat === 'PENTING') return <Megaphone className="w-3.5 h-3.5" />;
+  if (cat === 'PENTING' || cat === 'MENDESAK') return <Megaphone className="w-3.5 h-3.5" />;
   if (cat === 'HASIL PANEN') return <Wheat className="w-3.5 h-3.5" />;
   if (cat === 'INFORMASI ANGGOTA') return <Users className="w-3.5 h-3.5" />;
   return <Megaphone className="w-3.5 h-3.5" />;
+};
+
+export const getBadgeColor = (cat: string) => {
+  if (cat === 'MENDESAK') return '#dc2626';
+  if (cat === 'PENTING') return '#ea580c';
+  if (cat === 'HASIL PANEN') return '#2C4219';
+  if (cat === 'INFORMASI ANGGOTA') return '#0284c7';
+  return '#7A7062';
 };
 
 export const PengumumanView: React.FC<PengumumanViewProps> = ({
@@ -28,7 +36,7 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
   searchQuery = ''
 }) => {
   const [localSearch, setLocalSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<'Semua' | 'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA'>('Semua');
+  const [activeTab, setActiveTab] = useState<'Semua' | 'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA' | 'MENDESAK'>('Semua');
 
   const activeSearch = localSearch || searchQuery;
   const filteredAnnouncements = announcements.filter((ann) => {
@@ -46,7 +54,7 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* CATEGORY FILTER TABS */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          {(['Semua', 'PENTING', 'HASIL PANEN', 'INFORMASI ANGGOTA'] as const).map((tab) => (
+          {(['Semua', 'PENTING', 'MENDESAK', 'HASIL PANEN', 'INFORMASI ANGGOTA'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -106,7 +114,7 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
                   <div className="flex items-start justify-between gap-3">
                     <span
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-white shrink-0"
-                      style={{ backgroundColor: ann.badgeColor }}
+                      style={{ backgroundColor: getBadgeColor(ann.category) }}
                     >
                       {categoryIcon(ann.category)}
                       {ann.category}

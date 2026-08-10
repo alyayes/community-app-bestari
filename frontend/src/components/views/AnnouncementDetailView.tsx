@@ -18,10 +18,18 @@ interface AnnouncementDetailViewProps {
 }
 
 const categoryIcon = (cat: string) => {
-  if (cat === 'PENTING') return <Megaphone className="w-4 h-4" />;
+  if (cat === 'PENTING' || cat === 'MENDESAK') return <Megaphone className="w-4 h-4" />;
   if (cat === 'HASIL PANEN') return <Wheat className="w-4 h-4" />;
   if (cat === 'INFORMASI ANGGOTA') return <Users className="w-4 h-4" />;
   return <Megaphone className="w-4 h-4" />;
+};
+
+export const getBadgeColor = (cat: string) => {
+  if (cat === 'MENDESAK') return '#dc2626';
+  if (cat === 'PENTING') return '#ea580c';
+  if (cat === 'HASIL PANEN') return '#2C4219';
+  if (cat === 'INFORMASI ANGGOTA') return '#0284c7';
+  return '#7A7062';
 };
 
 export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
@@ -29,29 +37,28 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
   onBack,
 }) => {
   return (
-    <div className="pb-16 animate-fadeInUp">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in">
 
-      {/* Back Button */}
+      {/* Breadcrumb / Back Button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-sm font-semibold text-[#2C4219] hover:text-[#3d5a23] transition-colors mb-6 group"
+        className="flex items-center gap-2 text-sm font-semibold text-[#433A30]/60 hover:text-[#2C4219] transition-colors group"
       >
-        <span className="w-8 h-8 rounded-full bg-white border border-[#E6E1D5] flex items-center justify-center shadow-xs group-hover:shadow-sm group-hover:border-[#A8B774] transition-all">
-          <ArrowLeft className="w-4 h-4" />
-        </span>
-        Kembali ke Pengumuman
+        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+        Kembali ke Daftar Pengumuman
       </button>
 
-      {/* Main Card */}
-      <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-sm overflow-hidden">
-
-        {/* Card Header */}
-        <div className="p-6 sm:p-8 border-b border-[#E6E1D5]">
+      {/* Main Content Card */}
+      <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
+        
+        {/* Card Header (Title & Meta) */}
+        <div className="bg-[#FAF6EE] p-6 sm:p-8 border-b border-[#E6E1D5]">
+          
           {/* Badge & Time */}
           <div className="flex items-center justify-between gap-3 mb-4">
             <span
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-              style={{ backgroundColor: ann.badgeColor }}
+              style={{ backgroundColor: getBadgeColor(ann.category) }}
             >
               {categoryIcon(ann.category)}
               {ann.category}

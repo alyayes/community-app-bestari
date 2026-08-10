@@ -410,6 +410,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [annCategory, setAnnCategory] = useState<'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA' | 'MENDESAK'>('PENTING');
   const [annSummary, setAnnSummary] = useState('');
   const [annContent, setAnnContent] = useState('');
+  const [annError, setAnnError] = useState('');
 
   // Pinned announcements tracking — pakai isUrgent real dari backend
   const [pinnedIds, setPinnedIds] = useState<string[]>(
@@ -706,6 +707,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       image: artImage,
       gallery: artGallery,
       status: artStatus,
+      author: {
+        name: currentUser.name,
+        role: currentUser.role,
+        avatar: currentUser.avatar
+      }
     };
 
     try {
@@ -755,6 +761,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setAnnCategory(ann.category as any);
     setAnnSummary(ann.summary || '');
     setAnnContent(ann.content || ann.summary || '');
+    setAnnError('');
     setIsAnnouncementModalOpen(true);
   };
 
@@ -803,13 +810,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!annTitle.trim()) return;
+    if (annTitle.trim().length < 3) {
+      setAnnError('Judul pengumuman minimal 3 karakter.');
+      return;
+    }
 
+    const finalSummary = annSummary.trim() || annTitle.trim();
+    if (finalSummary.length < 5) {
+      setAnnError('Ringkasan pengumuman minimal 5 karakter.');
+      return;
+    }
+
+    const finalContent = annContent.trim() || finalSummary;
+    
     const payload = {
-      title: annTitle,
+      title: annTitle.trim(),
       category: annCategory,
-      summary: annSummary || annTitle,
-      content: annContent || annSummary,
+      summary: finalSummary,
+      content: finalContent,
       isUrgent: annCategory === 'MENDESAK'
     };
 
@@ -1303,6 +1321,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   setAnnCategory('PENTING');
                   setAnnSummary('');
                   setAnnContent('');
+                  setAnnError('');
                   setIsAnnouncementModalOpen(true);
                 }}
                 className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
@@ -1743,9 +1762,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={thr.authorAvatar ? (thr.authorAvatar.startsWith('http') ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
+                          src={thr.authorAvatar ? ((thr.authorAvatar.startsWith('http') || thr.authorAvatar.startsWith('data:')) ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
                           alt={thr.authorName}
                           className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`;
+                          }}
                         />
                         <div>
                           <p className="text-xs font-bold text-[#2C4219]">{thr.authorName}</p>
@@ -2740,25 +2763,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* RIGHT: Live Preview */}
               <div className="space-y-3 lg:sticky lg:top-6">
-                <div className="flex items-center justify-between px-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (cmsActivePage === 'landing' && onNavigateToPage) {
-                        onNavigateToPage('beranda');
-                      } else if (cmsActivePage === 'login' && onNavigateToPage) {
-                        onNavigateToPage('login');
-                      } else if (cmsActivePage === 'register' && onNavigateToPage) {
-                        onNavigateToPage('register');
-                      }
-                    }}
-                    className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer disabled:cursor-default disabled:no-underline disabled:text-[#433A30]/60 transition-colors"
-                    disabled={cmsActivePage === 'identitas'}
-                    title={cmsActivePage !== 'identitas' ? 'Klik untuk membuka halaman aslinya' : undefined}
-                  >
-                    <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
-                    {cmsActivePage !== 'identitas' && <ExternalLink className="w-3 h-3 ml-0.5" />}
-                  </button>
+                <div className={`flex items-center px-1 ${cmsActivePage === 'identitas' ? 'justify-end' : 'justify-between'}`}>
+                  {cmsActivePage !== 'identitas' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (cmsActivePage === 'landing' && onNavigateToPage) {
+                          onNavigateToPage('beranda');
+                        } else if (cmsActivePage === 'login' && onNavigateToPage) {
+                          onNavigateToPage('login');
+                        } else if (cmsActivePage === 'register' && onNavigateToPage) {
+                          onNavigateToPage('register');
+                        }
+                      }}
+                      className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer transition-colors"
+                      title="Klik untuk membuka halaman aslinya"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
+                      <ExternalLink className="w-3 h-3 ml-0.5" />
+                    </button>
+                  )}
                   <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
                     {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
                   </span>
@@ -2932,6 +2956,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="relative w-full sm:w-72">
                 <input
                   type="text"
+                  name="user-search-query-disable-autofill"
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="Cari nama atau email..."
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
@@ -3053,6 +3080,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-1.5">Password Baru (Opsional)</label>
                 <input
                   type="password"
+                  name="new-password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
                   placeholder="Isi jika ingin ganti kata sandi"
                   value={userFormData.password}
                   onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
@@ -3272,7 +3302,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       multiple
                       className="hidden"
                       onChange={async (e) => {
-                        const files = Array.from(e.target.files || []);
+                        const files = Array.from(e.target.files || []) as File[];
                         e.target.value = '';
                         for (const file of files) {
                           try {
@@ -3352,6 +3382,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </div>
 
             <form onSubmit={handleSaveAnnouncement} className="space-y-4 text-xs font-medium">
+              {annError && (
+                <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
+                  {annError}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="block font-bold text-[#2C4219]">Judul Pengumuman</label>
                 <input

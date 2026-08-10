@@ -126,10 +126,25 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
     if (sorghumType !== undefined) dataToUpdate.sorghumType = sorghumType;
     if (memberSince !== undefined) dataToUpdate.memberSince = memberSince;
 
+    const oldUser = await prisma.user.findUnique({ where: { id: userId } });
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: dataToUpdate
     });
+
+    if (oldUser) {
+      if (dataToUpdate.name !== undefined || avatar !== undefined) {
+        await prisma.threadComment.updateMany({
+          where: { authorName: oldUser.name },
+          data: { authorName: updatedUser.name, authorAvatar: updatedUser.avatar || '' }
+        });
+        await prisma.thread.updateMany({
+          where: { authorName: oldUser.name },
+          data: { authorName: updatedUser.name, authorAvatar: updatedUser.avatar || '' }
+        });
+      }
+    }
 
     return successResponse(res, toProfile(updatedUser), 'Profil berhasil diperbarui');
   } catch (err) {

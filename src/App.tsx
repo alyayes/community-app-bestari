@@ -64,6 +64,7 @@ export function App() {
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
   const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number, totalRawMaterialKg?: number }>({ totalUsers: 48 });
   const [cmsData, setCmsData] = useState<CmsData | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Selected State
   const [selectedArticle, setSelectedArticle] = useState<InfoArticle | null>(() => {
@@ -171,25 +172,24 @@ export function App() {
 
   // ── LOAD DATA REAL DARI BACKEND SAAT APP DIBUKA ──
   useEffect(() => {
-    const token = getToken();
-    if (token) {
-      // Auto-login jika ada token tersimpan
-      api<any>('/auth/me').then(u => {
-        if (u) {
-          setCurrentUser(u);
+    const initApp = async () => {
+      const token = getToken();
+      if (token) {
+        // Auto-login jika ada token tersimpan
+        try {
+          const u = await api<any>('/auth/me');
+          if (u) {
+            setCurrentUser(u);
+          }
+        } catch {
+          setToken(null);
+          if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
         }
-      }).catch(() => {
-        setToken(null);
+      } else {
         if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
-      });
-    } else {
-      if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
-    }
-  }, []);
+      }
 
-  useEffect(() => {
-    // Load semua data publik dari backend
-    const loadAll = async () => {
+      // Load semua data publik dari backend
       try {
         const [arts, anns, ags, thrs, lahan, panen, stats, cmsRes] = await Promise.all([
           api<InfoArticle[]>('/artikel').catch(() => []),
@@ -213,9 +213,11 @@ export function App() {
         // Fallback ke mock data jika backend mati
         console.warn('[Bestari] Backend tidak terjangkau, pakai mock data:', e);
       }
+      setIsInitialLoad(false);
     };
-    loadAll();
-  }, [currentUser.id]);
+
+    initApp();
+  }, []);
 
   useEffect(() => {
     // Real-time polling khusus untuk Lahan & Panen (tiap 30 detik)
@@ -703,6 +705,31 @@ export function App() {
     }
   };
 
+  const renderAdminReturnBtn = () => {
+    const isAdmin = currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin');
+    if (!isAdmin) return null;
+    return (
+      <button
+        onClick={() => {
+          setPageMode('admin');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        className="fixed bottom-6 right-6 z-[9999] px-4 py-3 bg-[#2C4219] hover:bg-[#1E2E11] text-white rounded-full shadow-2xl flex items-center gap-2 font-sans font-bold text-sm border-2 border-[#A8B774] transition-all hover:scale-105 active:scale-95"
+      >
+        <svg xmlns="http://www.w3.org/2010/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        <span>Kembali ke Admin</span>
+      </button>
+    );
+  };
+
+  if (isInitialLoad) {
+    return (
+      <div className="min-h-screen bg-[#FAF6EE] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2C4219] border-t-transparent"></div>
+      </div>
+    );
+  }
+
   // Render Page Modes
   if (pageMode === 'landing') {
     return (
@@ -719,31 +746,38 @@ export function App() {
           article={selectedArticle}
           onClose={() => setSelectedArticle(null)}
         />
+        {renderAdminReturnBtn()}
       </>
     );
   }
 
   if (pageMode === 'login') {
     return (
-      <LoginView
-        onGoToLanding={handleGoToLanding}
-        onGoToRegister={handleGoToRegister}
-        onLoginSuccess={handleLoginSuccess}
-        onApiLogin={handleApiLogin}
-        cmsData={cmsData}
-      />
+      <>
+        <LoginView
+          onGoToLanding={handleGoToLanding}
+          onGoToRegister={handleGoToRegister}
+          onLoginSuccess={handleLoginSuccess}
+          onApiLogin={handleApiLogin}
+          cmsData={cmsData}
+        />
+        {renderAdminReturnBtn()}
+      </>
     );
   }
 
   if (pageMode === 'register') {
     return (
-      <RegisterView
-        onGoToLanding={handleGoToLanding}
-        onGoToLogin={handleGoToLogin}
-        onRegisterSuccess={handleRegisterSuccess}
-        onApiRegister={handleApiRegister}
-        cmsData={cmsData}
-      />
+      <>
+        <RegisterView
+          onGoToLanding={handleGoToLanding}
+          onGoToLogin={handleGoToLogin}
+          onRegisterSuccess={handleRegisterSuccess}
+          onApiRegister={handleApiRegister}
+          cmsData={cmsData}
+        />
+        {renderAdminReturnBtn()}
+      </>
     );
   }
 
@@ -848,6 +882,7 @@ export function App() {
               onSelectArticle={handleSelectArticle}
               onSelectAnnouncement={handleSelectAnnouncement}
               onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+              cmsData={cmsData}
             />
           )}
 
@@ -964,6 +999,7 @@ export function App() {
           }}
         />
       )}
+      {renderAdminReturnBtn()}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavItem, InfoArticle, Announcement, AgendaEvent, UserProfile } from '../../types';
+import { NavItem, InfoArticle, Announcement, AgendaEvent, UserProfile, CmsData } from '../../types';
+import { SERVER_BASE } from '../../api/client';
 import { 
   ArrowRight, 
   Calendar, 
@@ -19,6 +20,7 @@ interface BerandaViewProps {
   onSelectArticle: (article: InfoArticle) => void;
   onSelectAnnouncement: (announcement: Announcement) => void;
   onOpenMulaiPanen: () => void;
+  cmsData?: CmsData | null;
 }
 
 const BANNER_SLIDES = [
@@ -51,23 +53,32 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
   onSelectArticle,
   onSelectAnnouncement,
   onOpenMulaiPanen,
+  cmsData,
 }) => {
   const [activeSlide, setActiveSlide] = useState(0);
+
+  const activeBannerSlides = cmsData?.landingImages?.length
+    ? cmsData.landingImages.map(img => ({
+        url: img.url.startsWith('/uploads/') ? `${SERVER_BASE}${img.url}` : img.url,
+        title: img.title,
+        desc: img.caption
+      }))
+    : BANNER_SLIDES;
 
   // Auto transition banner slides every 5 seconds
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % BANNER_SLIDES.length);
+      setActiveSlide((prev) => (prev + 1) % activeBannerSlides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, []);
 
   const handleNextSlide = () => {
-    setActiveSlide((prev) => (prev + 1) % BANNER_SLIDES.length);
+    setActiveSlide((prev) => (prev + 1) % activeBannerSlides.length);
   };
 
   const handlePrevSlide = () => {
-    setActiveSlide((prev) => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length);
+    setActiveSlide((prev) => (prev - 1 + activeBannerSlides.length) % activeBannerSlides.length);
   };
 
   const latestArticles = articles.slice(0, 4);
@@ -85,7 +96,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
       {/* Dynamic Slider Hero Banner */}
       <div className="relative rounded-2xl overflow-hidden bg-[#2C4219] text-white shadow-md border border-[#2C4219]/10 group min-h-[180px] sm:min-h-[200px] flex items-start pt-6 sm:pt-8 pb-6">
         {/* Background Slide Images with Fade */}
-        {BANNER_SLIDES.map((slide, idx) => (
+        {activeBannerSlides.map((slide, idx) => (
           <div
             key={idx}
             className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
@@ -106,10 +117,10 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
         <div className="relative z-10 px-6 md:px-8 pt-2 pb-6 flex flex-col items-start justify-start gap-3 w-full">
           <div className="space-y-2 max-w-2xl">
             <h2 className="font-title font-bold text-xl md:text-2xl text-white leading-tight drop-shadow-sm">
-              Selamat Datang Kembali, {currentUser.name}!
+              Halo, {currentUser.name}!
             </h2>
-            <p className="text-sm text-[#E2E8D5] leading-relaxed drop-shadow-xs">
-              {BANNER_SLIDES[0].desc}
+            <p className="text-sm text-[#E2E8D5] leading-relaxed drop-shadow-xs line-clamp-2">
+              Ruang digital untuk saling terhubung, berbagi informasi, mencatat hasil panen, berdiskusi, dan bersama-sama mengembangkan produk olahan lokal.
             </p>
           </div>
         </div>

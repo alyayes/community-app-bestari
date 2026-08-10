@@ -153,6 +153,8 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
       dataToUpdate.password = await bcrypt.hash(password, 12);
     }
 
+    const oldUser = await prisma.user.findUnique({ where: { id } });
+
     const user = await prisma.user.update({
       where: { id },
       data: dataToUpdate,
@@ -161,6 +163,17 @@ router.put('/users/:id', async (req: Request, res: Response, next: NextFunction)
         phone: true, memberSince: true, createdAt: true,
       },
     });
+
+    if (oldUser && dataToUpdate.name !== undefined) {
+      await prisma.threadComment.updateMany({
+        where: { authorName: oldUser.name },
+        data: { authorName: user.name, authorAvatar: user.avatar || '' }
+      });
+      await prisma.thread.updateMany({
+        where: { authorName: oldUser.name },
+        data: { authorName: user.name, authorAvatar: user.avatar || '' }
+      });
+    }
     return successResponse(res, user, 'Data pengguna berhasil diperbarui');
   } catch (err) {
     next(err);

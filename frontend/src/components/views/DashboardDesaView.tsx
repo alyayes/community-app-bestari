@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Sprout, 
-  TrendingUp, 
-  Users, 
-  Package, 
-  MapPin, 
-  CheckCircle2, 
-  Calendar, 
-  Plus, 
-  Filter, 
+import {
+  BarChart3,
+  Sprout,
+  TrendingUp,
+  Users,
+  Package,
+  MapPin,
+  CheckCircle2,
+  Calendar,
+  Plus,
+  Filter,
   ChevronRight,
   Truck,
   Layers,
@@ -22,6 +22,7 @@ interface DashboardDesaViewProps {
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
   totalUsers: number;
+  isAdmin?: boolean;
   onOpenMulaiPanen: () => void;
 }
 
@@ -29,6 +30,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   landPlots,
   harvestRecords,
   totalUsers,
+  isAdmin = false,
   onOpenMulaiPanen,
 }) => {
   const [selectedBlock, setSelectedBlock] = useState<string>('Semua');
@@ -36,10 +38,12 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   const [members, setMembers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
-    api<UserProfile[]>('/admin/users')
-      .then((data) => setMembers(Array.isArray(data) ? data.filter(u => u.role !== 'ADMIN') : []))
-      .catch(() => setMembers([]));
-  }, []);
+    if (isAdmin) {
+      api<UserProfile[]>('/admin/users')
+        .then((data) => setMembers(Array.isArray(data) ? data.filter(u => u.role !== 'ADMIN') : []))
+        .catch(() => setMembers([]));
+    }
+  }, [isAdmin]);
 
   const totalHarvestKg = harvestRecords.reduce((acc, r) => acc + r.weightKg, 0);
   const totalAreaValue = landPlots.reduce((acc, p) => acc + (parseFloat(p.areaSize) || 0), 0);
@@ -47,8 +51,8 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   const totalMembers = totalUsers; // Using real data from backend
   const readyFlourKg = totalHarvestKg;
 
-  const filteredPlots = selectedBlock === 'Semua' 
-    ? landPlots 
+  const filteredPlots = selectedBlock === 'Semua'
+    ? landPlots
     : landPlots.filter(p => p.blockName.includes(selectedBlock));
 
   // Blok unik dari data real
@@ -120,7 +124,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
       {/* Supply Chain Flow Pipeline */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
         <h3 className="font-title font-bold text-base text-[#2C4219]">Status Tahapan Rantai Pasok (SCM)</h3>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-2">
             <div className="flex items-center justify-between">
@@ -203,7 +207,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                   <span className="font-bold text-[#2C4219]">{plot.growthProgress}%</span>
                 </div>
                 <div className="w-full h-3 rounded-full bg-[#E6E1D5] overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-[#2C4219] transition-all duration-500 rounded-full"
                     style={{ width: `${plot.growthProgress}%` }}
                   />
@@ -262,7 +266,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
       {/* Community Members Table - Task 7.3 & Admin 6.3 */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
         <h3 className="font-title font-bold text-base text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

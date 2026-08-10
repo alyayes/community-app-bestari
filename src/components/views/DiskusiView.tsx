@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ForumThread, ForumComment, UserProfile } from '../../types';
-import { api } from '../../api/client';
+import { api, SERVER_BASE } from '../../api/client';
 import {
   MessageSquare,
   Plus,
@@ -60,6 +60,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   const [activeThreadId, setActiveThreadId] = useState<string>(() => {
     return sessionStorage.getItem('bestari_activethread') || '';
   });
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeThreadId) {
@@ -652,7 +653,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             <div className="w-6 h-6 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#2C4219]/20 flex items-center justify-center">
                               {activeThread.authorAvatar ? (
                                 <img
-                                  src={activeThread.authorAvatar.startsWith('http') ? activeThread.authorAvatar : SERVER_BASE + activeThread.authorAvatar}
+                                  src={(activeThread.authorAvatar.startsWith('http') || activeThread.authorAvatar.startsWith('data:')) ? activeThread.authorAvatar : SERVER_BASE + activeThread.authorAvatar}
                                   alt={activeThread.authorName}
                                   className="w-full h-full object-cover"
                                 />
@@ -683,7 +684,8 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                 key={idx}
                                 src={img}
                                 alt="Lampiran"
-                                className={`rounded-xl object-cover border border-[#E6E1D5] ${activeThread.images!.length === 1
+                                onClick={() => setZoomedImage(img)}
+                                className={`rounded-xl object-cover border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity ${activeThread.images!.length === 1
                                   ? 'max-h-64 w-auto max-w-full'
                                   : 'h-28 w-full'
                                   }`}
@@ -850,7 +852,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                 {!isMe && (
                                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5">
                                     {comment.authorAvatar ? (
-                                      <img src={comment.authorAvatar.startsWith('http') ? comment.authorAvatar : SERVER_BASE + comment.authorAvatar} className="w-full h-full object-cover" />
+                                      <img src={(comment.authorAvatar.startsWith('http') || comment.authorAvatar.startsWith('data:')) ? comment.authorAvatar : SERVER_BASE + comment.authorAvatar} className="w-full h-full object-cover" />
                                     ) : (
                                       <span className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#2C4219]">{comment.authorName.charAt(0)}</span>
                                     )}
@@ -909,7 +911,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                   {/* Image Attachment */}
                                   {comment.imageAttachment && (
                                     <div className="mb-1.5">
-                                      <img src={comment.imageAttachment} alt="Attachment" className="rounded-lg max-h-48 w-auto object-contain border border-[#E6E1D5]" />
+                                      <img src={comment.imageAttachment} alt="Attachment" onClick={() => setZoomedImage(comment.imageAttachment!)} className="rounded-lg max-h-48 w-auto object-contain border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity" />
                                     </div>
                                   )}
 
@@ -1530,6 +1532,25 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {zoomedImage && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setZoomedImage(null)}>
+          <div className="relative max-w-5xl max-h-[90vh] flex items-center justify-center">
+            <button
+              onClick={() => setZoomedImage(null)}
+              className="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors bg-white/10 hover:bg-white/20 rounded-full"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={zoomedImage} 
+              alt="Zoomed" 
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
