@@ -94,6 +94,28 @@ router.post('/panen', async (req: Request, res: Response, next: NextFunction) =>
   }
 });
 
+// ── GET /api/dashboard/members ───────────────────────
+router.get('/members', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { role: 'USER', isActive: true },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        lahanLocation: true,
+        sorghumType: true,
+        memberSince: true,
+        avatar: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return successResponse(res, users);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── GET /api/dashboard/stats ───────────────────────
 router.get('/stats', async (_req: Request, res: Response, next: NextFunction) => {
   try {

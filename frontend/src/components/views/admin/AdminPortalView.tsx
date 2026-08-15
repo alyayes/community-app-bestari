@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import ReactQuill, { Quill } from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
 import {
   ResponsiveContainer,
   AreaChart,
@@ -58,12 +61,22 @@ import {
   Upload,
   Mic,
   Square,
-  Loader2
+  Loader2,
+  Phone,
+  LayoutGrid,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL } from '../../../api/client';
+
+const Font = Quill.import('formats/font') as any;
+const customFonts = ['sans-serif', 'serif', 'monospace', 'arial', 'courier-new', 'georgia', 'trebuchet', 'verdana', 'poppins'];
+Font.whitelist = customFonts;
+Quill.register(Font, true);
 
 interface AdminPortalViewProps {
   currentUser: UserProfile;
@@ -73,6 +86,7 @@ interface AdminPortalViewProps {
   agendas?: AgendaEvent[];
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
+  members: any[];
   onUpdateArticles: (articles: InfoArticle[]) => void;
   onUpdateAnnouncements: (announcements: Announcement[]) => void;
   onUpdateThreads: (threads: ForumThread[]) => void;
@@ -95,6 +109,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   agendas,
   landPlots,
   harvestRecords,
+  members,
   onUpdateArticles,
   onUpdateAnnouncements,
   onUpdateThreads,
@@ -109,6 +124,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     return (sessionStorage.getItem('bestari_admintab') as AdminTab) || 'dashboard';
   });
+  const [isSidebarAdminCollapsed, setIsSidebarAdminCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    if (window.innerWidth < 1024) {
+      setIsMobileMenuOpen(false);
+    }
+  };
 
   useEffect(() => {
     sessionStorage.setItem('bestari_admintab', activeTab);
@@ -132,6 +156,19 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         .catch(err => console.error(err));
     }
   }, [activeTab]);
+
+  const handleToggleUserStatus = async (id: string, currentStatus: boolean, name: string) => {
+    try {
+      await api(`/admin/users/${id}/status`, {
+        method: 'PATCH',
+        body: { isActive: !currentStatus },
+      });
+      setUsersList((prev) => prev.map((u) => u.id === id ? { ...u, isActive: !currentStatus } : u));
+      showToast(`Status ${name} berhasil ${!currentStatus ? 'diaktifkan' : 'dinonaktifkan'}.`);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal mengubah status pengguna', 'error');
+    }
+  };
 
   // State artikel admin sendiri (termasuk Draft) — pisah dari state publik App.tsx.
   // TIDAK di-sync dari props setelah mount (agar Draft tidak tertimpa oleh filter Published App.tsx)
@@ -301,7 +338,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setAgCategory('PANEN BERSAMA');
               else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setAgCategory('RAPAT');
               else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setAgCategory('PELATIHAN');
-              else setAgCategory('INSPEKSI'); 
+              else setAgCategory('INSPEKSI');
             } else if (curr.key === 'date') {
               // Fix STT numeric spacing issues for dates
               let dateVal = val.toLowerCase();
@@ -326,7 +363,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   .replace(/\b([123]0)\s+([1-9])\b/g, (m, p1, p2) => String(parseInt(p1) + parseInt(p2)))
                   .replace(/\b([123])\s+([0-9])\b/g, '$1$2');
               }
-              
+
               dateVal = dateVal
                 .replace(/\b(2002)\s+(\d)\b/g, '202$2')
                 .replace(/\b(200|20)\s+(\d{2})\b/g, '20$2');
@@ -413,7 +450,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // Toast / Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, type?: 'success' | 'error' | 'info') => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
@@ -434,6 +471,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [artImage, setArtImage] = useState('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200');
   const [artGallery, setArtGallery] = useState<string[]>([]);
   const [artStatus, setArtStatus] = useState<'Draft' | 'Published'>('Published');
+
+  const quillModules = {
+    toolbar: [
+      [{ 'font': customFonts }, { 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'script': 'sub' }, { 'script': 'super' }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'align': [] }],
+      ['clean']
+    ],
+  };
+  const [artError, setArtError] = useState('');
 
   // Announcement Modal State
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
@@ -469,8 +520,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [cmsRegImages, setCmsRegImages] = useState<string[]>(
     cmsData?.registerImages?.length ? cmsData.registerImages.map(i => i.url) : (cmsData?.registerImage ? [cmsData.registerImage] : [])
   );
-  // CMS: halaman yang sedang diedit (identitas | landing | login | register)
-  const [cmsActivePage, setCmsActivePage] = useState<'identitas' | 'landing' | 'login' | 'register'>('identitas');
+
+  const [cmsFooterCopyright, setCmsFooterCopyright] = useState(cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.');
+  const [cmsFooterPrivacy, setCmsFooterPrivacy] = useState(cmsData?.footerPrivacy || '');
+  const [cmsFooterTerms, setCmsFooterTerms] = useState(cmsData?.footerTerms || '');
+  const [cmsFooterHelp, setCmsFooterHelp] = useState(cmsData?.footerHelp || '');
+
+  // CMS: halaman yang sedang diedit (identitas | landing | login | register | footer)
+  const [cmsActivePage, setCmsActivePage] = useState<'identitas' | 'landing' | 'login' | 'register' | 'footer'>('identitas');
   // CMS: status upload (loading per tombol)
   const [cmsUploading, setCmsUploading] = useState(false);
 
@@ -509,7 +566,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       registerTitle: cmsRegTitle,
       registerDesc: cmsRegDesc,
       registerImages: cmsRegImages.filter(u => u.trim() !== '').map(url => ({ url, title: '', caption: '' })),
-      registerImage: cmsRegImages.find(u => u.trim() !== '') || ''
+      registerImage: cmsRegImages.find(u => u.trim() !== '') || '',
+      footerCopyright: cmsFooterCopyright,
+      footerPrivacy: cmsFooterPrivacy,
+      footerTerms: cmsFooterTerms,
+      footerHelp: cmsFooterHelp
     };
 
     try {
@@ -704,10 +765,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setArtTitle('');
     setArtCategory('Budidaya');
     setArtStatus('Published');
-    setArtSummary('');
     setArtContent('');
     setArtImage('');
     setArtGallery([]);
+    setArtError('');
     setIsArticleModalOpen(true);
   };
 
@@ -715,11 +776,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setEditingArticle(art);
     setArtTitle(art.title);
     setArtCategory(art.category);
-    setArtSummary(art.summary);
-    setArtContent(art.content ? art.content.join('\n\n') : art.summary);
+    setArtContent(art.content ? (Array.isArray(art.content) ? art.content.join('\n\n') : art.content) : art.summary);
     setArtImage(art.image);
     setArtGallery(art.gallery || []);
     setArtStatus((art as any).status || 'Published');
+    setArtError('');
     setIsArticleModalOpen(true);
   };
 
@@ -731,11 +792,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     e.preventDefault();
     if (!artTitle.trim()) return;
 
+    setArtError('');
+    const plainTextContent = artContent.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim();
+    if (plainTextContent.length < 10) {
+      setArtError('Isi lengkap artikel minimal 10 karakter. Mohon lengkapi artikel Anda.');
+      return;
+    }
+
     const payload = {
       title: artTitle,
       category: artCategory,
-      summary: artSummary || artTitle,
-      content: artContent ? artContent.split('\n\n') : [artSummary],
+      summary: artContent ? artContent.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : artTitle,
+      content: artContent ? [artContent] : [artTitle],
       image: artImage,
       gallery: artGallery,
       status: artStatus,
@@ -852,7 +920,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     }
 
     const finalContent = annContent.trim() || finalSummary;
-    
+
     const payload = {
       title: annTitle.trim(),
       category: annCategory,
@@ -869,7 +937,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         await api('/pengumuman', { method: 'POST', body: payload });
         showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
       }
-      
+
       const reloaded = await api<Announcement[]>('/pengumuman');
       onUpdateAnnouncements(reloaded);
     } catch (err: any) {
@@ -892,13 +960,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       const updated = threads.filter(t => t.id !== id);
       onUpdateThreads(updated);
       showToast(`Utas "${title}" telah dihapus.`);
-      
+
       // Hapus dari backend (agar tidak muncul lagi saat refresh)
       api(`/thread/${id}`, { method: 'DELETE' }).catch(err => {
         console.error('Failed to delete thread on backend:', err);
         showToast('Gagal menghapus diskusi di server.');
       });
-      
+
       setThreadToDeleteModal(null);
     }
   };
@@ -997,7 +1065,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     : dynData.part;
 
   return (
-    <div className="min-h-screen bg-[#FAF6EE] flex flex-col md:flex-row font-sans text-[#2C4219]">
+    <div className="min-h-screen bg-[#FAF6EE] flex flex-col font-sans text-[#2C4219]">
 
       {/* Toast Popup */}
       {toastMessage && (
@@ -1007,2063 +1075,2200 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </div>
       )}
 
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ADMIN SIDEBAR */}
-      <aside className="w-full md:w-64 lg:w-72 bg-white border-r border-[#E6E1D5] p-5 flex flex-col justify-between shrink-0 md:sticky md:top-0 md:h-screen md:overflow-y-auto z-30">
-        <div className="space-y-6">
-          {/* Admin Portal Brand Header */}
-          <div className="flex items-center gap-3 px-2 py-1">
-            {cmsWebLogo ? (
-              <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5]" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-bold shadow-md">
-                <Sprout className="w-5 h-5" />
+      <aside className={`
+        fixed top-0 left-0 bottom-0 h-screen overflow-visible z-50 bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
+        ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${isSidebarAdminCollapsed ? 'md:w-20' : 'md:w-64'}
+      `}>
+        {/* Toggle Collapse Button (Desktop Only) */}
+        <button
+          onClick={() => setIsSidebarAdminCollapsed(!isSidebarAdminCollapsed)}
+          className="hidden md:flex absolute -right-3 top-8 z-[60] w-6 h-6 bg-white border border-[#E6E1D5] rounded-full items-center justify-center text-[#2C4219] hover:bg-[#FAF6EE] shadow-sm transition-colors"
+        >
+          {isSidebarAdminCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
+        {/* Scrollable Internal Container */}
+        <div className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4">
+
+          <div className="space-y-6">
+            {/* Admin Portal Brand Header */}
+            <div className={`flex items-center gap-3 px-2 py-1 ${isSidebarAdminCollapsed ? 'justify-center px-0' : ''}`}>
+              {cmsWebLogo ? (
+                <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5] shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-bold shadow-md shrink-0">
+                  <Sprout className="w-5 h-5" />
+                </div>
+              )}
+              <div className={`transition-all duration-300 overflow-hidden ${isSidebarAdminCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                <h1 className="font-title font-black text-base text-[#2C4219] leading-tight line-clamp-1">
+                  {cmsWebName || 'KWT Sorgum'}
+                </h1>
+                <span className="text-[10px] font-black text-[#572E4A] tracking-widest uppercase block">
+                  ADMIN PORTAL
+                </span>
               </div>
-            )}
-            <div>
-              <h1 className="font-title font-black text-base text-[#2C4219] leading-tight line-clamp-1">
-                {cmsWebName || 'KWT Sorgum'}
-              </h1>
-              <span className="text-[10px] font-black text-[#572E4A] tracking-widest uppercase block">
-                ADMIN PORTAL
-              </span>
             </div>
+
+            {/* Admin Nav Menu */}
+            <nav className="space-y-2 pt-2">
+              {/* Nav: Dashboard Admin */}
+              <button
+                onClick={() => handleTabChange('dashboard')}
+                title={isSidebarAdminCollapsed ? 'Dashboard' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'dashboard'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Dashboard</span>}
+              </button>
+
+              {/* Nav: Kelola Agenda */}
+              <button
+                onClick={() => handleTabChange('agenda')}
+                title={isSidebarAdminCollapsed ? 'Kelola Agenda' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Agenda</span>}
+              </button>
+
+              {/* Nav: Kelola Informasi */}
+              <button
+                onClick={() => handleTabChange('informasi')}
+                title={isSidebarAdminCollapsed ? 'Kelola Informasi' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'informasi'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <FileText className={`w-4 h-4 ${activeTab === 'informasi' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Informasi</span>}
+              </button>
+
+              {/* Nav: Kelola Pengumuman */}
+              <button
+                onClick={() => handleTabChange('pengumuman')}
+                title={isSidebarAdminCollapsed ? 'Kelola Pengumuman' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'pengumuman'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Megaphone className={`w-4 h-4 ${activeTab === 'pengumuman' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Pengumuman</span>}
+              </button>
+
+              {/* Nav: Kelola Diskusi */}
+              <button
+                onClick={() => handleTabChange('moderation')}
+                title={isSidebarAdminCollapsed ? 'Kelola Diskusi' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'moderation'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <MessageSquare className={`w-4 h-4 ${activeTab === 'moderation' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Diskusi</span>}
+              </button>
+
+              {/* Nav: Kelola Data Sorgum (Integrasi SCM) */}
+              <button
+                onClick={() => handleTabChange('datasorgum')}
+                title={isSidebarAdminCollapsed ? 'Kelola Data Sorgum' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'datasorgum'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Sprout className={`w-4 h-4 ${activeTab === 'datasorgum' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Data Sorgum</span>}
+              </button>
+              {/* Nav: Kelola Pengguna */}
+              <button
+                onClick={() => handleTabChange('users')}
+                title={isSidebarAdminCollapsed ? 'Kelola Pengguna' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'users'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Users className={`w-4 h-4 ${activeTab === 'users' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Pengguna</span>}
+              </button>
+              {/* Nav: Kelola Konten (CMS Landing/Login/Register) */}
+              <button
+                onClick={() => handleTabChange('cms')}
+                title={isSidebarAdminCollapsed ? 'Kelola Konten' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'cms'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Kelola Konten</span>}
+              </button>
+            </nav>
           </div>
 
-          {/* Admin Nav Menu */}
-          <nav className="space-y-2 pt-2">
-            {/* Nav: Dashboard Admin */}
+          {/* Bottom Actions */}
+          <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
             <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'dashboard'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
+              onClick={onLogout}
+              title={isSidebarAdminCollapsed ? 'Keluar' : undefined}
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'px-4'}`}
             >
-              <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Dashboard</span>
+              <LogOut className="w-4 h-4 text-[#C53030] shrink-0" />
+              {!isSidebarAdminCollapsed && <span>Keluar</span>}
             </button>
-
-            {/* Nav: Kelola Agenda */}
-            <button
-              onClick={() => setActiveTab('agenda')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'agenda'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Calendar className={`w-4 h-4 ${activeTab === 'agenda' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Agenda</span>
-            </button>
-
-            {/* Nav: Kelola Informasi */}
-            <button
-              onClick={() => setActiveTab('informasi')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'informasi'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <FileText className={`w-4 h-4 ${activeTab === 'informasi' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Informasi</span>
-            </button>
-
-            {/* Nav: Kelola Pengumuman */}
-            <button
-              onClick={() => setActiveTab('pengumuman')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'pengumuman'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Megaphone className={`w-4 h-4 ${activeTab === 'pengumuman' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Pengumuman</span>
-            </button>
-
-            {/* Nav: Kelola Diskusi */}
-            <button
-              onClick={() => setActiveTab('moderation')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'moderation'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <MessageSquare className={`w-4 h-4 ${activeTab === 'moderation' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Diskusi</span>
-            </button>
-
-            {/* Nav: Kelola Data Sorgum (Integrasi SCM) */}
-            <button
-              onClick={() => setActiveTab('datasorgum')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'datasorgum'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Sprout className={`w-4 h-4 ${activeTab === 'datasorgum' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Data Sorgum</span>
-            </button>
-            {/* Nav: Kelola Pengguna */}
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'users'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Users className={`w-4 h-4 ${activeTab === 'users' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Pengguna</span>
-            </button>
-            {/* Nav: Kelola Konten (CMS Landing/Login/Register) */}
-            <button
-              onClick={() => setActiveTab('cms')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'cms'
-                ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
-                }`}
-            >
-              <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'}`} />
-              <span>Kelola Konten</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer: Logout */}
-        <div className="pt-6 border-t border-[#E6E1D5]">
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
-          >
-            <LogOut className="w-4 h-4 text-[#C53030]" />
-            <span>Keluar</span>
-          </button>
+          </div>
         </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-y-auto w-full">
+      <main className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isSidebarAdminCollapsed ? 'md:pl-20' : 'md:pl-64'}`}>
+        {/* Floating Header for Hamburger (Mobile Only) */}
+        <div className="sticky top-0 z-30 bg-[#FAF6EE]/90 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center border-b border-[#E6E1D5] md:hidden">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 -ml-2 rounded-xl bg-transparent text-[#2C4219] hover:bg-[#E6E1D5] transition-colors"
+            title="Toggle Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-title font-bold text-[#2C4219] ml-2 block md:hidden">Admin Portal</span>
+        </div>
 
-        {/* ==================== TAB 1: KELOLA INFORMASI ==================== */}
-        {activeTab === 'informasi' && (
-          <div className="space-y-6">
+        <div className="p-6 sm:p-8 lg:p-10 overflow-y-auto w-full">
+          {/* ==================== TAB 1: KELOLA INFORMASI ==================== */}
+          {activeTab === 'informasi' && (
+            <div className="space-y-6">
 
-            {/* Header Title + Add Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Kelola Informasi
-                </h1>
-              </div>
-
-              <button
-                onClick={handleOpenAddArticle}
-                className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>Tambah Informasi Baru</span>
-              </button>
-            </div>
-
-            {/* Filters Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                {/* Filter Kategori */}
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl bg-white border border-[#E6E1D5] text-xs font-bold text-[#2C4219] shadow-2xs focus:outline-none"
-                >
-                  <option value="Semua">Semua Kategori</option>
-                  <option value="Panen">Panen</option>
-                  <option value="Inovasi">Inovasi</option>
-                  <option value="Budidaya">Budidaya</option>
-                  <option value="Pengetahuan">Pengetahuan</option>
-                </select>
-
-                {/* Filter Status */}
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl bg-white border border-[#E6E1D5] text-xs font-bold text-[#2C4219] shadow-2xs focus:outline-none"
-                >
-                  <option value="Semua">Semua Status</option>
-                  <option value="Published">Published</option>
-                  <option value="Draft">Draft</option>
-                </select>
-              </div>
-
-              {/* Search Box */}
-              <div className="relative w-full sm:w-72">
-                <input
-                  type="text"
-                  placeholder="Cari judul artikel..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#2C4219] focus:outline-none focus:border-[#2C4219] shadow-2xs"
-                />
-                <Search className="w-4 h-4 text-[#7A7062] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            {/* Articles Data Table */}
-            <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
-                    <tr>
-                      <th className="py-4 px-5">NO</th>
-                      <th className="py-4 px-5">THUMBNAIL & JUDUL</th>
-                      <th className="py-4 px-5">KATEGORI</th>
-                      <th className="py-4 px-5">TANGGAL RILIS</th>
-                      <th className="py-4 px-5">PENULIS</th>
-                      <th className="py-4 px-5">STATUS</th>
-                      <th className="py-4 px-5 text-center">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {pagedArticles.length > 0 ? (
-                      pagedArticles.map((art, idx) => (
-                        <tr key={art.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                          <td className="py-4 px-5 font-bold text-[#7A7062]">
-                            {String(idx + 1).padStart(2, '0')}
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center gap-3 max-w-sm">
-                              {art.image ? (
-                                <img
-                                  src={art.image}
-                                  alt={art.title}
-                                  className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
-                                />
-                              ) : (
-                                <div className="w-14 h-10 rounded-lg bg-[#FAF6EE] shrink-0 border border-[#E6E1D5] flex items-center justify-center">
-                                  <span className="text-[#A8B774] text-[8px] font-bold">No Img</span>
-                                </div>
-                              )}
-                              <span className="font-bold text-[#2C4219] line-clamp-2">
-                                {art.title}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
-                              {art.category}
-                            </span>
-                          </td>
-                          <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
-                            {art.date || '12 Okt 2026'}
-                          </td>
-                          <td className="py-4 px-5 text-[#2C4219] font-bold whitespace-nowrap">
-                            {art.author?.name || currentUser.name}
-                          </td>
-                          <td className="py-4 px-5 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] border ${(art as any).status === 'Draft' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${(art as any).status === 'Draft' ? 'bg-amber-600' : 'bg-emerald-600'}`} />
-                              <span>{(art as any).status || 'Published'}</span>
-                            </span>
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => setPreviewArticle(art)}
-                                title="Lihat Artikel"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
-                              >
-                                <Eye className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Lihat Detail</span>
-                              </button>
-                              <button
-                                onClick={() => handleOpenEditArticle(art)}
-                                title="Sunting Artikel"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Sunting</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteArticle(art.id, art.title)}
-                                title="Hapus Artikel"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Hapus</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-[#7A7062] font-semibold">
-                          Tidak ada artikel informasi yang ditemukan.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table Pagination Footer */}
-              <div className="p-4 bg-[#FAF6EE]/60 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062] font-bold">
-                <span>Menampilkan {Math.min(filteredArticles.length, (currentPage - 1) * ARTICLES_PER_PAGE + pagedArticles.length)} dari {filteredArticles.length} artikel</span>
-                {totalArticlePages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setArticlePage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
-                    >&lt;</button>
-                    {Array.from({ length: totalArticlePages }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setArticlePage(p)}
-                        className={`px-3 py-1 rounded-lg ${p === currentPage ? 'bg-[#2C4219] text-white' : 'border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]'}`}
-                      >{p}</button>
-                    ))}
-                    <button
-                      onClick={() => setArticlePage(Math.min(totalArticlePages, currentPage + 1))}
-                      disabled={currentPage === totalArticlePages}
-                      className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
-                    >&gt;</button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ==================== TAB 2: KELOLA PENGUMUMAN ==================== */}
-        {activeTab === 'pengumuman' && (
-          <div className="space-y-6">
-
-            {/* Header + Add Announcement Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Kelola Pengumuman Komunitas
-                </h1>
-              </div>
-
-              <button
-                onClick={() => {
-                  setEditingAnnouncement(null);
-                  setAnnTitle('');
-                  setAnnCategory('PENTING');
-                  setAnnSummary('');
-                  setAnnContent('');
-                  setAnnError('');
-                  setIsAnnouncementModalOpen(true);
-                }}
-                className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>Buat Pengumuman Baru</span>
-              </button>
-            </div>
-
-            {/* Metrics Dashboard Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL AKTIF</p>
-                <p className="font-title font-black text-2xl text-[#2C4219]">{(announcements || []).length}</p>
-                <p className="text-[11px] text-emerald-700 font-bold">{(announcements || []).filter(a => a.category === 'HASIL PANEN' || a.category === 'INFORMASI ANGGOTA').length} info anggota</p>
-              </div>
-
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN MENDESAK</p>
-                <p className="font-title font-black text-2xl text-rose-700">{(announcements || []).filter(a => a.category === 'MENDESAK' || (a as any).isUrgent).length}</p>
-                <p className="text-[11px] text-[#7A7062] font-semibold">Perlu perhatian segera</p>
-              </div>
-
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">DISEMATKAN</p>
-                <p className="font-title font-black text-2xl text-amber-700">{pinnedIds.length}</p>
-                <p className="text-[11px] text-amber-700 font-semibold">Muncul di atas (max 3)</p>
-              </div>
-
-              <div className="bg-[#2C4219] text-white p-5 rounded-3xl shadow-md space-y-1">
-                <div className="flex items-center gap-2">
-                  <Server className="w-4 h-4 text-[#A8B774]" />
-                  <p className="text-[10px] font-bold text-[#A8B774] uppercase tracking-wider">TOTAL KATEGORI</p>
+              {/* Header Title + Add Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Informasi
+                  </h1>
                 </div>
-                <p className="font-title font-bold text-base text-white">{new Set((announcements || []).map(a => a.category)).size} Jenis</p>
-                <p className="text-[10px] text-gray-300">Dari {(announcements || []).length} pengumuman aktif</p>
-              </div>
-            </div>
 
-            {/* Announcements Table */}
-            <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
-                    <tr>
-                      <th className="py-4 px-5">JUDUL PENGUMUMAN</th>
-                      <th className="py-4 px-5">KATEGORI</th>
-                      <th className="py-4 px-5">TANGGAL DIBUAT</th>
-                      <th className="py-4 px-5">STATUS</th>
-                      <th className="py-4 px-5 text-center">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {filteredAnnouncements.length > 0 ? (
-                      filteredAnnouncements.map((ann) => {
-                        const isPinned = pinnedIds.includes(ann.id);
-                        return (
-                          <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                <button
+                  onClick={handleOpenAddArticle}
+                  className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
+                >
+                  <Plus className="w-4 h-4 text-[#A8B774]" />
+                  <span>Tambah Informasi Baru</span>
+                </button>
+              </div>
+
+              {/* Filters Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {/* Filter Kategori */}
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-[#E6E1D5] text-xs font-bold text-[#2C4219] shadow-2xs focus:outline-none"
+                  >
+                    <option value="Semua">Semua Kategori</option>
+                    <option value="Panen">Panen</option>
+                    <option value="Inovasi">Inovasi</option>
+                    <option value="Budidaya">Budidaya</option>
+                    <option value="Pengetahuan">Pengetahuan</option>
+                  </select>
+
+                  {/* Filter Status */}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-[#E6E1D5] text-xs font-bold text-[#2C4219] shadow-2xs focus:outline-none"
+                  >
+                    <option value="Semua">Semua Status</option>
+                    <option value="Published">Published</option>
+                    <option value="Draft">Draft</option>
+                  </select>
+                </div>
+
+                {/* Search Box */}
+                <div className="relative w-full sm:w-72">
+                  <input
+                    type="text"
+                    placeholder="Cari judul artikel..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#2C4219] focus:outline-none focus:border-[#2C4219] shadow-2xs"
+                  />
+                  <Search className="w-4 h-4 text-[#7A7062] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              {/* Articles Data Table */}
+              <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
+                      <tr>
+                        <th className="py-4 px-5">NO</th>
+                        <th className="py-4 px-5">THUMBNAIL & JUDUL</th>
+                        <th className="py-4 px-5">KATEGORI</th>
+                        <th className="py-4 px-5">TANGGAL RILIS</th>
+                        <th className="py-4 px-5">PENULIS</th>
+                        <th className="py-4 px-5">STATUS</th>
+                        <th className="py-4 px-5 text-center">AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
+                      {pagedArticles.length > 0 ? (
+                        pagedArticles.map((art, idx) => (
+                          <tr key={art.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                            <td className="py-4 px-5 font-bold text-[#7A7062]">
+                              {String(idx + 1).padStart(2, '0')}
+                            </td>
                             <td className="py-4 px-5">
-                              <div>
-                                <p className="font-bold text-[#2C4219] text-sm">{ann.title}</p>
-                                <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || currentUser.name}</p>
+                              <div className="flex items-center gap-3 max-w-sm">
+                                {art.image ? (
+                                  <img
+                                    src={art.image}
+                                    alt={art.title}
+                                    className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
+                                  />
+                                ) : (
+                                  <div className="w-14 h-10 rounded-lg bg-[#FAF6EE] shrink-0 border border-[#E6E1D5] flex items-center justify-center">
+                                    <span className="text-[#A8B774] text-[8px] font-bold">No Img</span>
+                                  </div>
+                                )}
+                                <span className="font-bold text-[#2C4219] line-clamp-2">
+                                  {art.title}
+                                </span>
                               </div>
                             </td>
                             <td className="py-4 px-5">
                               <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
-                                {ann.category}
+                                {art.category}
                               </span>
                             </td>
                             <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
-                              {ann.postedTime || 'Hari ini'}
+                              {art.date || '12 Okt 2026'}
+                            </td>
+                            <td className="py-4 px-5 text-[#2C4219] font-bold whitespace-nowrap">
+                              {art.author?.name || currentUser.name}
                             </td>
                             <td className="py-4 px-5 whitespace-nowrap">
-                              {isPinned ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px]">
-                                  <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
-                                  <span>Dipin di Atas</span>
-                                </span>
-                              ) : (
-                                <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
-                                  Normal
-                                </span>
-                              )}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] border ${(art as any).status === 'Draft' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${(art as any).status === 'Draft' ? 'bg-amber-600' : 'bg-emerald-600'}`} />
+                                <span>{(art as any).status || 'Published'}</span>
+                              </span>
                             </td>
                             <td className="py-4 px-5">
-                              <div className="flex items-center justify-center gap-3">
-                                {/* Pin Button */}
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
-                                  onClick={() => handleTogglePinAnnouncement(ann.id)}
-                                  title={isPinned ? 'Lepas Pin' : 'Sematkan Pin'}
-                                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] ${
-                                    isPinned
-                                      ? 'text-amber-700 bg-amber-50 border border-amber-200'
-                                      : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200'
-                                  }`}
+                                  onClick={() => setPreviewArticle(art)}
+                                  title="Lihat Artikel"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
                                 >
-                                  <Pin className="w-4 h-4" />
-                                  <span>{isPinned ? 'Lepas' : 'Pin'}</span>
+                                  <Eye className="w-4 h-4" />
+                                  <span className="text-[9px] font-bold">Lihat Detail</span>
                                 </button>
-
-                                {/* Edit Button */}
                                 <button
-                                  onClick={() => handleEditAnnouncement(ann)}
-                                  title="Edit Pengumuman"
-                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-[#2C4219] hover:bg-[#E3EAD3] border border-transparent hover:border-[#A8B774]"
+                                  onClick={() => handleOpenEditArticle(art)}
+                                  title="Sunting Artikel"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
                                 >
                                   <Edit3 className="w-4 h-4" />
-                                  <span>Edit</span>
+                                  <span className="text-[9px] font-bold">Sunting</span>
                                 </button>
-
-                                {/* Delete Button */}
                                 <button
-                                  onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
-                                  title="Hapus Pengumuman"
-                                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
+                                  onClick={() => handleDeleteArticle(art.id, art.title)}
+                                  title="Hapus Artikel"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
-                                  <span>Hapus</span>
+                                  <span className="text-[9px] font-bold">Hapus</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="py-8 text-center text-[#7A7062] font-semibold">
+                            Tidak ada artikel informasi yang ditemukan.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Table Pagination Footer */}
+                <div className="p-4 bg-[#FAF6EE]/60 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062] font-bold">
+                  <span>Menampilkan {Math.min(filteredArticles.length, (currentPage - 1) * ARTICLES_PER_PAGE + pagedArticles.length)} dari {filteredArticles.length} artikel</span>
+                  {totalArticlePages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setArticlePage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
+                      >&lt;</button>
+                      {Array.from({ length: totalArticlePages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setArticlePage(p)}
+                          className={`px-3 py-1 rounded-lg ${p === currentPage ? 'bg-[#2C4219] text-white' : 'border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE]'}`}
+                        >{p}</button>
+                      ))}
+                      <button
+                        onClick={() => setArticlePage(Math.min(totalArticlePages, currentPage + 1))}
+                        disabled={currentPage === totalArticlePages}
+                        className="px-2 py-1 rounded-lg border border-[#E6E1D5] bg-white hover:bg-[#FAF6EE] disabled:opacity-40"
+                      >&gt;</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== TAB 2: KELOLA PENGUMUMAN ==================== */}
+          {activeTab === 'pengumuman' && (
+            <div className="space-y-6">
+
+              {/* Header + Add Announcement Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Pengumuman Komunitas
+                  </h1>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setEditingAnnouncement(null);
+                    setAnnTitle('');
+                    setAnnCategory('PENTING');
+                    setAnnSummary('');
+                    setAnnContent('');
+                    setAnnError('');
+                    setIsAnnouncementModalOpen(true);
+                  }}
+                  className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
+                >
+                  <Plus className="w-4 h-4 text-[#A8B774]" />
+                  <span>Buat Pengumuman Baru</span>
+                </button>
+              </div>
+
+              {/* Metrics Dashboard Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL AKTIF</p>
+                  <p className="font-title font-black text-2xl text-[#2C4219]">{(announcements || []).length}</p>
+                  <p className="text-[11px] text-emerald-700 font-bold">{(announcements || []).filter(a => a.category === 'HASIL PANEN' || a.category === 'INFORMASI ANGGOTA').length} info anggota</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN MENDESAK</p>
+                  <p className="font-title font-black text-2xl text-rose-700">{(announcements || []).filter(a => a.category === 'MENDESAK' || (a as any).isUrgent).length}</p>
+                  <p className="text-[11px] text-[#7A7062] font-semibold">Perlu perhatian segera</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-2xs space-y-1">
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">DISEMATKAN</p>
+                  <p className="font-title font-black text-2xl text-amber-700">{pinnedIds.length}</p>
+                  <p className="text-[11px] text-amber-700 font-semibold">Muncul di atas (max 3)</p>
+                </div>
+
+                <div className="bg-[#2C4219] text-white p-5 rounded-3xl shadow-md space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-[#A8B774]" />
+                    <p className="text-[10px] font-bold text-[#A8B774] uppercase tracking-wider">TOTAL KATEGORI</p>
+                  </div>
+                  <p className="font-title font-bold text-base text-white">{new Set((announcements || []).map(a => a.category)).size} Jenis</p>
+                  <p className="text-[10px] text-gray-300">Dari {(announcements || []).length} pengumuman aktif</p>
+                </div>
+              </div>
+
+              {/* Announcements Table */}
+              <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
+                      <tr>
+                        <th className="py-4 px-5">JUDUL PENGUMUMAN</th>
+                        <th className="py-4 px-5">KATEGORI</th>
+                        <th className="py-4 px-5">TANGGAL DIBUAT</th>
+                        <th className="py-4 px-5">STATUS</th>
+                        <th className="py-4 px-5 text-center">AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
+                      {filteredAnnouncements.length > 0 ? (
+                        filteredAnnouncements.map((ann) => {
+                          const isPinned = pinnedIds.includes(ann.id);
+                          return (
+                            <tr key={ann.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                              <td className="py-4 px-5">
+                                <div>
+                                  <p className="font-bold text-[#2C4219] text-sm">{ann.title}</p>
+                                  <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">Oleh: {ann.postedBy || currentUser.name}</p>
+                                </div>
+                              </td>
+                              <td className="py-4 px-5">
+                                <span className="inline-block px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-bold text-[10px]">
+                                  {ann.category}
+                                </span>
+                              </td>
+                              <td className="py-4 px-5 text-[#5C5246] whitespace-nowrap">
+                                {ann.postedTime || 'Hari ini'}
+                              </td>
+                              <td className="py-4 px-5 whitespace-nowrap">
+                                {isPinned ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px]">
+                                    <Pin className="w-3 h-3 text-amber-700 fill-amber-700" />
+                                    <span>Dipin di Atas</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold text-[10px]">
+                                    Normal
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-4 px-5">
+                                <div className="flex items-center justify-center gap-3">
+                                  {/* Pin Button */}
+                                  <button
+                                    onClick={() => handleTogglePinAnnouncement(ann.id)}
+                                    title={isPinned ? 'Lepas Pin' : 'Sematkan Pin'}
+                                    className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] ${isPinned
+                                        ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                                        : 'text-[#7A7062] hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200'
+                                      }`}
+                                  >
+                                    <Pin className="w-4 h-4" />
+                                    <span>{isPinned ? 'Lepas' : 'Pin'}</span>
+                                  </button>
+
+                                  {/* Edit Button */}
+                                  <button
+                                    onClick={() => handleEditAnnouncement(ann)}
+                                    title="Edit Pengumuman"
+                                    className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-[#2C4219] hover:bg-[#E3EAD3] border border-transparent hover:border-[#A8B774]"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  {/* Delete Button */}
+                                  <button
+                                    onClick={() => handleDeleteAnnouncement(ann.id, ann.title)}
+                                    title="Hapus Pengumuman"
+                                    className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors text-[10px] font-semibold min-w-[44px] text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-[#7A7062] font-semibold text-xs">
+                            Belum ada pengumuman
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bottom Info Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+                <div className="lg:col-span-2 bg-[#FAF6EE] p-6 rounded-3xl border border-[#E6E1D5] flex items-start gap-4">
+                  <div className="p-3 rounded-2xl bg-amber-100 text-amber-800 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <h4 className="font-bold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
+                    <p className="text-[#5C5246] leading-relaxed font-medium">
+                      Gunakan fitur Sematkan (Pin) hanya untuk pengumuman yang bersifat mendesak atau jangka panjang. Maksimal 3 pengumuman yang dapat disematkan agar tampilan aplikasi member tetap bersih dan teratur.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-[#E6E1D5] space-y-3 text-xs">
+                  <h4 className="font-bold text-[#2C4219]">Aktivitas Terkini</h4>
+                  <div className="space-y-2.5 text-[11px] text-[#5C5246]">
+                    {announcements.slice(0, 2).map((ann) => (
+                      <div key={ann.id} className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#2C4219] mt-1 shrink-0" />
+                        <div>
+                          <strong className="text-[#2C4219]">{ann.postedBy || 'Admin'}</strong> membuat pengumuman baru.
+                          <p className="text-[10px] text-[#7A7062]">{ann.postedTime || 'Baru saja'}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#A8B774] mt-1 shrink-0" />
+                      <div>
+                        <strong className="text-[#2C4219]">Sistem Otomatis</strong> menyinkronkan data.
+                        <p className="text-[10px] text-[#7A7062]">Hari ini, 08:30 WIB</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ==================== TAB: KELOLA AGENDA ==================== */}
+          {activeTab === 'agenda' && (
+            <div className="space-y-6">
+
+              {/* Header + Add Agenda Button */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Agenda
+                  </h1>
+                </div>
+
+                <button
+                  onClick={handleOpenAddAgenda}
+                  className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
+                >
+                  <Plus className="w-4 h-4 text-[#A8B774]" />
+                  <span>Tambah Agenda Baru</span>
+                </button>
+              </div>
+
+              {/* Metric Cards Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Card 1 */}
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
+                    <Calendar className="w-6 h-6 text-[#2C4219]" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#7A7062]">Agenda Bulan Ini</p>
+                    <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.length}</p>
+                  </div>
+                </div>
+
+                {/* Card 2 */}
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
+                    <Users className="w-6 h-6 text-[#2C4219]" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#7A7062]">Total Peserta Terdaftar</p>
+                    <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
+                  </div>
+                </div>
+
+                {/* Card 3 */}
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-[#2C4219]" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-[#7A7062]">Total Kuota</p>
+                    <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
+                  </div>
+                </div>
+
+                {/* Card 4 - Highlight Kegiatan Terdekat */}
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs relative overflow-hidden flex flex-col justify-between">
+                  <div className="absolute -right-2 -bottom-2 text-[#2C4219]/10 pointer-events-none">
+                    <Sprout className="w-20 h-20" />
+                  </div>
+                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const nearestAgenda = agendaList
+                      .filter(a => a.status !== 'Selesai' && new Date(a.date).getTime() >= today.getTime())
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+                    return (
+                      <div className="mt-1">
+                        <p className="font-bold text-sm text-[#2C4219] line-clamp-2">{nearestAgenda?.title || 'Belum ada agenda terdekat'}</p>
+                        <p className="text-xs font-semibold text-[#7A7062] mt-0.5">{nearestAgenda?.date || '-'}</p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Filter and Search Bar */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#E6E1D5] shadow-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Category Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={agendaCategoryFilter}
+                      onChange={(e) => setAgendaCategoryFilter(e.target.value)}
+                      className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
+                    >
+                      <option value="Semua">Semua Kategori</option>
+                      <option value="WORKSHOP">Workshop</option>
+                      <option value="PANEN BERSAMA">Panen Bersama</option>
+                      <option value="RAPAT">Rapat</option>
+                      <option value="PELATIHAN">Pelatihan</option>
+                      <option value="INSPEKSI">Inspeksi</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  {/* Status Filter Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={agendaStatusFilter}
+                      onChange={(e) => setAgendaStatusFilter(e.target.value)}
+                      className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
+                    >
+                      <option value="Semua">Semua Status</option>
+                      <option value="Belum dimulai">Belum dimulai</option>
+                      <option value="Selesai">Selesai</option>
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="w-4 h-4 text-[#7A7062] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Cari judul agenda atau lokasi..."
+                    value={agendaSearchQuery}
+                    onChange={(e) => setAgendaSearchQuery(e.target.value)}
+                    className="w-full bg-[#FAF6EE] border border-[#E6E1D5] text-xs font-medium pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-[#2C4219] placeholder:text-[#9E9585]"
+                  />
+                </div>
+              </div>
+
+              {/* Agenda Data Table */}
+              <div className="bg-white rounded-3xl border border-[#E6E1D5] overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
+                        <th className="py-3.5 px-4 text-center w-12">NO</th>
+                        <th className="py-3.5 px-5">JUDUL AGENDA & KATEGORI</th>
+                        <th className="py-3.5 px-5">TANGGAL & WAKTU</th>
+                        <th className="py-3.5 px-5">PEMBUAT</th>
+                        <th className="py-3.5 px-5 text-center">STATUS</th>
+                        <th className="py-3.5 px-5 text-center">AKSI</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E6E1D5]/60 font-medium text-[#433A30]">
+                      {pagedAgendas.map((ag, idx) => {
+                        return (
+                          <tr key={ag.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                            <td className="py-4 px-4 text-center font-bold text-[#7A7062]">
+                              {idx + 1}
+                            </td>
+                            <td className="py-4 px-5">
+                              <div>
+                                <p className="font-bold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
+                                <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
+                                  ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
+                                    'bg-[#F0EBE1] text-[#7A7062]'
+                                  }`}>
+                                  {ag.category || 'WORKSHOP'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5">
+                              <div className="space-y-1 text-[#5C5246] font-semibold">
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-[#7A7062]" />
+                                  <span>{ag.date}</span>
+                                </div>
+                                {ag.time && (
+                                  <div className="flex items-center gap-1.5 text-[11px] text-[#7A7062]">
+                                    <Clock className="w-3.5 h-3.5 text-[#7A7062]" />
+                                    <span>{ag.time}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-bold text-[10px] flex items-center justify-center shrink-0">
+                                  {ag.organizer ? ag.organizer.slice(0, 2).toUpperCase() : 'KS'}
+                                </div>
+                                <span className="font-bold text-[#2C4219] text-xs">{ag.organizer || 'Admin KWT'}</span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-5 text-center">
+                              <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${ag.status === 'Selesai'
+                                ? 'bg-gray-100 text-gray-600'
+                                : 'bg-[#E3EBD3] text-[#2C4219]'
+                                }`}>
+                                {ag.status || 'Belum dimulai'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => setViewingAgenda(ag)}
+                                  title="Lihat Detail"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  <span className="text-[9px] font-bold">Lihat Detail</span>
+                                </button>
+                                <button
+                                  onClick={() => handleOpenEditAgenda(ag)}
+                                  title="Edit Agenda"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                  <span className="text-[9px] font-bold">Sunting</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAgenda(ag.id, ag.title)}
+                                  title="Hapus Agenda"
+                                  className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span className="text-[9px] font-bold">Hapus</span>
                                 </button>
                               </div>
                             </td>
                           </tr>
                         );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-[#7A7062] font-semibold text-xs">
-                          Belum ada pengumuman
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Bottom Info Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-              <div className="lg:col-span-2 bg-[#FAF6EE] p-6 rounded-3xl border border-[#E6E1D5] flex items-start gap-4">
-                <div className="p-3 rounded-2xl bg-amber-100 text-amber-800 shrink-0">
-                  <Sparkles className="w-5 h-5" />
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="space-y-1 text-xs">
-                  <h4 className="font-bold text-[#2C4219] text-sm">Tips Admin: Gunakan 'Pin' secara bijak</h4>
-                  <p className="text-[#5C5246] leading-relaxed font-medium">
-                    Gunakan fitur Sematkan (Pin) hanya untuk pengumuman yang bersifat mendesak atau jangka panjang. Maksimal 3 pengumuman yang dapat disematkan agar tampilan aplikasi member tetap bersih dan teratur.
-                  </p>
-                </div>
-              </div>
 
-              <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-[#E6E1D5] space-y-3 text-xs">
-                <h4 className="font-bold text-[#2C4219]">Aktivitas Terkini</h4>
-                <div className="space-y-2.5 text-[11px] text-[#5C5246]">
-                  {announcements.slice(0, 2).map((ann) => (
-                    <div key={ann.id} className="flex items-start gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#2C4219] mt-1 shrink-0" />
-                      <div>
-                        <strong className="text-[#2C4219]">{ann.postedBy || 'Admin'}</strong> membuat pengumuman baru.
-                        <p className="text-[10px] text-[#7A7062]">{ann.postedTime || 'Baru saja'}</p>
-                      </div>
+                {/* Table Pagination Footer */}
+                <div className="bg-[#FAF6EE] px-5 py-3 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062]">
+                  <p className="font-semibold">Menampilkan {Math.min(filteredAgendas.length, (currentAgendaPage - 1) * AGENDAS_PER_PAGE + pagedAgendas.length)} dari {filteredAgendas.length} agenda</p>
+                  {totalAgendaPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setAgendaPage(Math.max(1, currentAgendaPage - 1))}
+                        disabled={currentAgendaPage === 1}
+                        className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
+                      >&lt;</button>
+                      {Array.from({ length: totalAgendaPages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setAgendaPage(p)}
+                          className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-bold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
+                        >{p}</button>
+                      ))}
+                      <button
+                        onClick={() => setAgendaPage(Math.min(totalAgendaPages, currentAgendaPage + 1))}
+                        disabled={currentAgendaPage === totalAgendaPages}
+                        className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
+                      >&gt;</button>
                     </div>
-                  ))}
-                  <div className="flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#A8B774] mt-1 shrink-0" />
-                    <div>
-                      <strong className="text-[#2C4219]">Sistem Otomatis</strong> menyinkronkan data.
-                      <p className="text-[10px] text-[#7A7062]">Hari ini, 08:30 WIB</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
+
             </div>
+          )}
 
-          </div>
-        )}
+          {/* ==================== TAB 3: MODERASI DISKUSI ==================== */}
+          {activeTab === 'moderation' && (
+            <div className="space-y-6">
 
-        {/* ==================== TAB: KELOLA AGENDA ==================== */}
-        {activeTab === 'agenda' && (
-          <div className="space-y-6">
-
-            {/* Header + Add Agenda Button */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {/* Header Title */}
               <div>
                 <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Kelola Agenda
+                  Kelola Diskusi
                 </h1>
               </div>
 
-              <button
-                onClick={handleOpenAddAgenda}
-                className="px-5 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-95"
-              >
-                <Plus className="w-4 h-4 text-[#A8B774]" />
-                <span>Tambah Agenda Baru</span>
-              </button>
-            </div>
-
-            {/* Metric Cards Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1 */}
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
-                  <Calendar className="w-6 h-6 text-[#2C4219]" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-[#7A7062]">Agenda Bulan Ini</p>
-                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.length}</p>
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
-                  <Users className="w-6 h-6 text-[#2C4219]" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-[#7A7062]">Total Peserta Terdaftar</p>
-                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.registered || 0), 0)}</p>
-                </div>
-              </div>
-
-              {/* Card 3 */}
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#E3EBD3] flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-[#2C4219]" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-[#7A7062]">Total Kuota</p>
-                  <p className="font-title font-bold text-2xl text-[#2C4219]">{agendaList.reduce((sum, a) => sum + ((a as any).quota?.max || 0), 0)}</p>
-                </div>
-              </div>
-
-              {/* Card 4 - Highlight Kegiatan Terdekat */}
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs relative overflow-hidden flex flex-col justify-between">
-                <div className="absolute -right-2 -bottom-2 text-[#2C4219]/10 pointer-events-none">
-                  <Sprout className="w-20 h-20" />
-                </div>
-                <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
-                <div className="mt-1">
-                  <p className="font-bold text-sm text-[#2C4219] line-clamp-2">{agendaList[0]?.title || 'Belum ada agenda'}</p>
-                  <p className="text-xs font-semibold text-[#7A7062] mt-0.5">{agendaList[0]?.date || '-'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Filter and Search Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#E6E1D5] shadow-xs">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Category Dropdown */}
-                <div className="relative">
-                  <select
-                    value={agendaCategoryFilter}
-                    onChange={(e) => setAgendaCategoryFilter(e.target.value)}
-                    className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
-                  >
-                    <option value="Semua">Semua Kategori</option>
-                    <option value="WORKSHOP">Workshop</option>
-                    <option value="PANEN BERSAMA">Panen Bersama</option>
-                    <option value="RAPAT">Rapat</option>
-                    <option value="PELATIHAN">Pelatihan</option>
-                    <option value="INSPEKSI">Inspeksi</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                {/* Status Filter Dropdown */}
-                <div className="relative">
-                  <select
-                    value={agendaStatusFilter}
-                    onChange={(e) => setAgendaStatusFilter(e.target.value)}
-                    className="appearance-none bg-[#FAF6EE] border border-[#E6E1D5] text-[#2C4219] text-xs font-bold px-3 py-2 pr-8 rounded-xl focus:outline-none focus:border-[#2C4219]"
-                  >
-                    <option value="Semua">Semua Status</option>
-                    <option value="Belum dimulai">Belum dimulai</option>
-                    <option value="Selesai">Selesai</option>
-                  </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#7A7062] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative flex-1 max-w-sm">
-                <Search className="w-4 h-4 text-[#7A7062] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Cari judul agenda atau lokasi..."
-                  value={agendaSearchQuery}
-                  onChange={(e) => setAgendaSearchQuery(e.target.value)}
-                  className="w-full bg-[#FAF6EE] border border-[#E6E1D5] text-xs font-medium pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-[#2C4219] placeholder:text-[#9E9585]"
-                />
-              </div>
-            </div>
-
-            {/* Agenda Data Table */}
-            <div className="bg-white rounded-3xl border border-[#E6E1D5] overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
-                      <th className="py-3.5 px-4 text-center w-12">NO</th>
-                      <th className="py-3.5 px-5">JUDUL AGENDA & KATEGORI</th>
-                      <th className="py-3.5 px-5">TANGGAL & WAKTU</th>
-                      <th className="py-3.5 px-5">PEMBUAT</th>
-                      <th className="py-3.5 px-5 text-center">STATUS</th>
-                      <th className="py-3.5 px-5 text-center">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E1D5]/60 font-medium text-[#433A30]">
-                    {pagedAgendas.map((ag, idx) => {
-                      return (
-                        <tr key={ag.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                          <td className="py-4 px-4 text-center font-bold text-[#7A7062]">
-                            {idx + 1}
-                          </td>
-                          <td className="py-4 px-5">
-                            <div>
-                              <p className="font-bold text-[#2C4219] text-sm leading-tight">{ag.title}</p>
-                              <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${ag.category === 'WORKSHOP' ? 'bg-[#E6E1D5] text-[#2C4219]' :
-                                ag.category === 'PANEN BERSAMA' ? 'bg-[#2C4219] text-[#A8B774]' :
-                                  'bg-[#F0EBE1] text-[#7A7062]'
-                                }`}>
-                                {ag.category || 'WORKSHOP'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="space-y-1 text-[#5C5246] font-semibold">
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-[#7A7062]" />
-                                <span>{ag.date}</span>
-                              </div>
-                              {ag.time && (
-                                <div className="flex items-center gap-1.5 text-[11px] text-[#7A7062]">
-                                  <Clock className="w-3.5 h-3.5 text-[#7A7062]" />
-                                  <span>{ag.time}</span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-[#2C4219] text-[#A8B774] font-bold text-[10px] flex items-center justify-center shrink-0">
-                                {ag.organizer ? ag.organizer.slice(0, 2).toUpperCase() : 'KS'}
-                              </div>
-                              <span className="font-bold text-[#2C4219] text-xs">{ag.organizer || 'Admin KWT'}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5 text-center">
-                            <span className={`inline-block px-3 py-1 rounded-full text-[11px] font-bold ${ag.status === 'Selesai'
-                                ? 'bg-gray-100 text-gray-600'
-                                : 'bg-[#E3EBD3] text-[#2C4219]'
-                              }`}>
-                              {ag.status || 'Belum dimulai'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-5">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => setViewingAgenda(ag)}
-                                title="Lihat Detail"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
-                              >
-                                <Eye className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Lihat Detail</span>
-                              </button>
-                              <button
-                                onClick={() => handleOpenEditAgenda(ag)}
-                                title="Edit Agenda"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Sunting</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAgenda(ag.id, ag.title)}
-                                title="Hapus Agenda"
-                                className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[#7A7062] hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="text-[9px] font-bold">Hapus</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Table Pagination Footer */}
-              <div className="bg-[#FAF6EE] px-5 py-3 border-t border-[#E6E1D5] flex items-center justify-between text-xs text-[#7A7062]">
-                <p className="font-semibold">Menampilkan {Math.min(filteredAgendas.length, (currentAgendaPage - 1) * AGENDAS_PER_PAGE + pagedAgendas.length)} dari {filteredAgendas.length} agenda</p>
-                {totalAgendaPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setAgendaPage(Math.max(1, currentAgendaPage - 1))}
-                      disabled={currentAgendaPage === 1}
-                      className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
-                    >&lt;</button>
-                    {Array.from({ length: totalAgendaPages }, (_, i) => i + 1).map(p => (
-                      <button
-                        key={p}
-                        onClick={() => setAgendaPage(p)}
-                        className={`w-7 h-7 rounded-lg ${p === currentAgendaPage ? 'bg-[#2C4219] text-white font-bold' : 'hover:bg-[#E6E1D5] text-[#7A7062] font-bold'}`}
-                      >{p}</button>
-                    ))}
-                    <button
-                      onClick={() => setAgendaPage(Math.min(totalAgendaPages, currentAgendaPage + 1))}
-                      disabled={currentAgendaPage === totalAgendaPages}
-                      className="p-1.5 rounded-lg hover:bg-[#E6E1D5] text-[#7A7062] font-bold disabled:opacity-40"
-                    >&gt;</button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ==================== TAB 3: MODERASI DISKUSI ==================== */}
-        {activeTab === 'moderation' && (
-          <div className="space-y-6">
-
-            {/* Header Title */}
-            <div>
-              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                Kelola Diskusi
-              </h1>
-            </div>
-
-            {/* Moderation Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {filteredThreads.map((thr) => (
-                <div key={thr.id} className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    {/* Header: Author & Category */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={thr.authorAvatar ? ((thr.authorAvatar.startsWith('http') || thr.authorAvatar.startsWith('data:')) ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
-                          alt={thr.authorName}
-                          className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`;
-                          }}
-                        />
-                        <div>
-                          <p className="text-xs font-bold text-[#2C4219]">{thr.authorName}</p>
-                          <p className="text-[10px] text-[#7A7062] font-semibold">{thr.timeAgo || '12 Okt 2026'}</p>
+              {/* Moderation Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                {filteredThreads.map((thr) => (
+                  <div key={thr.id} className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-md transition-all space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {/* Header: Author & Category */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={thr.authorAvatar ? ((thr.authorAvatar.startsWith('http') || thr.authorAvatar.startsWith('data:')) ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
+                            alt={thr.authorName}
+                            className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`;
+                            }}
+                          />
+                          <div>
+                            <p className="text-xs font-bold text-[#2C4219]">{thr.authorName}</p>
+                            <p className="text-[10px] text-[#7A7062] font-semibold">{thr.timeAgo || '12 Okt 2026'}</p>
+                          </div>
                         </div>
+
+                        <span className="px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-black text-[10px] uppercase tracking-wider">
+                          {thr.category}
+                        </span>
                       </div>
 
-                      <span className="px-2.5 py-1 rounded-md bg-[#FAF6EE] text-[#2C4219] font-black text-[10px] uppercase tracking-wider">
-                        {thr.category}
+                      {/* Title & Summary */}
+                      <h3 className="font-title font-bold text-base text-[#2C4219] leading-snug">
+                        {thr.title}
+                      </h3>
+                      <p className="text-xs text-[#5C5246] line-clamp-2 leading-relaxed">
+                        {thr.summary}
+                      </p>
+
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 text-xs text-[#7A7062] font-bold pt-1">
+                        <span>💬 {thr.repliesCount || 0} Balasan</span>
+                        <span>❤️ {thr.likes || 0} Suka</span>
+                      </div>
+                    </div>
+
+                    {/* Red Action Button to Delete Topic */}
+                    <div className="pt-3 border-t border-[#E6E1D5]">
+                      <button
+                        onClick={() => handleDeleteThread(thr.id, thr.title)}
+                        className="w-full py-2.5 px-4 rounded-xl border border-rose-300 bg-rose-50/50 hover:bg-rose-100 text-rose-700 font-title font-bold text-xs transition-all flex items-center justify-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4 text-rose-600" />
+                        <span>Hapus Topik Diskusi Ini</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+
+
+            </div>
+          )}
+
+          {/* ==================== TAB 4: DASHBOARD ADMIN OVERVIEW ==================== */}
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                  Dashboard
+                </h1>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
+                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-[#2C4219]" />
+                    </div>
+                  </div>
+                  <p className="font-title font-black text-3xl text-[#2C4219]">{articles.length}</p>
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published & Siap Baca
+                  </span>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
+                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-[#2C4219]" />
+                    </div>
+                  </div>
+                  <p className="font-title font-black text-3xl text-[#2C4219]">{agendaList.length}</p>
+                  <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Belum dimulai').length} Belum dimulai
+                  </span>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
+                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
+                      <Megaphone className="w-4 h-4 text-[#2C4219]" />
+                    </div>
+                  </div>
+                  <p className="font-title font-black text-3xl text-[#2C4219]">{announcements.length}</p>
+                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {pinnedIds.length} Disematkan (Pinned)
+                  </span>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
+                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
+                      <Users className="w-4 h-4 text-[#2C4219]" />
+                    </div>
+                  </div>
+                  <p className="font-title font-black text-3xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
+                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terverifikasi di Desa
+                  </span>
+                </div>
+              </div>
+
+              {/* Analytics Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* Chart 1: Statistik Pembaca & Informasi Komunitas (Area Chart) */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                        <TrendingUp className="w-4 h-4 text-[#A8B774]" />
+                      </div>
+                      <div>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel pengetahuan dan pengumuman resmi</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-bold text-[#2C4219]">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Artikel
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Pengumuman
                       </span>
                     </div>
+                  </div>
 
-                    {/* Title & Summary */}
-                    <h3 className="font-title font-bold text-base text-[#2C4219] leading-snug">
-                      {thr.title}
-                    </h3>
-                    <p className="text-xs text-[#5C5246] line-clamp-2 leading-relaxed">
-                      {thr.summary}
-                    </p>
+                  <div className="h-64 w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
+                        <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
+                        <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
+                          formatter={(value: any) => [`${value} Konten`, '']}
+                        />
+                        <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
+                        <Bar dataKey="pembacaPengumuman" name="Pengumuman" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-[#7A7062] font-bold pt-1">
-                      <span>💬 {thr.repliesCount || 0} Balasan</span>
-                      <span>❤️ {thr.likes || 0} Suka</span>
+                {/* Chart 2: Distribusi Konten & Aktivitas Komunitas (Pie/Donut Chart) */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2.5 pb-2 border-b border-[#E6E1D5]">
+                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                        <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
+                      </div>
+                      <div>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Distribusi kategori di sistem</p>
+                      </div>
+                    </div>
+
+                    <div className="h-48 w-full my-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={contentDistributionData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={48}
+                            outerRadius={72}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {contentDistributionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '11px', fontWeight: 'bold' }}
+                            formatter={(val: any) => [`${val} Item`, 'Jumlah']}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#E6E1D5]">
+                      {contentDistributionData.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs font-bold text-[#2C4219]">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-[#5C5246] truncate max-w-[140px]">{item.name}</span>
+                          </div>
+                          <span className="font-bold shrink-0">{item.value} Item</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-
-                  {/* Red Action Button to Delete Topic */}
-                  <div className="pt-3 border-t border-[#E6E1D5]">
-                    <button
-                      onClick={() => handleDeleteThread(thr.id, thr.title)}
-                      className="w-full py-2.5 px-4 rounded-xl border border-rose-300 bg-rose-50/50 hover:bg-rose-100 text-rose-700 font-title font-bold text-xs transition-all flex items-center justify-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4 text-rose-600" />
-                      <span>Hapus Topik Diskusi Ini</span>
-                    </button>
-                  </div>
                 </div>
-              ))}
-            </div>
 
-
-
-          </div>
-        )}
-
-        {/* ==================== TAB 4: DASHBOARD ADMIN OVERVIEW ==================== */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                Dashboard
-              </h1>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
-                  <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                    <FileText className="w-4 h-4 text-[#2C4219]" />
-                  </div>
-                </div>
-                <p className="font-title font-black text-3xl text-[#2C4219]">{articles.length}</p>
-                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published & Siap Baca
-                </span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
-                  <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                    <Calendar className="w-4 h-4 text-[#2C4219]" />
-                  </div>
-                </div>
-                <p className="font-title font-black text-3xl text-[#2C4219]">{agendaList.length}</p>
-                <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Belum dimulai').length} Belum dimulai
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
-                  <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                    <Megaphone className="w-4 h-4 text-[#2C4219]" />
-                  </div>
-                </div>
-                <p className="font-title font-black text-3xl text-[#2C4219]">{announcements.length}</p>
-                <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {pinnedIds.length} Disematkan (Pinned)
-                </span>
-              </div>
-
-              <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
-                  <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                    <Users className="w-4 h-4 text-[#2C4219]" />
-                  </div>
-                </div>
-                <p className="font-title font-black text-3xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
-                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terverifikasi di Desa
-                </span>
-              </div>
-            </div>
-
-            {/* Analytics Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-              {/* Chart 1: Statistik Pembaca & Informasi Komunitas (Area Chart) */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+              {/* Chart 3: Partisipasi Warga & Aktivitas Bulanan (Bar Chart) */}
+              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                      <TrendingUp className="w-4 h-4 text-[#A8B774]" />
+                      <BarChart2 className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
-                      <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
-                      <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel pengetahuan dan pengumuman resmi</p>
+                      <h3 className="font-title font-bold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
+                      <p className="text-[11px] text-[#433A30]/80 font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-xs font-bold text-[#2C4219]">
+                  <div className="flex items-center gap-4 text-xs font-bold text-[#2C4219]">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Artikel
+                      <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Topik Diskusi
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Pengumuman
+                      <span className="w-3 h-3 rounded-sm bg-[#572E4A]" /> Anggota Baru
                     </span>
                   </div>
                 </div>
 
-                <div className="h-64 w-full pt-2">
+                <div className="h-56 w-full pt-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <BarChart data={partisipasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
-                      <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
+                      <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
-                        formatter={(value: any) => [`${value} Konten`, '']}
+                        contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
                       />
-                      <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
-                      <Bar dataKey="pembacaPengumuman" name="Pengumuman" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Chart 2: Distribusi Konten & Aktivitas Komunitas (Pie/Donut Chart) */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2.5 pb-2 border-b border-[#E6E1D5]">
-                    <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                      <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
-                    </div>
-                    <div>
-                      <h3 className="font-title font-bold text-base text-[#2C4219]">Proporsi Konten & Aktivitas</h3>
-                      <p className="text-[11px] text-[#7A7062] font-semibold">Distribusi kategori di sistem</p>
-                    </div>
-                  </div>
+              {/* Dashboard Content Overview - 2 Column Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                  <div className="h-48 w-full my-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={contentDistributionData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={48}
-                          outerRadius={72}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {contentDistributionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '11px', fontWeight: 'bold' }}
-                          formatter={(val: any) => [`${val} Item`, 'Jumlah']}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-[#E6E1D5]">
-                    {contentDistributionData.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs font-bold text-[#2C4219]">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                          <span className="text-[#5C5246] truncate max-w-[140px]">{item.name}</span>
+                {/* Upcoming Agenda Overview */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                          <Calendar className="w-4 h-4 text-[#A8B774]" />
                         </div>
-                        <span className="font-bold shrink-0">{item.value} Item</span>
+                        <div>
+                          <h3 className="font-title font-bold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
+                          <p className="text-[11px] text-[#7A7062] font-semibold">Jadwal kegiatan kelompok tani terkonfirmasi</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Chart 3: Partisipasi Warga & Aktivitas Bulanan (Bar Chart) */}
-            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                    <BarChart2 className="w-4 h-4 text-[#A8B774]" />
-                  </div>
-                  <div>
-                    <h3 className="font-title font-bold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
-                    <p className="text-[11px] text-[#433A30]/80 font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-xs font-bold text-[#2C4219]">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Topik Diskusi
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-[#572E4A]" /> Anggota Baru
-                  </span>
-                </div>
-              </div>
-
-              <div className="h-56 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={partisipasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
-                    <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
-                    />
-                    <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Dashboard Content Overview - 2 Column Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-              {/* Upcoming Agenda Overview */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                        <Calendar className="w-4 h-4 text-[#A8B774]" />
-                      </div>
-                      <div>
-                        <h3 className="font-title font-bold text-base text-[#2C4219]">Agenda & Kegiatan Terdekat</h3>
-                        <p className="text-[11px] text-[#7A7062] font-semibold">Jadwal kegiatan kelompok tani terkonfirmasi</p>
-                      </div>
+                      <button
+                        onClick={() => setActiveTab('agenda')}
+                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                      >
+                        <span>Lihat Semua</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('agenda')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
-                    >
-                      <span>Lihat Semua</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
 
-                  <div className="space-y-3">
-                    {agendaList.slice(0, 3).map((ag) => (
-                      <div key={ag.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="bg-[#2C4219] text-[#A8B774] px-2.5 py-1.5 rounded-xl text-center shrink-0 min-w-[48px]">
-                            <p className="font-black text-xs leading-none">{ag.dayNumber || '10'}</p>
-                            <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider">{ag.monthAbbr || 'OKT'}</p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-xs text-[#2C4219] truncate">{ag.title}</p>
-                            <div className="flex items-center gap-3 text-[10px] text-[#7A7062] font-semibold mt-1">
-                              <span className="flex items-center gap-1 truncate">
-                                <MapPin className="w-3 h-3 shrink-0" />
-                                {ag.location || 'Lokasi TBA'}
-                              </span>
-                              <span className="flex items-center gap-1 shrink-0">
-                                <Clock className="w-3 h-3 shrink-0" />
-                                {ag.time || 'Waktu TBA'}
-                              </span>
+                    <div className="space-y-3">
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const upcomingAgendas = agendaList
+                          .filter(a => a.status !== 'Selesai' && new Date(a.date).getTime() >= today.getTime())
+                          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                          .slice(0, 3);
+
+                        if (upcomingAgendas.length === 0) {
+                          return <p className="text-xs text-[#7A7062] italic">Tidak ada agenda terdekat yang belum selesai.</p>;
+                        }
+
+                        return upcomingAgendas.map((ag) => (
+                          <div key={ag.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
+                              <div className="bg-[#2C4219] text-[#A8B774] px-2.5 py-1.5 rounded-xl text-center shrink-0 min-w-[48px]">
+                                <p className="font-black text-xs leading-none">{ag.dayNumber || '10'}</p>
+                                <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider">{ag.monthAbbr || 'OKT'}</p>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs text-[#2C4219] truncate">{ag.title}</p>
+                                <div className="flex items-center gap-3 text-[10px] text-[#7A7062] font-semibold mt-1">
+                                  <span className="flex items-center gap-1 truncate">
+                                    <MapPin className="w-3 h-3 shrink-0" />
+                                    {ag.location || 'Lokasi TBA'}
+                                  </span>
+                                  <span className="flex items-center gap-1 shrink-0">
+                                    <Clock className="w-3 h-3 shrink-0" />
+                                    {ag.time || 'Waktu TBA'}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
+                            <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Selesai' ? 'bg-gray-100 text-gray-500' : 'bg-[#E3EBD3] text-[#2C4219]'
+                              }`}>
+                              {ag.status || 'Belum dimulai'}
+                            </span>
                           </div>
-                        </div>
-                        <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Selesai' ? 'bg-gray-100 text-gray-500' : 'bg-[#E3EBD3] text-[#2C4219]'
-                          }`}>
-                          {ag.status || 'Belum dimulai'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab('agenda')}
-                  className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Kelola Semua Agenda</span>
-                </button>
-              </div>
-
-              {/* Latest Announcements Overview */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                        <Megaphone className="w-4 h-4 text-[#A8B774]" />
-                      </div>
-                      <div>
-                        <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Terkini</h3>
-                        <p className="text-[11px] text-[#7A7062] font-semibold">Informasi resmi dari kepengurusan KWT</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('pengumuman')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
-                    >
-                      <span>Lihat Semua</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {announcements.slice(0, 3).map((ann) => (
-                      <div key={ann.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ann.category === 'PENTING' ? 'bg-rose-100 text-rose-700' : 'bg-[#E3EBD3] text-[#2C4219]'
-                            }`}>
-                            {ann.category || 'INFO'}
-                          </span>
-                          <span className="text-[10px] text-[#7A7062] font-semibold">{ann.date}</span>
-                        </div>
-                        <p className="font-bold text-xs text-[#2C4219]">{ann.title}</p>
-                        <p className="text-[11px] text-[#5C5246] line-clamp-1 font-medium">{ann.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab('pengumuman')}
-                  className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Kelola Semua Pengumuman</span>
-                </button>
-              </div>
-
-            </div>
-
-            {/* Bottom Row: Recent Forum Activity & Community Impact Banner */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-              {/* Forum Discussions Summary */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
-                      <MessageSquare className="w-4 h-4 text-[#A8B774]" />
-                    </div>
-                    <div>
-                      <h3 className="font-title font-bold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
-                      <p className="text-[11px] text-[#7A7062] font-semibold">Diskusi terbaru dari para anggota KWT Sorgum</p>
+                        ));
+                      })()}
                     </div>
                   </div>
+
                   <button
-                    onClick={() => setActiveTab('moderation')}
-                    className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                    onClick={() => setActiveTab('agenda')}
+                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
                   >
-                    <span>Moderasi</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
+                    <span>Kelola Semua Agenda</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {threads.slice(0, 2).map((thr) => (
-                    <div key={thr.id} className="bg-[#FAF6EE] p-4 rounded-2xl border border-[#E6E1D5] space-y-2 flex flex-col justify-between">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-black uppercase text-[#2C4219] bg-[#E3EBD3] px-2 py-0.5 rounded">
-                            {thr.category}
-                          </span>
-                          <span className="text-[10px] font-semibold text-[#7A7062]">{thr.timeAgo || 'Baru'}</span>
+                {/* Latest Announcements Overview */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                          <Megaphone className="w-4 h-4 text-[#A8B774]" />
                         </div>
-                        <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
-                        <p className="text-[11px] text-[#5C5246] line-clamp-2">{thr.summary}</p>
+                        <div>
+                          <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Terkini</h3>
+                          <p className="text-[11px] text-[#7A7062] font-semibold">Informasi resmi dari kepengurusan KWT</p>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]/60 text-[10px] text-[#7A7062] font-bold">
-                        <span>Penulis: {thr.authorName}</span>
-                        <span>💬 {thr.repliesCount || 0} Balasan</span>
-                      </div>
+                      <button
+                        onClick={() => setActiveTab('pengumuman')}
+                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                      >
+                        <span>Lihat Semua</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  ))}
+
+                    <div className="space-y-3">
+                      {announcements.slice(0, 3).map((ann) => (
+                        <div key={ann.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ann.category === 'PENTING' ? 'bg-rose-100 text-rose-700' : 'bg-[#E3EBD3] text-[#2C4219]'
+                              }`}>
+                              {ann.category || 'INFO'}
+                            </span>
+                            <span className="text-[10px] text-[#7A7062] font-semibold">{ann.date}</span>
+                          </div>
+                          <p className="font-bold text-xs text-[#2C4219]">{ann.title}</p>
+                          <p className="text-[11px] text-[#5C5246] line-clamp-1 font-medium">{ann.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('pengumuman')}
+                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Kelola Semua Pengumuman</span>
+                  </button>
                 </div>
+
               </div>
 
-              {/* Status Banner */}
-              <div className="bg-[#2C4219] text-white p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute -right-4 -bottom-4 text-[#A8B774]/15 pointer-events-none">
-                  <Sprout className="w-32 h-32" />
-                </div>
-                <div className="space-y-3 relative z-10">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-[10px] font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Sistem Berjalan Optimal
+              {/* Bottom Row: Recent Forum Activity & Community Impact Banner */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                {/* Forum Discussions Summary */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                        <MessageSquare className="w-4 h-4 text-[#A8B774]" />
+                      </div>
+                      <div>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Aktivitas Forum Komunitas</h3>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Diskusi terbaru dari para anggota KWT Sorgum</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('moderation')}
+                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                    >
+                      <span>Moderasi</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <h3 className="font-title font-bold text-lg text-white leading-snug">
-                    Ekosistem Sorgum Terintegrasi
-                  </h3>
-                  <p className="text-xs text-[#E3EBD3] leading-relaxed font-medium">
-                    Portal pengurus membantu memantau ketersediaan benih, jadwal panen, serta artikel edukasi secara terpusat untuk kemajuan kelompok tani.
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {threads.slice(0, 2).map((thr) => (
+                      <div key={thr.id} className="bg-[#FAF6EE] p-4 rounded-2xl border border-[#E6E1D5] space-y-2 flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase text-[#2C4219] bg-[#E3EBD3] px-2 py-0.5 rounded">
+                              {thr.category}
+                            </span>
+                            <span className="text-[10px] font-semibold text-[#7A7062]">{thr.timeAgo || 'Baru'}</span>
+                          </div>
+                          <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
+                          <p className="text-[11px] text-[#5C5246] line-clamp-2">{thr.summary}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]/60 text-[10px] text-[#7A7062] font-bold">
+                          <span>Penulis: {thr.authorName}</span>
+                          <span>💬 {thr.repliesCount || 0} Balasan</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status Banner */}
+                <div className="bg-[#2C4219] text-white p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden">
+                  <div className="absolute -right-4 -bottom-4 text-[#A8B774]/15 pointer-events-none">
+                    <Sprout className="w-32 h-32" />
+                  </div>
+                  <div className="space-y-3 relative z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-[10px] font-bold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Sistem Berjalan Optimal
+                    </div>
+                    <h3 className="font-title font-bold text-lg text-white leading-snug">
+                      Ekosistem Sorgum Terintegrasi
+                    </h3>
+                    <p className="text-xs text-[#E3EBD3] leading-relaxed font-medium">
+                      Portal pengurus membantu memantau ketersediaan benih, jadwal panen, serta artikel edukasi secara terpusat untuk kemajuan kelompok tani.
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between text-[11px] text-[#A8B774] font-bold relative z-10">
+                    <span>Versi Admin: 2.4.0</span>
+                    <span>KWT Sorgum © 2026</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* ==================== TAB 5: SETTINGS ==================== */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6 max-w-2xl">
+              <div>
+                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                  Pengaturan Admin Portal
+                </h1>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] space-y-6 text-xs">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-[#2C4219]"
+                  />
+                  <div>
+                    <h3 className="font-title font-bold text-base text-[#2C4219]">{currentUser.name}</h3>
+                    <p className="text-[#7A7062] font-semibold">{currentUser.role}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t border-[#E6E1D5] pt-4">
+                  <div className="space-y-1">
+                    <label className="font-bold text-[#2C4219]">Nama Administrator</label>
+                    <input
+                      type="text"
+                      defaultValue={currentUser.name}
+                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-[#2C4219]">Email / WhatsApp Contact</label>
+                    <input
+                      type="text"
+                      defaultValue="admin@kwtsorgum.id"
+                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => showToast('Pengaturan profil berhasil disimpan!')}
+                    className="px-5 py-3 rounded-xl bg-[#2C4219] text-white font-title font-bold text-xs"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* ==================== TAB 6: DATA SORGUM (SCM INTEGRATION) ==================== */}
+          {activeTab === 'datasorgum' && (
+            <DashboardDesaView
+              landPlots={landPlots}
+              harvestRecords={harvestRecords}
+              members={members}
+              totalUsers={dashboardStats?.totalUsers ?? 3}
+              totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
+              isAdmin={true}
+              onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
+            />
+          )}
+
+          {/* ==================== TAB 7: CMS (Kelola Konten) ==================== */}
+          {activeTab === 'cms' && (
+            <div className="space-y-6 w-full max-w-7xl">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Konten
+                  </h1>
+                  <p className="text-sm text-[#433A30] font-medium mt-1">
+                    Atur teks &amp; gambar halaman utama, login, dan register secara visual.
                   </p>
                 </div>
-
-                <div className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between text-[11px] text-[#A8B774] font-bold relative z-10">
-                  <span>Versi Admin: 2.4.0</span>
-                  <span>KWT Sorgum © 2026</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* ==================== TAB 5: SETTINGS ==================== */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6 max-w-2xl">
-            <div>
-              <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                Pengaturan Admin Portal
-              </h1>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] space-y-6 text-xs">
-              <div className="flex items-center gap-4">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-[#2C4219]"
-                />
-                <div>
-                  <h3 className="font-title font-bold text-base text-[#2C4219]">{currentUser.name}</h3>
-                  <p className="text-[#7A7062] font-semibold">{currentUser.role}</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 border-t border-[#E6E1D5] pt-4">
-                <div className="space-y-1">
-                  <label className="font-bold text-[#2C4219]">Nama Administrator</label>
-                  <input
-                    type="text"
-                    defaultValue={currentUser.name}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-[#2C4219]">Email / WhatsApp Contact</label>
-                  <input
-                    type="text"
-                    defaultValue="admin@kwtsorgum.id"
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
-                  />
-                </div>
-
                 <button
-                  onClick={() => showToast('Pengaturan profil berhasil disimpan!')}
-                  className="px-5 py-3 rounded-xl bg-[#2C4219] text-white font-title font-bold text-xs"
-                >
-                  Simpan Perubahan
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* ==================== TAB 6: DATA SORGUM (SCM INTEGRATION) ==================== */}
-        {activeTab === 'datasorgum' && (
-          <DashboardDesaView
-            landPlots={landPlots}
-            harvestRecords={harvestRecords}
-            totalUsers={dashboardStats?.totalUsers ?? 3}
-            totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
-            onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
-          />
-        )}
-
-        {/* ==================== TAB 7: CMS (Kelola Konten) ==================== */}
-        {activeTab === 'cms' && (
-          <div className="space-y-6 w-full max-w-7xl">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Kelola Konten
-                </h1>
-                <p className="text-sm text-[#433A30] font-medium mt-1">
-                  Atur teks &amp; gambar halaman utama, login, dan register secara visual.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleSaveCms as any}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-md active:scale-95 shrink-0"
-              >
-                <Save className="w-4 h-4 text-[#A8B774]" />
-                Simpan Semua
-              </button>
-            </div>
-
-            {/* Page Switcher Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              {([
-                { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo & Nama' },
-                { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
-                { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
-                { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' }
-              ] as const).map(({ key, label, icon: Icon, desc }) => (
-                <button
-                  key={key}
                   type="button"
-                  onClick={() => setCmsActivePage(key)}
-                  className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98]
-                    ${cmsActivePage === key
-                      ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/20'
-                      : 'bg-white text-[#433A30] border-[#E6E1D5] hover:border-[#2C4219]/40 hover:shadow-md'}`}
+                  onClick={handleSaveCms as any}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-md active:scale-95 shrink-0"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors
-                      ${cmsActivePage === key ? 'bg-white/15 text-[#A8B774]' : 'bg-[#FAF6EE] text-[#2C4219] group-hover:bg-[#F0EADF]'}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-title font-bold text-sm leading-tight">{label}</p>
-                      <p className={`text-[11px] mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/80' : 'text-[#433A30]/60'}`}>{desc}</p>
-                    </div>
-                    {cmsActivePage === key && (
-                      <CheckCircle2 className="w-4 h-4 text-[#A8B774] ml-auto shrink-0" />
-                    )}
-                  </div>
+                  <Save className="w-4 h-4 text-[#A8B774]" />
+                  Simpan Semua
                 </button>
-              ))}
-            </div>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* LEFT: Editor */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-sm space-y-6">
-
-                {/* ── IDENTITAS WEB EDITOR ── */}
-                {cmsActivePage === 'identitas' && (
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                      <Type className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-base text-[#2C4219]">Identitas Website</h2>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <Type className="w-3.5 h-3.5" /> Nama Website
-                      </label>
-                      <input
-                        type="text"
-                        value={cmsWebName}
-                        onChange={(e) => setCmsWebName(e.target.value)}
-                        placeholder="Contoh: KWT Sorgum"
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
-                      </label>
-                      <input
-                        type="text"
-                        value={cmsWebSubtitle}
-                        onChange={(e) => setCmsWebSubtitle(e.target.value)}
-                        placeholder="Contoh: KWT MELATI SORGUM"
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
-                      />
-                    </div>
-
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <ImageIcon className="w-3.5 h-3.5" /> Logo Website
-                      </label>
-
-                      {cmsWebLogo && (
-                        <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#A8B774]/60 bg-white mb-2">
-                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain p-2" />
-                          <button
-                            type="button"
-                            onClick={() => setCmsWebLogo('')}
-                            title="Hapus gambar"
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+              {/* Page Switcher Tabs */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {([
+                  { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo & Nama' },
+                  { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
+                  { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
+                  { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' },
+                  { key: 'footer', label: 'Pengaturan Footer', icon: LayoutGrid, desc: 'Teks & Tautan' }
+                ] as const).map(({ key, label, icon: Icon, desc }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCmsActivePage(key)}
+                    className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98]
+                    ${cmsActivePage === key
+                        ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/20'
+                        : 'bg-white text-[#433A30] border-[#E6E1D5] hover:border-[#2C4219]/40 hover:shadow-md'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors
+                      ${cmsActivePage === key ? 'bg-white/15 text-[#A8B774]' : 'bg-[#FAF6EE] text-[#2C4219] group-hover:bg-[#F0EADF]'}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-title font-bold text-sm leading-tight">{label}</p>
+                        <p className={`text-[11px] mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/80' : 'text-[#433A30]/60'}`}>{desc}</p>
+                      </div>
+                      {cmsActivePage === key && (
+                        <CheckCircle2 className="w-4 h-4 text-[#A8B774] ml-auto shrink-0" />
                       )}
-                      {!cmsWebLogo && (
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className={`grid grid-cols-1 ${cmsActivePage === 'footer' ? '' : 'lg:grid-cols-2'} gap-6 items-start`}>
+                {/* LEFT: Editor */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-sm space-y-6">
+
+                  {/* ── IDENTITAS WEB EDITOR ── */}
+                  {cmsActivePage === 'identitas' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <Type className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Identitas Website</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Nama Website
+                        </label>
                         <input
                           type="text"
-                          value={cmsWebLogo}
-                          onChange={(e) => setCmsWebLogo(e.target.value)}
-                          placeholder="Atau masukkan URL logo (https://...)"
-                          className="w-full p-2.5 rounded-xl border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50"
+                          value={cmsWebName}
+                          onChange={(e) => setCmsWebName(e.target.value)}
+                          placeholder="Contoh: KWT Sorgum"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
                         />
-                      )}
-
-                      <div className="mt-2">
-                        <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
-                          <Upload className="w-4 h-4" />
-                          {cmsUploading ? 'Mengunggah...' : 'Upload Logo Baru'}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              setCmsUploading(true);
-                              try {
-                                const url = await handleCmsUpload(file);
-                                setCmsWebLogo(url);
-                              } catch (err) {
-                                showToast('Gagal upload logo');
-                              } finally {
-                                setCmsUploading(false);
-                              }
-                            }}
-                          />
-                        </label>
                       </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* ── LANDING EDITOR ── */}
-                {cmsActivePage === 'landing' && (
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                      <Home className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Utama</h2>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <Type className="w-3.5 h-3.5" /> Judul Utama
-                      </label>
-                      <input
-                        type="text"
-                        value={cmsLandingTitle}
-                        onChange={(e) => setCmsLandingTitle(e.target.value)}
-                        placeholder="Contoh: Bersama Menanam, Bersama Sejahtera"
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
-                      />
-                      <p className="text-[10px] text-[#7A7062]">Gunakan \n untuk baris baru.</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <FileText className="w-3.5 h-3.5" /> Deskripsi Pendek
-                      </label>
-                      <textarea
-                        value={cmsLandingDesc}
-                        onChange={(e) => setCmsLandingDesc(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Carousel ({cmsLandingImages.length})
-                      </label>
-
-                      {/* Grid foto dinamis */}
-                      {cmsLandingImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {cmsLandingImages.map((url, idx) => (
-                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
-                                {url ? (
-                                  <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
-                                    <ImageIcon className="w-6 h-6 mb-1" />
-                                    <span className="text-[10px]">Masukkan URL</span>
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setCmsLandingImages(prev => prev.filter((_, i) => i !== idx))}
-                                  title="Hapus gambar"
-                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setCmsLandingImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
-                                placeholder="https://..."
-                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* 2 Opsi Upload */}
-                      <div className="grid grid-cols-2 gap-3 mt-3">
-                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
-                          <ImageIcon className="w-5 h-5 mb-0.5" />
-                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            disabled={cmsUploading}
-                            onChange={async (e) => {
-                              const files = e.target.files;
-                              if (!files || files.length === 0) return;
-                              setCmsUploading(true);
-                              try {
-                                const urls = await handleCmsUploadMany(files);
-                                setCmsLandingImages(prev => [...prev, ...urls]);
-                                showToast(`${urls.length} foto berhasil diupload!`);
-                              } catch (err) {
-                                showToast('Gagal upload foto.');
-                              } finally {
-                                setCmsUploading(false);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setCmsLandingImages(prev => [...prev, ''])}
-                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
-                        >
-                          <Link className="w-5 h-5 mb-0.5" />
-                          Opsi 2: Gunakan URL
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
-                        </button>
+                        <input
+                          type="text"
+                          value={cmsWebSubtitle}
+                          onChange={(e) => setCmsWebSubtitle(e.target.value)}
+                          placeholder="Contoh: KWT MELATI SORGUM"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
                       </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* ── LOGIN EDITOR ── */}
-                {cmsActivePage === 'login' && (
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                      <LogIn className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Login</h2>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <Type className="w-3.5 h-3.5" /> Judul Login
-                      </label>
-                      <input
-                        type="text"
-                        value={cmsLoginTitle}
-                        onChange={(e) => setCmsLoginTitle(e.target.value)}
-                        placeholder="Contoh: Selamat Datang\nKembali Ibu!"
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <FileText className="w-3.5 h-3.5" /> Deskripsi Login
-                      </label>
-                      <textarea
-                        value={cmsLoginDesc}
-                        onChange={(e) => setCmsLoginDesc(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Login ({cmsLoginImages.length})
-                      </label>
-                      {/* Grid foto dinamis */}
-                      {cmsLoginImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {cmsLoginImages.map((url, idx) => (
-                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
-                                {url ? (
-                                  <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
-                                    <ImageIcon className="w-6 h-6 mb-1" />
-                                    <span className="text-[10px]">Masukkan URL</span>
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setCmsLoginImages(prev => prev.filter((_, i) => i !== idx))}
-                                  title="Hapus gambar"
-                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setCmsLoginImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
-                                placeholder="https://..."
-                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-3 mt-3">
-                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
-                          <ImageIcon className="w-5 h-5 mb-0.5" />
-                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            disabled={cmsUploading}
-                            onChange={async (e) => {
-                              const files = e.target.files;
-                              if (!files || files.length === 0) return;
-                              setCmsUploading(true);
-                              try {
-                                const urls = await handleCmsUploadMany(files);
-                                setCmsLoginImages(prev => [...prev, ...urls]);
-                                showToast(`${urls.length} foto berhasil diupload!`);
-                              } catch (err) {
-                                showToast('Gagal upload foto.');
-                              } finally {
-                                setCmsUploading(false);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Logo Website
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => setCmsLoginImages(prev => [...prev, ''])}
-                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
-                        >
-                          <Link className="w-5 h-5 mb-0.5" />
-                          Opsi 2: Gunakan URL
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
-                {/* ── REGISTER EDITOR ── */}
-                {cmsActivePage === 'register' && (
-                  <div className="space-y-5">
-                    <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                      <UserPlus className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Register</h2>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <Type className="w-3.5 h-3.5" /> Judul Register
-                      </label>
-                      <input
-                        type="text"
-                        value={cmsRegTitle}
-                        onChange={(e) => setCmsRegTitle(e.target.value)}
-                        placeholder="Contoh: Komunitas Sorgum,\nTumbuh & Maju Bersama"
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <FileText className="w-3.5 h-3.5" /> Deskripsi Register
-                      </label>
-                      <textarea
-                        value={cmsRegDesc}
-                        onChange={(e) => setCmsRegDesc(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                        <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Register ({cmsRegImages.length})
-                      </label>
-                      {/* Grid foto dinamis */}
-                      {cmsRegImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {cmsRegImages.map((url, idx) => (
-                            <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                              <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
-                                {url ? (
-                                  <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
-                                    <ImageIcon className="w-6 h-6 mb-1" />
-                                    <span className="text-[10px]">Masukkan URL</span>
-                                  </div>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setCmsRegImages(prev => prev.filter((_, i) => i !== idx))}
-                                  title="Hapus gambar"
-                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setCmsRegImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
-                                placeholder="https://..."
-                                className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-3 mt-3">
-                        <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
-                          <ImageIcon className="w-5 h-5 mb-0.5" />
-                          {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            disabled={cmsUploading}
-                            onChange={async (e) => {
-                              const files = e.target.files;
-                              if (!files || files.length === 0) return;
-                              setCmsUploading(true);
-                              try {
-                                const urls = await handleCmsUploadMany(files);
-                                setCmsRegImages(prev => [...prev, ...urls]);
-                                showToast(`${urls.length} foto berhasil diupload!`);
-                              } catch (err) {
-                                showToast('Gagal upload foto.');
-                              } finally {
-                                setCmsUploading(false);
-                                e.target.value = '';
-                              }
-                            }}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setCmsRegImages(prev => [...prev, ''])}
-                          className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
-                        >
-                          <Link className="w-5 h-5 mb-0.5" />
-                          Opsi 2: Gunakan URL
-                          <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* RIGHT: Live Preview */}
-              <div className="space-y-3 lg:sticky lg:top-6">
-                <div className={`flex items-center px-1 ${cmsActivePage === 'identitas' ? 'justify-end' : 'justify-between'}`}>
-                  {cmsActivePage !== 'identitas' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (cmsActivePage === 'landing' && onNavigateToPage) {
-                          onNavigateToPage('beranda');
-                        } else if (cmsActivePage === 'login' && onNavigateToPage) {
-                          onNavigateToPage('login');
-                        } else if (cmsActivePage === 'register' && onNavigateToPage) {
-                          onNavigateToPage('register');
-                        }
-                      }}
-                      className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer transition-colors"
-                      title="Klik untuk membuka halaman aslinya"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
-                      <ExternalLink className="w-3 h-3 ml-0.5" />
-                    </button>
-                  )}
-                  <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
-                    {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
-                  </span>
-                </div>
-
-                {/* Identitas Preview */}
-                {cmsActivePage === 'identitas' && (
-                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col">
-                    <div className="bg-[#2C4219] p-6 flex flex-col items-center gap-4">
-                      {cmsWebLogo ? (
-                        <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
-                      ) : (
-                        <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
-                          <ImageIcon className="w-8 h-8 text-white/40" />
-                        </div>
-                      )}
-                      <h3 className="font-title font-bold text-white text-2xl text-center leading-tight">
-                        {cmsWebName || 'Nama Website'}
-                      </h3>
-                      <p className="text-xs font-bold text-[#A8B774] text-center tracking-widest uppercase">
-                        {cmsWebSubtitle || 'TEKS SUBTITLE'}
-                      </p>
-                    </div>
-                    <div className="p-6 space-y-4 bg-[#FAF6EE]">
-                      <p className="text-xs font-semibold text-[#433A30]/60 text-center">Logo dan nama website akan tampil di Sidebar, Header, dan halaman login.</p>
-                      <div className="bg-white rounded-2xl border border-[#E6E1D5] p-4 flex items-center gap-3 shadow-xs">
-                        {cmsWebLogo ? (
-                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-lg bg-[#2C4219]/10 flex items-center justify-center shrink-0">
-                            <ImageIcon className="w-4 h-4 text-[#2C4219]/40" />
+                        {cmsWebLogo && (
+                          <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#A8B774]/60 bg-white mb-2">
+                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain p-2" />
+                            <button
+                              type="button"
+                              onClick={() => setCmsWebLogo('')}
+                              title="Hapus gambar"
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         )}
-                        <div className="flex flex-col">
-                          <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
-                          <span className="text-[10px] font-bold text-[#A8B774] tracking-widest uppercase truncate">{cmsWebSubtitle || 'TEKS SUBTITLE'}</span>
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-center text-[#433A30]/50 font-medium">Contoh tampilan di Sidebar</p>
-                    </div>
-                  </div>
-                )}
+                        {!cmsWebLogo && (
+                          <input
+                            type="text"
+                            value={cmsWebLogo}
+                            onChange={(e) => setCmsWebLogo(e.target.value)}
+                            placeholder="Atau masukkan URL logo (https://...)"
+                            className="w-full p-2.5 rounded-xl border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50"
+                          />
+                        )}
 
-                {/* Landing Preview */}
-                {cmsActivePage === 'landing' && (
-                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                      {cmsLandingImages[0] && (
-                        <img src={cmsImgUrl(cmsLandingImages[0])} alt="Hero" className="w-full h-full object-cover opacity-60" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#1E2E11]/90 via-[#2C4219]/70 to-transparent" />
-                      <div className="absolute bottom-6 left-6 right-6">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-[#A8B774] text-[#1E2E11] uppercase tracking-wider">Komunitas KWT</span>
-                        <h3 className="font-title font-bold text-white text-3xl leading-tight mt-3">
-                          {cmsLandingTitle || 'Judul Utama'}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="p-6 bg-white shrink-0">
-                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-3">
-                        {cmsLandingDesc || 'Deskripsi singkat akan tampil di sini.'}
-                      </p>
-                      {cmsLandingImages.length > 0 && (
-                        <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
-                          {cmsLandingImages.map((img, i) => (
-                            <div key={i} className="w-24 h-16 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
-                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Login Preview */}
-                {cmsActivePage === 'login' && (
-                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                      {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
-                      <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
-                          {cmsLoginTitle || 'Judul Login'}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="p-6 bg-white shrink-0">
-                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
-                        {cmsLoginDesc || 'Deskripsi login akan tampil di sini.'}
-                      </p>
-                      {cmsLoginImages.length > 0 && (
-                        <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
-                          {cmsLoginImages.map((img, i) => (
-                            <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
-                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="space-y-3 pt-4">
-                        <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
-                          <span className="text-xs text-[#433A30]/50 font-medium">email@contoh.com</span>
-                        </div>
-                        <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
-                          <span className="text-sm font-bold text-white">Masuk</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Register Preview */}
-                {cmsActivePage === 'register' && (
-                  <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                    <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                      {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
-                      <div className="absolute bottom-6 left-6 right-6">
-                        <h3 className="font-title font-bold text-white text-2xl leading-tight">
-                          {cmsRegTitle || 'Judul Register'}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="p-6 bg-white shrink-0">
-                      <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
-                        {cmsRegDesc || 'Deskripsi register akan tampil di sini.'}
-                      </p>
-                      {cmsRegImages.length > 0 && (
-                        <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
-                          {cmsRegImages.map((img, i) => (
-                            <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
-                              <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="space-y-3 pt-4">
-                        <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
-                          <span className="text-xs text-[#433A30]/50 font-medium">Nama lengkap</span>
-                        </div>
-                        <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
-                          <span className="text-sm font-bold text-white">Daftar Sekarang</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-[10px] text-[#433A30]/50 px-1 flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" /> Pratinjau menyesuaikan teks &amp; gambar yang kamu ketik.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== TAB: KELOLA PENGGUNA ==================== */}
-        {activeTab === 'users' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Kelola Pengguna
-                </h1>
-                <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-              <div className="relative w-full sm:w-72">
-                <input
-                  type="text"
-                  name="user-search-query-disable-autofill"
-                  autoComplete="off"
-                  data-lpignore="true"
-                  placeholder="Cari nama atau email..."
-                  value={userSearchQuery}
-                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                  className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#2C4219] focus:outline-none focus:border-[#2C4219] shadow-2xs"
-                />
-                <Search className="w-4 h-4 text-[#7A7062] absolute left-3.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF6EE] text-[#7A7062] font-black uppercase text-[10px] tracking-wider border-b border-[#E6E1D5]">
-                    <tr>
-                      <th className="py-4 px-5">PENGGUNA</th>
-                      <th className="py-4 px-5">ROLE</th>
-                      <th className="py-4 px-5">TELEPON</th>
-                      <th className="py-4 px-5">BERGABUNG</th>
-                      <th className="py-4 px-5 text-center">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E6E1D5]/60 font-medium">
-                    {usersList.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
-                      <tr key={u.id} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                        <td className="py-4 px-5">
-                          <div>
-                            <p className="font-bold text-[#2C4219] text-sm">{u.name}</p>
-                            <p className="text-[11px] text-[#7A7062] font-semibold mt-0.5">{u.email}</p>
-                          </div>
-                        </td>
-                        <td className="py-4 px-5">
-                          <span className={`inline-block px-2.5 py-1 rounded-md font-bold text-[10px] ${u.role === 'ADMIN' ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            {u.role === 'ADMIN' ? 'Admin Portal' : 'Anggota KWT'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-5 text-[#5C5246]">{u.phone || '-'}</td>
-                        <td className="py-4 px-5 text-[#5C5246]">{new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="py-4 px-5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              onClick={() => {
-                                setEditingUser(u);
-                                setUserFormData({ name: u.name, email: u.email, role: u.role, phone: u.phone || '', password: '' });
-                                setIsUserModalOpen(true);
+                        <div className="mt-2">
+                          <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <Upload className="w-4 h-4" />
+                            {cmsUploading ? 'Mengunggah...' : 'Upload Logo Baru'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setCmsUploading(true);
+                                try {
+                                  const url = await handleCmsUpload(file);
+                                  setCmsWebLogo(url);
+                                } catch (err) {
+                                  showToast('Gagal upload logo');
+                                } finally {
+                                  setCmsUploading(false);
+                                }
                               }}
-                              className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-[#A8B774]/20 text-[#A8B774] transition-colors"
-                              title="Edit Pengguna"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            {u.role !== 'ADMIN' && (
-                              <button
-                                onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
-                                className="w-8 h-8 inline-flex items-center justify-center rounded-xl hover:bg-rose-50 text-rose-600 transition-colors"
-                                title="Hapus Pengguna"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── LANDING EDITOR ── */}
+                  {cmsActivePage === 'landing' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <Home className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Utama</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Utama
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsLandingTitle}
+                          onChange={(e) => setCmsLandingTitle(e.target.value)}
+                          placeholder="Contoh: Bersama Menanam, Bersama Sejahtera"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                        <p className="text-[10px] text-[#7A7062]">Gunakan \n untuk baris baru.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Pendek
+                        </label>
+                        <textarea
+                          value={cmsLandingDesc}
+                          onChange={(e) => setCmsLandingDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Carousel ({cmsLandingImages.length})
+                        </label>
+
+                        {/* Grid foto dinamis */}
+                        {cmsLandingImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsLandingImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsLandingImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsLandingImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {usersList.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-[#7A7062]">Belum ada pengguna.</td>
-                      </tr>
+                        )}
+
+                        {/* 2 Opsi Upload */}
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsLandingImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsLandingImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── LOGIN EDITOR ── */}
+                  {cmsActivePage === 'login' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <LogIn className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Login</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Login
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsLoginTitle}
+                          onChange={(e) => setCmsLoginTitle(e.target.value)}
+                          placeholder="Contoh: Selamat Datang\nKembali Ibu!"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Login
+                        </label>
+                        <textarea
+                          value={cmsLoginDesc}
+                          onChange={(e) => setCmsLoginDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Login ({cmsLoginImages.length})
+                        </label>
+                        {/* Grid foto dinamis */}
+                        {cmsLoginImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsLoginImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsLoginImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsLoginImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsLoginImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsLoginImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── REGISTER EDITOR ── */}
+                  {cmsActivePage === 'register' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <UserPlus className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Register</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Register
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsRegTitle}
+                          onChange={(e) => setCmsRegTitle(e.target.value)}
+                          placeholder="Contoh: Komunitas Sorgum,\nTumbuh & Maju Bersama"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Register
+                        </label>
+                        <textarea
+                          value={cmsRegDesc}
+                          onChange={(e) => setCmsRegDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Register ({cmsRegImages.length})
+                        </label>
+                        {/* Grid foto dinamis */}
+                        {cmsRegImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsRegImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsRegImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsRegImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsRegImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsRegImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {cmsActivePage === 'footer' && (
+                    <div className="space-y-6">
+                      {/* Copyright */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <Type className="w-3.5 h-3.5" /> Teks Copyright
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsFooterCopyright}
+                          onChange={(e) => setCmsFooterCopyright(e.target.value)}
+                          placeholder="© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi."
+                          className="w-full px-4 py-3 bg-white border border-[#E6E1D5] rounded-xl focus:ring-2 focus:ring-[#A8B774] focus:border-[#A8B774] transition-all text-sm font-medium text-[#2C4219] placeholder-[#7A7062]/50"
+                        />
+                      </div>
+                      {/* Privacy */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Kebijakan Privasi
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterPrivacy} onChange={setCmsFooterPrivacy} />
+                        </div>
+                      </div>
+                      {/* Terms */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Syarat & Ketentuan
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterTerms} onChange={setCmsFooterTerms} />
+                        </div>
+                      </div>
+                      {/* Help */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Bantuan
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterHelp} onChange={setCmsFooterHelp} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT: Live Preview */}
+                {cmsActivePage !== 'footer' && (
+                  <div className="space-y-3 lg:sticky lg:top-6">
+                    <div className={`flex items-center px-1 ${cmsActivePage === 'identitas' ? 'justify-end' : 'justify-between'}`}>
+                      {cmsActivePage !== 'identitas' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (cmsActivePage === 'landing' && onNavigateToPage) {
+                              onNavigateToPage('beranda');
+                            } else if (cmsActivePage === 'login' && onNavigateToPage) {
+                              onNavigateToPage('login');
+                            } else if (cmsActivePage === 'register' && onNavigateToPage) {
+                              onNavigateToPage('register');
+                            }
+                          }}
+                          className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer transition-colors"
+                          title="Klik untuk membuka halaman aslinya"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </button>
+                      )}
+                      <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
+                        {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
+                      </span>
+                    </div>
+
+                    {/* Identitas Preview */}
+                    {cmsActivePage === 'identitas' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white p-8 flex flex-col items-center justify-center text-center h-[300px]">
+                        {cmsWebLogo ? (
+                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-2xl bg-[#FAF6EE] flex items-center justify-center border-2 border-dashed border-[#E6E1D5]">
+                            <ImageIcon className="w-8 h-8 text-[#D1C9B8]" />
+                          </div>
+                        )}
+                        <h3 className="font-title font-bold text-2xl text-[#2C4219] mt-6">
+                          {cmsWebName || 'Nama Website'}
+                        </h3>
+                        <p className="text-sm font-bold text-[#A8B774] tracking-widest uppercase mt-2">
+                          {cmsWebSubtitle || 'TEKS SUBTITLE'}
+                        </p>
+
+                        <div className="mt-8 pt-6 border-t border-[#E6E1D5] w-full flex items-center gap-3 justify-center">
+                          {cmsWebLogo ? (
+                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] shrink-0" />
+                          )}
+                          <div className="flex flex-col items-start min-w-0">
+                            <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                            <span className="text-[10px] font-bold text-[#A8B774] tracking-widest uppercase truncate">{cmsWebSubtitle || 'TEKS SUBTITLE'}</span>
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </tbody>
-                </table>
+
+                    {/* Landing Preview */}
+                    {cmsActivePage === 'landing' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsLandingImages[0] && (
+                            <img src={cmsImgUrl(cmsLandingImages[0])} alt="Hero" className="w-full h-full object-cover opacity-60" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] to-transparent" />
+                          <div className="absolute inset-x-6 bottom-6 flex flex-col items-center text-center">
+                            <h3 className="font-title font-bold text-white text-3xl leading-tight drop-shadow-md">
+                              {cmsLandingTitle || 'Judul Utama'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 text-center leading-relaxed line-clamp-3">
+                            {cmsLandingDesc || 'Deskripsi singkat akan tampil di sini.'}
+                          </p>
+                          {cmsLandingImages.length > 0 && (
+                            <div className="flex gap-3 mt-4 overflow-x-auto pb-2 justify-center">
+                              {cmsLandingImages.map((img, i) => (
+                                <div key={i} className="w-16 h-12 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Login Preview */}
+                    {cmsActivePage === 'login' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
+                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
+                              {cmsLoginTitle || 'Judul Login'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                            {cmsLoginDesc || 'Deskripsi login akan tampil di sini.'}
+                          </p>
+                          {cmsLoginImages.length > 0 && (
+                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                              {cmsLoginImages.map((img, i) => (
+                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="space-y-3 pt-4">
+                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                              <span className="text-xs text-[#433A30]/50 font-medium">email@contoh.com</span>
+                            </div>
+                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                              <span className="text-sm font-bold text-white">Masuk</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Register Preview */}
+                    {cmsActivePage === 'register' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
+                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
+                              {cmsRegTitle || 'Judul Register'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                            {cmsRegDesc || 'Deskripsi register akan tampil di sini.'}
+                          </p>
+                          {cmsRegImages.length > 0 && (
+                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                              {cmsRegImages.map((img, i) => (
+                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="space-y-3 pt-4">
+                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                              <span className="text-xs text-[#433A30]/50 font-medium">Nama lengkap</span>
+                            </div>
+                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                              <span className="text-sm font-bold text-white">Daftar Sekarang</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-[#433A30]/50 px-1 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" /> Pratinjau menyesuaikan teks &amp; gambar yang kamu ketik.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
+          {/* ==================== TAB: KELOLA PENGGUNA ==================== */}
+          {activeTab === 'users' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Pengguna
+                  </h1>
+                  <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                <div className="relative w-full sm:w-72">
+                  <input
+                    type="text"
+                    name="user-search-query-disable-autofill"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    placeholder="Cari nama atau email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white border border-[#E6E1D5] text-xs font-medium text-[#2C4219] focus:outline-none focus:border-[#2C4219] shadow-2xs"
+                  />
+                  <Search className="w-4 h-4 text-[#7A7062] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                {usersList.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
+                  <div key={u.id} className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group flex flex-col relative">
+                    {/* Card Header (Avatar & Name & Status) */}
+                    <div className="p-6 pb-5 flex items-start gap-4">
+                      <div className="relative shrink-0">
+                        {u.avatar ? (
+                          <img src={u.avatar} alt={u.name} className="w-14 h-14 rounded-2xl object-cover border border-[#E6E1D5] group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2C4219] to-[#433A30] flex items-center justify-center text-white text-lg font-bold shadow-sm group-hover:scale-105 transition-transform duration-300">
+                            {u.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className={`absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full border-[3px] border-white ${u.isActive !== false ? 'bg-[#A8B774]' : 'bg-rose-500'}`} />
+                      </div>
+                      <div className="flex-1 overflow-hidden pt-1">
+                        <p className="font-title font-bold text-[#2C4219] text-base truncate group-hover:text-[#A8B774] transition-colors" title={u.name}>{u.name}</p>
+                        <p className="text-[11px] text-[#7A7062] font-semibold truncate mt-0.5" title={u.email}>{u.email}</p>
+                        <span className={`inline-block mt-2 px-2.5 py-1 rounded-md font-bold text-[9px] uppercase tracking-wider ${u.role === 'ADMIN' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-[#FAF6EE] text-[#7A7062] border border-[#E6E1D5]'}`}>
+                          {u.role === 'ADMIN' ? 'Admin Portal' : 'Anggota KWT'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="px-6 py-4 flex-1 bg-gradient-to-b from-[#FAF6EE]/50 to-transparent border-t border-[#E6E1D5]/50">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-xs font-semibold text-[#5C5246]">
+                          <div className="w-7 h-7 rounded-xl bg-white border border-[#E6E1D5] flex items-center justify-center text-[#7A7062] shadow-xs">
+                            <Phone className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="truncate">{u.phone || 'Belum ditambahkan'}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs font-semibold text-[#5C5246]">
+                          <div className="w-7 h-7 rounded-xl bg-white border border-[#E6E1D5] flex items-center justify-center text-[#7A7062] shadow-xs">
+                            <Calendar className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="truncate">Bergabung {new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="px-6 py-4 border-t border-[#E6E1D5] bg-white flex items-center justify-between gap-2">
+                      {/* Active/Inactive Toggle */}
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => handleToggleUserStatus(u.id, u.isActive !== false, u.name)}
+                          className={`relative w-10 h-5.5 rounded-full transition-colors duration-300 focus:outline-none ${u.isActive !== false ? 'bg-[#2C4219]' : 'bg-[#D1C9B8]'}`}
+                          title={u.isActive !== false ? "Nonaktifkan Pengguna" : "Aktifkan Pengguna"}
+                        >
+                          <div className={`absolute top-0.5 left-0.5 bg-white w-4.5 h-4.5 rounded-full shadow-sm transition-transform duration-300 ${u.isActive !== false ? 'translate-x-4.5' : ''}`} />
+                        </button>
+                        <span className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">{u.isActive !== false ? 'Aktif' : 'Non-aktif'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingUser(u);
+                            setUserFormData({ name: u.name, email: u.email, role: u.role, phone: u.phone || '', password: '' });
+                            setIsUserModalOpen(true);
+                          }}
+                          className="p-2.5 rounded-xl bg-[#FAF6EE] hover:bg-[#A8B774] text-[#7A7062] hover:text-white transition-all duration-300 shadow-xs hover:shadow-md"
+                          title="Edit Data & Kata Sandi"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        {u.role !== 'ADMIN' && (
+                          <button
+                            onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
+                            className="p-2.5 rounded-xl bg-[#FAF6EE] hover:bg-rose-500 text-[#7A7062] hover:text-white transition-all duration-300 shadow-xs hover:shadow-md"
+                            title="Hapus Pengguna"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {usersList.length === 0 && (
+                  <div className="col-span-full py-16 text-center border-2 border-dashed border-[#E6E1D5] rounded-3xl bg-[#FAF6EE]/50">
+                    <div className="w-16 h-16 rounded-full bg-white border border-[#E6E1D5] flex items-center justify-center mx-auto mb-4 text-[#A8B774] shadow-sm">
+                      <Users className="w-8 h-8" />
+                    </div>
+                    <p className="font-title font-bold text-lg text-[#2C4219]">Belum ada pengguna</p>
+                    <p className="text-xs text-[#7A7062] font-semibold mt-1">Coba sesuaikan kata pencarian Anda.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* MODAL: Edit Pengguna */}
@@ -3154,7 +3359,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       {/* MODAL: Tambah / Edit Informasi */}
       {isArticleModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-5xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
               <h3 className="font-title font-bold text-xl text-[#2C4219]">
                 {editingArticle ? 'Sunting Informasi' : 'Tambah Informasi Baru'}
@@ -3167,9 +3372,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </button>
             </div>
 
+            {artError && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                <svg className="w-5 h-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <p className="font-bold text-sm">Validasi Gagal</p>
+                  <p className="font-medium text-xs opacity-90 mt-0.5">{artError}</p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSaveArticle} className="space-y-5 text-xs font-medium">
-              {/* Row 1: Judul + Kategori side by side */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Row 1: Judul, Kategori, Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="sm:col-span-2 space-y-1">
                   <label className="block font-bold text-[#2C4219]">Judul Informasi</label>
                   <input
@@ -3178,7 +3395,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     placeholder="Contoh: Teknik Pemupukan Organik Sorgum"
                     value={artTitle}
                     onChange={(e) => setArtTitle(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                    className="w-full p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -3186,7 +3403,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <select
                     value={artCategory}
                     onChange={(e) => setArtCategory(e.target.value as any)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                    className="w-full p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   >
                     <option value="Budidaya">Budidaya</option>
                     <option value="Inovasi">Inovasi</option>
@@ -3194,16 +3411,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <option value="Pengetahuan">Pengetahuan</option>
                   </select>
                 </div>
-              </div>
-
-              {/* Row 1.5: Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Status</label>
                   <select
                     value={artStatus}
                     onChange={(e) => setArtStatus(e.target.value as 'Draft' | 'Published')}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
+                    className="w-full p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   >
                     <option value="Published">Published</option>
                     <option value="Draft">Draft</option>
@@ -3211,167 +3424,158 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               </div>
 
-              {/* Row 2: Upload Gambar */}
-              <div className="space-y-2">
-                <label className="block font-bold text-[#2C4219]">Gambar Header</label>
-                {!artImage ? (
-                  <label
-                    htmlFor="artImageUpload"
-                    className="flex flex-col items-center justify-center w-full h-40 rounded-2xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
-                  >
-                    <svg className="w-8 h-8 text-[#2C4219] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    <span className="text-sm font-bold text-[#2C4219]">Klik untuk upload foto header</span>
-                    <span className="text-xs text-[#433A30]/60 mt-1">PNG, JPG (maks. 5MB)</span>
-                    <input
-                      id="artImageUpload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          const url = await handleCmsUpload(file);
-                          setArtImage(url);
-                          showToast('Foto berhasil diupload');
-                        } catch (err: any) {
-                          showToast(err.message || 'Gagal upload foto');
-                        }
-                      }}
-                    />
-                  </label>
-                ) : (
-                  <div className="relative w-full h-48 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
-                    {artImage ? (
-                      <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-[#FAF6EE] flex items-center justify-center text-[#A8B774] font-bold">
-                        Tanpa Foto
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                      <label htmlFor="artImageUploadChange" className="px-4 py-2 bg-white/90 rounded-xl text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-white transition-colors">
-                        Ganti Foto
-                        <input
-                          id="artImageUploadChange"
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              const url = await handleCmsUpload(file);
-                              setArtImage(url);
-                              showToast('Foto berhasil diganti');
-                            } catch (err: any) {
-                              showToast(err.message || 'Gagal upload foto');
-                            }
-                          }}
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setArtImage('')}
-                        className="px-4 py-2 bg-rose-500/90 rounded-xl text-xs font-bold text-white cursor-pointer hover:bg-rose-500 transition-colors"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Row 2b: Gambar Gallery (multi-upload) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-[#2C4219]">
-                    Gambar Gallery <span className="text-[#433A30]/50 font-normal text-xs ml-1">(Opsional — tampil sebagai slideshow)</span>
-                  </label>
-                  {artGallery.length > 0 && (
-                    <button type="button" onClick={() => setArtGallery([])} className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
-                      Hapus Semua
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {/* Existing gallery thumbnails */}
-                  {artGallery.map((img, idx) => (
-                    <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-[#E6E1D5] shadow-xs">
-                      <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setArtGallery(prev => prev.filter((_, i) => i !== idx))}
-                          className="w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center hover:bg-rose-500 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Upload area */}
-                  <label
-                    htmlFor="artGalleryUpload"
-                    className="flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
-                  >
-                    <svg className="w-8 h-8 text-[#A8B774] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="text-xs font-bold text-[#7A7062] text-center px-2">Tambah Foto</span>
-                    <input
-                      id="artGalleryUpload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      multiple
-                      className="hidden"
-                      onChange={async (e) => {
-                        const files = Array.from(e.target.files || []) as File[];
-                        e.target.value = '';
-                        for (const file of files) {
+              {/* Row 2: Upload Gambar & Gallery */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block font-bold text-[#2C4219]">Gambar Header</label>
+                  {!artImage ? (
+                    <label
+                      htmlFor="artImageUpload"
+                      className="flex flex-col items-center justify-center w-full h-40 rounded-2xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
+                    >
+                      <svg className="w-8 h-8 text-[#2C4219] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      </svg>
+                      <span className="text-sm font-bold text-[#2C4219]">Klik untuk upload foto header</span>
+                      <span className="text-xs text-[#433A30]/60 mt-1">PNG, JPG (maks. 5MB)</span>
+                      <input
+                        id="artImageUpload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
                           try {
                             const url = await handleCmsUpload(file);
-                            setArtGallery(prev => [...prev, url]);
-                            showToast('Foto berhasil ditambahkan ke gallery');
+                            setArtImage(url);
+                            showToast('Foto berhasil diupload');
                           } catch (err: any) {
                             showToast(err.message || 'Gagal upload foto');
                           }
-                        }
-                      }}
-                    />
-                  </label>
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <div className="relative w-full h-32 sm:h-40 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
+                      {artImage ? (
+                        <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-[#FAF6EE] flex items-center justify-center text-[#A8B774] font-bold">
+                          Tanpa Foto
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <label htmlFor="artImageUploadChange" className="px-4 py-2 bg-white/90 rounded-xl text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-white transition-colors">
+                          Ganti Foto
+                          <input
+                            id="artImageUploadChange"
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const url = await handleCmsUpload(file);
+                                setArtImage(url);
+                                showToast('Foto berhasil diganti');
+                              } catch (err: any) {
+                                showToast(err.message || 'Gagal upload foto');
+                              }
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setArtImage('')}
+                          className="px-4 py-2 bg-rose-500/90 rounded-xl text-xs font-bold text-white cursor-pointer hover:bg-rose-500 transition-colors"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-bold text-[#2C4219]">
+                      Gambar Gallery <span className="text-[#433A30]/50 font-normal text-xs ml-1">(Opsional — tampil sebagai slideshow)</span>
+                    </label>
+                    {artGallery.length > 0 && (
+                      <button type="button" onClick={() => setArtGallery([])} className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+                        Hapus Semua
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-40 overflow-y-auto pr-2 pb-1">
+                    {/* Existing gallery thumbnails */}
+                    {artGallery.map((img, idx) => (
+                      <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-[#E6E1D5] shadow-xs">
+                        <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setArtGallery(prev => prev.filter((_, i) => i !== idx))}
+                            className="w-10 h-10 rounded-full bg-rose-500/90 text-white flex items-center justify-center hover:bg-rose-500 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Upload area */}
+                    <label
+                      htmlFor="artGalleryUpload"
+                      className="flex flex-col items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F0EDE4] cursor-pointer transition-colors"
+                    >
+                      <svg className="w-8 h-8 text-[#A8B774] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="text-xs font-bold text-[#7A7062] text-center px-2">Tambah Foto</span>
+                      <input
+                        id="artGalleryUpload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files || []) as File[];
+                          e.target.value = '';
+                          for (const file of files) {
+                            try {
+                              const url = await handleCmsUpload(file);
+                              setArtGallery(prev => [...prev, url]);
+                              showToast('Foto berhasil ditambahkan ke gallery');
+                            } catch (err: any) {
+                              showToast(err.message || 'Gagal upload foto');
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {/* Row 3: Ringkasan + Isi side by side */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Ringkasan Singkat</label>
-                  <textarea
-                    rows={5}
-                    required
-                    placeholder="Ringkasan singkat artikel..."
-                    value={artSummary}
-                    onChange={(e) => setArtSummary(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] resize-none"
-                  />
-                </div>
+              {/* Row 3: Isi Lengkap Artikel */}
+              <div className="grid grid-cols-1 gap-6 mt-4">
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Isi Lengkap Artikel</label>
-                  <textarea
-                    rows={5}
-                    required
-                    placeholder={"Tulis artikel selengkapnya di sini...\n\n(Pisahkan paragraf dengan Enter 2x)"}
-                    value={artContent}
-                    onChange={(e) => setArtContent(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] resize-none"
-                  />
+                  <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5] [&_.ql-toolbar]:bg-[#FAF6EE] [&_.ql-toolbar]:border-none [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-[#E6E1D5] [&_.ql-container]:border-none [&_.ql-editor]:min-h-[250px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-[#433A30]">
+                    <ReactQuill
+                      theme="snow"
+                      value={artContent}
+                      onChange={setArtContent}
+                      modules={quillModules}
+                      placeholder="Tuliskan isi artikel Anda di sini..."
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -3555,10 +3759,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </p>
                   <div className="bg-white/60 rounded-lg p-3 border border-[#E6E1D5]/50 space-y-1">
                     <p className="text-[11px] text-[#433A30] font-medium leading-relaxed">
-                      Keyword <b>Judul</b>: [Isi sendiri]<br/>
-                      Keyword <b>Kategori</b>: [Isi sendiri]<br/>
-                      Keyword <b>Tanggal</b>: [Isi sendiri]<br/>
-                      Keyword <b>Waktu</b>: [Isi sendiri]<br/>
+                      Keyword <b>Judul</b>: [Isi sendiri]<br />
+                      Keyword <b>Kategori</b>: [Isi sendiri]<br />
+                      Keyword <b>Tanggal</b>: [Isi sendiri]<br />
+                      Keyword <b>Waktu</b>: [Isi sendiri]<br />
                       Keyword <b>Deskripsi</b>: [Isi sendiri]
                     </p>
                   </div>

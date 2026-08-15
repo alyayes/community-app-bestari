@@ -100,7 +100,7 @@ router.get('/users', async (req: Request, res: Response, next: NextFunction) => 
       where,
       select: {
         id: true, name: true, email: true, role: true, avatar: true,
-        phone: true, memberSince: true, createdAt: true,
+        phone: true, memberSince: true, createdAt: true, isActive: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -134,6 +134,28 @@ router.put('/users/:id/role', async (req: Request, res: Response, next: NextFunc
     next(err);
   }
 });
+
+// ── PATCH /api/admin/users/:id/status ───────────────
+router.patch('/users/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id);
+    const { isActive } = req.body;
+    
+    if (id === req.user!.userId) {
+      throw new AppError('Tidak bisa menonaktifkan akun sendiri', 400);
+    }
+    
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: { id: true, isActive: true },
+    });
+    return successResponse(res, user, `Status pengguna berhasil diperbarui`);
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 // ── PUT /api/admin/users/:id ──────────────────────
 router.put('/users/:id', async (req: Request, res: Response, next: NextFunction) => {

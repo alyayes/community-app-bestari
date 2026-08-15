@@ -95,7 +95,7 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
           <p className="font-semibold">Tidak ada pengumuman ditemukan</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filteredAnnouncements.map((ann) => {
             const isUrgent = ann.category === 'MENDESAK';
 
@@ -104,12 +104,12 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
                 key={ann.id}
                 onClick={() => onSelectAnnouncement(ann)}
                 className={`
-                  w-full text-left bg-white rounded-3xl border transition-all overflow-hidden group
+                  w-full h-full flex flex-col text-left bg-white rounded-3xl border transition-all group
                   ${isUrgent ? 'border-red-300 ring-1 ring-red-200' : 'border-[#E6E1D5]'}
                   shadow-xs hover:shadow-md hover:border-[#A8B774] hover:-translate-y-0.5
                 `}
               >
-                <div className="p-5">
+                <div className="p-5 flex flex-col h-full w-full">
                   {/* Badge & Time */}
                   <div className="flex items-start justify-between gap-3">
                     <span
@@ -130,17 +130,16 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
                   </h3>
 
                   {/* Summary */}
-                  <p className="text-sm text-[#433A30]/80 leading-relaxed line-clamp-2">
+                  <p className="text-sm text-[#433A30]/80 leading-relaxed line-clamp-3 mb-4 flex-1">
                     {ann.summary}
                   </p>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E6E1D5]/60">
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#E6E1D5]/60 w-full">
                     <span className="text-xs text-[#433A30]/50">
                       Oleh: <span className="font-semibold text-[#433A30]/70">{ann.postedBy}</span>
                     </span>
                     <span className="flex items-center gap-1 text-xs font-bold text-[#2C4219]/50 group-hover:text-[#2C4219] transition-colors">
-                      Selengkapnya
                       <ChevronRight className="w-4 h-4" />
                     </span>
                   </div>

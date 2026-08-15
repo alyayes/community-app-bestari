@@ -264,43 +264,45 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
       </div>
 
       {/* Community Members Table - Task 7.3 & Admin 6.3 */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
-        <h3 className="font-title font-bold text-base text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
+      {!isAdmin && (
+        <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
+          <h3 className="font-title font-bold text-base text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-[#FAF6EE] text-[#2C4219] font-title font-bold border-b border-[#E6E1D5]">
-                <th className="p-3 rounded-l-xl">Nama Anggota</th>
-                <th className="p-3">Peran Keanggotaan</th>
-                <th className="p-3">Blok Kerja Lahan</th>
-                <th className="p-3">Varietas Sorgum Utama</th>
-                <th className="p-3 rounded-r-xl">Tanggal Bergabung</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E6E1D5]">
-              {(members.length > 0 ? members : [
-                { name: 'Ibu Hj. Kartini', role: 'Anggota KWT Melati Sorgum', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200', block: 'Lahan Blok B (Sektor Barat)', variety: 'Varietas Numbu', joined: 'Maret 2024' },
-                { name: 'Ibu Rahayu', role: 'Koordinator Lahan A', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAFTK8aL0lbmzdKkeh1Xei7BhbTIxg5tD8AN4PBL6g0dDKmy5XJvcPAJMKSVXNkyf8x8At48Z7gVlJEuXzBpQuV1brlyrkZPQhMP9wiQ-hzucdobhks645C-cNA21OlgNo4aaz9DHsLBkJyp6NOLhBv4d6SbT4BVEd1pTRL3P7EAxyvfEqARTMazTg1Nw_Ok7b_9iHFBQIYRb3pSR995e1ueq7FcsgLqZ3L8QPz8pSJa4PcRpNttgzk', block: 'Lahan Blok A (Lahan Utama)', variety: 'Bioguma Agritan 1', joined: 'Januari 2024' },
-                { name: 'Ibu Siti Aminah', role: 'Koordinator Lahan B', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBvlHIFyVd4QF3NG_VHJMp1NQ8FuZ4SUtAQeXTKZs1qghHh6sw-q90PURIbrf8dr07OtnIbwq7IKpAZagdYNGnlhNVt4XR3Cg1e6gbFQ81fnDH8DTvoExm5C4xjYutcz95yAm4x1SECwsik6CGRcWD8RRsS3FYbjAecKJsPPD4L82OFqguEVzUcYaxKzh71-0DdxAN_Ifv9N6JIoEPHw_wPxHHHZTvPF4hiNQ1eSo54LkzK8FWTGWkf', block: 'Lahan Blok B (Sektor Barat)', variety: 'Varietas Numbu', joined: 'Februari 2024' },
-                { name: 'Ibu Ani', role: 'Koordinator Lahan C', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200', block: 'Lahan Blok C (Sektor Timur)', variety: 'Bioguma Agritan 2', joined: 'Maret 2024' },
-                { name: 'Bpk. Slamet', role: 'Koordinator Lahan D', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAmV2syczoj6bnhULJMAo--BunkDLT-wO6ZJoDCP4YUDP_72KqM15DCGlRKI1vd3dWFKNKN2ArXx2CQTBjNkzJ2bJ0fQp2bC-jkmRbEWjgTboZ5D9dMwxd4umqik9rE_9t2kTlJu-vMksqooMQlw8I6ERCUqVms-pKJ0P-KZ8MbSli8QaAizny4NL9w6Bhl7tiFOo-pJQ2tFeE3T-q9YqbQnQ5xfOd5Z3TtjNXqR9FQAbJfhfheivA5', block: 'Lahan Blok D (Bukit Utara)', variety: 'Varietas Super 1', joined: 'Desember 2023' }
-              ]).map((member, idx) => (
-                <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
-                  <td className="p-3 font-semibold text-[#2C4219] flex items-center gap-2">
-                    <img src={(member as any).avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`} alt={member.name} className="w-6 h-6 rounded-full object-cover border border-[#2C4219]/20" />
-                    <span>{member.name}</span>
-                  </td>
-                  <td className="p-3 text-[#433A30] font-semibold">{member.role || 'Anggota KWT'}</td>
-                  <td className="p-3 text-[#433A30]">{(member as any).block || (member as any).lahanLocation || '-'}</td>
-                  <td className="p-3 text-[#433A30]">{(member as any).variety || (member as any).sorghumType || '-'}</td>
-                  <td className="p-3 text-[#433A30]/70">{(member as any).joined || (member as any).memberSince || '-'}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-[#FAF6EE] text-[#2C4219] font-title font-bold border-b border-[#E6E1D5]">
+                  <th className="p-3 rounded-l-xl">Nama Anggota</th>
+                  <th className="p-3">Peran Keanggotaan</th>
+                  <th className="p-3">Blok Kerja Lahan</th>
+                  <th className="p-3">Varietas Sorgum Utama</th>
+                  <th className="p-3 rounded-r-xl">Tanggal Bergabung</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#E6E1D5]">
+                {members.length > 0 ? members.map((member, idx) => (
+                  <tr key={idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
+                    <td className="p-3 font-semibold text-[#2C4219] flex items-center gap-2">
+                      <img src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`} alt={member.name} className="w-6 h-6 rounded-full object-cover border border-[#2C4219]/20" />
+                      <span>{member.name}</span>
+                    </td>
+                    <td className="p-3 text-[#433A30] font-semibold">{member.role === 'USER' ? 'Anggota KWT' : member.role}</td>
+                    <td className="p-3 text-[#433A30]">{member.lahanLocation || '-'}</td>
+                    <td className="p-3 text-[#433A30]">{member.sorghumType || '-'}</td>
+                    <td className="p-3 text-[#433A30]/70">{member.memberSince || '-'}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="p-4 text-center text-gray-500 text-sm">
+                      Belum ada anggota terdaftar
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Production Data Table - Task 7.4 & Admin 6.4 */}
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">

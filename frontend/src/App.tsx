@@ -62,6 +62,7 @@ export function App() {
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number, totalRawMaterialKg?: number }>({ totalUsers: 48 });
   const [cmsData, setCmsData] = useState<CmsData | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -97,7 +98,9 @@ export function App() {
   const [isMulaiPanenOpen, setIsMulaiPanenOpen] = useState(false);
   const [isBantuanOpen, setIsBantuanOpen] = useState(false);
   const [isOpenMobileMenu, setIsOpenMobileMenu] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [footerModalInfo, setFooterModalInfo] = useState<'privacy' | 'terms' | 'help' | null>(null);
 
   // Read state for announcements
   const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>([]);
@@ -180,6 +183,13 @@ export function App() {
           const u = await api<any>('/auth/me');
           if (u) {
             setCurrentUser(u);
+            if (pageMode === 'landing' || pageMode === 'login' || pageMode === 'register') {
+              if (u.isAdmin || u.role?.toLowerCase().includes('admin')) {
+                setPageMode('admin');
+              } else {
+                setPageMode('app');
+              }
+            }
           }
         } catch {
           setToken(null);
@@ -191,15 +201,16 @@ export function App() {
 
       // Load semua data publik dari backend
       try {
-        const [arts, anns, ags, thrs, lahan, panen, stats, cmsRes] = await Promise.all([
+        const [arts, anns, ags, thrs, lahan, panen, stats, cmsRes, membersRes] = await Promise.all([
           api<InfoArticle[]>('/artikel').catch(() => []),
           api<Announcement[]>('/pengumuman').catch(() => []),
           api<AgendaEvent[]>('/agenda').catch(() => []),
           api<ForumThread[]>('/thread').catch(() => []),
-          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
-          api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
+          api<LandPlot[]>('/scm/lahan').catch(() => []),
+          api<HarvestRecord[]>('/scm/panen').catch(() => []),
           api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
-          api<CmsData>('/cms').catch(() => null)
+          api<CmsData>('/cms').catch(() => null),
+          api<any[]>('/dashboard/members').catch(() => [])
         ]);
         setArticles(arts.length ? arts : []);
         setAnnouncements(anns.length ? anns : []);
@@ -207,6 +218,7 @@ export function App() {
         setThreads(thrs.length ? thrs : []);
         setLandPlots(lahan.length ? lahan : []);
         setHarvestRecords(panen.length ? panen : []);
+        setMembers(membersRes.length ? membersRes : []);
         if (stats) setDashboardStats(stats);
         if (cmsRes) setCmsData(cmsRes);
       } catch (e) {
@@ -224,8 +236,8 @@ export function App() {
     const pollSorgumData = async () => {
       try {
         const [lahan, panen] = await Promise.all([
-          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
-          api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
+          api<LandPlot[]>('/scm/lahan').catch(() => []),
+          api<HarvestRecord[]>('/scm/panen').catch(() => [])
         ]);
         if (lahan.length > 0) setLandPlots(lahan);
         if (panen.length > 0) setHarvestRecords(panen);
@@ -575,7 +587,7 @@ export function App() {
   const handleAddHarvestRecord = async (record: HarvestRecord) => {
     // Simpan ke backend, fallback ke lokal
     try {
-      const created = await api<HarvestRecord>('/dashboard/panen', {
+      const created = await api<HarvestRecord>('/scm/panen', {
         method: 'POST',
         body: {
           date: record.date,
@@ -789,6 +801,7 @@ export function App() {
         agendas={events}
         landPlots={landPlots}
         harvestRecords={harvestRecords}
+        members={members}
         cmsData={cmsData}
         dashboardStats={dashboardStats}
         onUpdateCmsData={handleUpdateCmsData}
@@ -832,6 +845,8 @@ export function App() {
         unreadAnnouncementsCount={unreadPengumumanOnlyCount}
         isOpenMobile={isOpenMobileMenu}
         setIsOpenMobile={setIsOpenMobileMenu}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
         onGoToLanding={handleGoToLanding}
         onGoToAdmin={() => setPageMode('admin')}
         webName={cmsData?.webName}
@@ -840,7 +855,7 @@ export function App() {
       />
 
       {/* Main Container Area with offset for Sidebar on desktop */}
-      <div className="lg:pl-64 flex-1 flex flex-col min-w-0">
+      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} flex-1 flex flex-col min-w-0 transition-all duration-300`}>
         <Header
           activeNav={activeNav}
           currentUser={currentUser}
@@ -869,7 +884,7 @@ export function App() {
         />
 
         {/* Dynamic Screen Render */}
-        <main className={`flex-1 w-full ${activeNav === 'diskusi' ? 'px-3 sm:px-5 py-3 flex flex-col min-h-[calc(100vh-80px)]' : 'px-4 lg:px-8 pt-6 pb-12'}`}>
+        <main className={`flex-1 w-full flex flex-col min-h-[calc(100vh-80px)] ${activeNav === 'diskusi' ? 'px-3 sm:px-5 py-3' : 'px-4 lg:px-8 pt-6 pb-12'}`}>
           {activeNav === 'beranda' && (
             <BerandaView
               currentUser={currentUser}
@@ -941,6 +956,8 @@ export function App() {
             <DashboardDesaView
               landPlots={landPlots}
               harvestRecords={harvestRecords}
+              members={members}
+              onSimpanPanen={() => setIsMulaiPanenOpen(true)}
               totalUsers={dashboardStats.totalUsers || 48}
               totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
               onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
@@ -953,8 +970,48 @@ export function App() {
               setCurrentUser={setCurrentUser}
             />
           )}
+
         </main>
+
+        {/* Footer User */}
+        <footer className="mt-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 whitespace-nowrap overflow-x-auto scrollbar-hide">
+          <div className="opacity-80">
+            {cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.'}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button onClick={() => setFooterModalInfo('privacy')} className="hover:text-[#5C5246] transition-colors">Kebijakan Privasi</button>
+            <span className="text-[#2C4219]/30">|</span>
+            <button onClick={() => setFooterModalInfo('terms')} className="hover:text-[#5C5246] transition-colors">Syarat & Ketentuan</button>
+            <span className="text-[#2C4219]/30">|</span>
+            <button onClick={() => setFooterModalInfo('help')} className="hover:text-[#5C5246] transition-colors">Panduan Komunitas</button>
+          </div>
+        </footer>
       </div>
+
+      {/* Footer Content Modal */}
+      {footerModalInfo && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setFooterModalInfo(null)}>
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-8 flex flex-col max-h-[85vh] border border-[#E6E1D5] shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
+              <h2 className="font-title font-bold text-xl text-[#2C4219]">
+                {footerModalInfo === 'privacy' ? 'Kebijakan Privasi' : footerModalInfo === 'terms' ? 'Syarat & Ketentuan' : 'Bantuan'}
+              </h2>
+              <button onClick={() => setFooterModalInfo(null)} className="p-2 hover:bg-[#FAF6EE] rounded-xl text-[#7A7062] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto overflow-x-hidden break-words whitespace-normal py-4 text-[#433A30] text-sm leading-relaxed prose prose-sm max-w-none">
+              {footerModalInfo === 'privacy' ? (
+                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerPrivacy || '<p>Belum ada teks kebijakan privasi.</p>' }} />
+              ) : footerModalInfo === 'terms' ? (
+                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerTerms || '<p>Belum ada teks syarat & ketentuan.</p>' }} />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerHelp || '<p>Belum ada panduan bantuan.</p>' }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <CreateTopicModal

@@ -454,11 +454,19 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
   });
 
   const handlePrevMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    if (calendarGranularity === 'hari') {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 1));
+    } else {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    }
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    if (calendarGranularity === 'hari') {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1));
+    } else {
+      setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    }
   };
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -537,15 +545,15 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                 <div className="relative flex items-center group cursor-pointer gap-2 bg-[#FAF6EE] px-3 py-1.5 rounded-xl border border-[#E6E1D5] hover:border-[#A8B774] transition-all shadow-xs">
                   <CalendarIcon className="w-5 h-5 text-[#2C4219] group-hover:text-[#A8B774] transition-colors" />
                   <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] group-hover:text-[#A8B774] transition-colors">
-                    {monthNamesFull[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                    {calendarGranularity === 'hari' ? `${currentMonth.getDate()} ` : ''}{monthNamesFull[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                   </h2>
                   <input
                     type="date"
-                    value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
+                    value={`${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(currentMonth.getDate()).padStart(2, '0')}`}
                     onChange={(e) => {
                       if (e.target.value) {
                         const [year, month, day] = e.target.value.split('-');
-                        setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1, 1));
+                        setCurrentMonth(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
                         
                         // Select the first event on that specific date if any
                         const selectedDateStr = `${year}-${month}-${day}`;
@@ -580,19 +588,19 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
               <div className="flex items-center gap-1.5 text-xs font-semibold bg-[#FAF6EE] p-1 rounded-xl border border-[#E6E1D5] self-start sm:self-auto">
                 <button
                   onClick={() => setCalendarGranularity('hari')}
-                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'hari' ? 'bg-[#A8B774] text-[#2C4219] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
+                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'hari' ? 'bg-[#2C4219] text-[#FAF6EE] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
                 >
                   Hari
                 </button>
                 <button
                   onClick={() => setCalendarGranularity('minggu')}
-                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'minggu' ? 'bg-[#A8B774] text-[#2C4219] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
+                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'minggu' ? 'bg-[#2C4219] text-[#FAF6EE] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
                 >
                   Minggu
                 </button>
                 <button
                   onClick={() => setCalendarGranularity('bulan')}
-                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'bulan' ? 'bg-[#A8B774] text-[#2C4219] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
+                  className={`px-3 py-1 rounded-lg transition-all ${calendarGranularity === 'bulan' ? 'bg-[#2C4219] text-[#FAF6EE] font-bold shadow-2xs' : 'text-[#433A30]/70 hover:text-[#2C4219]'}`}
                 >
                   Bulan
                 </button>
@@ -632,6 +640,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                     <div
                       key={`day_${d.getTime()}`}
                       onClick={() => {
+                        setCurrentMonth(d);
                         if (dayEvents.length > 0) {
                           setSelectedEvent(dayEvents[0]);
                         }
@@ -707,8 +716,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                   );
                 } else {
                   // Hari
-                  const refDate = (selectedEvent && selectedEvent.date) ? new Date(selectedEvent.date) : new Date();
-                  return renderDayCell(refDate);
+                  return renderDayCell(currentMonth);
                 }
               })()}
             </div>
@@ -721,7 +729,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
               <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5">
                 {/* Header: Category & Date */}
                 <div className="flex items-center justify-between">
-                  <span className="inline-block bg-[#A8B774] text-[#2C4219] text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs">
+                  <span className="inline-block bg-[#A8B774] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs">
                     {selectedEvent.category}
                   </span>
 
@@ -814,7 +822,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                   return (
                     <div
                       key={ev.id}
-                      onClick={() => setSelectedEvent(ev)}
+                      onClick={() => {
+                        setSelectedEvent(ev);
+                        if (ev.date) setCurrentMonth(new Date(ev.date));
+                      }}
                       className={`
                         p-3 rounded-2xl bg-white border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:border-[#2C4219]
                         ${isSelected ? 'border-[#2C4219] ring-1 ring-[#2C4219]/20' : 'border-[#E6E1D5]'}
@@ -880,7 +891,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="bg-[#A8B774] text-[#2C4219] text-[10px] font-bold uppercase px-2.5 py-0.5 rounded">
+                    <span className="bg-[#A8B774] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded">
                       {ev.category}
                     </span>
                     <span className="text-xs text-[#433A30]/70 font-semibold">

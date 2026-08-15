@@ -15,6 +15,10 @@ export interface CmsData {
   registerDesc: string;
   registerImage?: string;
   registerImages?: { url: string; title: string; caption: string }[];
+  footerCopyright?: string;
+  footerPrivacy?: string;
+  footerTerms?: string;
+  footerHelp?: string;
 }
 
 export interface UserProfile {

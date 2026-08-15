@@ -12,6 +12,7 @@ import {
   HelpCircle,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   ShieldCheck,
   Megaphone
@@ -26,6 +27,8 @@ interface SidebarProps {
   unreadAnnouncementsCount: number;
   isOpenMobile: boolean;
   setIsOpenMobile: (isOpen: boolean) => void;
+  isCollapsed?: boolean;
+  setIsCollapsed?: (isCollapsed: boolean) => void;
   onGoToLanding?: () => void;
   onLogout?: () => void;
   onGoToAdmin?: () => void;
@@ -43,6 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   unreadAnnouncementsCount,
   isOpenMobile,
   setIsOpenMobile,
+  isCollapsed = false,
+  setIsCollapsed,
   onGoToLanding,
   onLogout,
   onGoToAdmin,
@@ -67,102 +72,119 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Mobile Backdrop */}
+      {/* Mobile Backdrop */}
       {isOpenMobile && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setIsOpenMobile(false)}
         />
       )}
 
       <aside className={`
-        fixed top-0 left-0 bottom-0 h-screen overflow-y-auto z-50 w-64 bg-white border-r border-[#E6E1D5] flex flex-col justify-between p-4 transition-transform duration-300 ease-in-out print:hidden
-        ${isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        fixed top-0 left-0 bottom-0 h-screen overflow-visible z-50 bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
+        ${isOpenMobile ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${isCollapsed ? 'md:w-20' : 'md:w-64'}
       `}>
-        {/* Top Logo & App Title */}
-        <div className="space-y-6">
-          <div
-            onClick={() => {
-              setActiveNav('beranda');
-              if (isOpenMobile) setIsOpenMobile(false);
-            }}
-            className="flex items-center gap-3 px-2 pt-2 cursor-pointer group"
-            title="Ke Halaman Utama"
+        {/* Toggle Collapse Button (Desktop Only) */}
+        {setIsCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden md:flex absolute -right-3 top-8 z-[60] w-6 h-6 bg-white border border-[#E6E1D5] rounded-full items-center justify-center text-[#2C4219] hover:bg-[#FAF6EE] shadow-sm transition-colors"
           >
-            {webLogo ? (
-              <img src={webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${webLogo}` : webLogo} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-[#2C4219] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-                <Sprout className="w-6 h-6 text-[#A8B774]" />
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        )}
+
+        {/* Scrollable Internal Container */}
+        <div className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4 justify-between">
+          <div>
+            {/* Top Logo & App Title */}
+            <div className="space-y-6">
+              <div
+                onClick={() => {
+                  setActiveNav('beranda');
+                  if (isOpenMobile && window.innerWidth < 768) setIsOpenMobile(false);
+                }}
+                className={`flex items-center gap-3 cursor-pointer group ${isCollapsed ? 'justify-center px-0' : 'px-2'} pt-2`}
+                title="Ke Halaman Utama"
+              >
+                {webLogo ? (
+                  <img src={webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${webLogo}` : webLogo} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#2C4219] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                    <Sprout className="w-6 h-6 text-[#A8B774]" />
+                  </div>
+                )}
+                <div className={`transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                  <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight line-clamp-1">
+                    {webName || 'Community App'}
+                  </h1>
+                  <p className="text-[11px] font-bold text-[#A8B774] tracking-wider uppercase line-clamp-1">
+                    {webSubtitle || 'KWT MELATI SORGUM'}
+                  </p>
+                </div>
               </div>
-            )}
-            <div>
-              <h1 className="font-title font-bold text-base text-[#2C4219] leading-tight line-clamp-1">
-                {webName || 'Community App'}
-              </h1>
-              <p className="text-[11px] font-bold text-[#A8B774] tracking-wider uppercase line-clamp-1">
-                {webSubtitle || 'KWT MELATI SORGUM'}
-              </p>
+
+              {/* Navigation Links */}
+              <nav className="space-y-2">
+                {navItems.map((item) => {
+                  const isActive = activeNav === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        handleNavClick(item.id);
+                        if (isOpenMobile && window.innerWidth < 768) setIsOpenMobile(false);
+                      }}
+                      title={isCollapsed ? item.label : undefined}
+                      className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all relative group
+                        ${isActive
+                          ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                          : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                        } ${isCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+                    >
+                      <div className="relative shrink-0">
+                        {item.icon}
+                        {!isCollapsed && item.badge && item.badge > 0 ? (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#C53030] rounded-full border border-white"></span>
+                        ) : null}
+                      </div>
+                      {!isCollapsed && <span>{item.label}</span>}
+                      
+                      {isCollapsed && item.badge && item.badge > 0 ? (
+                        <span className="absolute top-0 right-0 w-3 h-3 bg-[#C53030] rounded-full border border-white"></span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="space-y-2">
-            {navItems.map((item) => {
-              const isActive = activeNav === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`
-                    w-full flex items-center justify-between px-4 py-2.5 rounded-full font-bold text-sm transition-all duration-200
-                    ${isActive
-                      ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
-                      : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={isActive ? 'text-[#A8B774]' : 'text-[#433A30]/70'}>
-                      {item.icon}
-                    </span>
-                    <span className={isActive ? 'text-white font-bold' : 'font-semibold'}>{item.label}</span>
-                  </div>
-                  {item.badge && item.badge > 0 ? (
-                    <span className={`
-                      px-2.5 py-0.5 rounded-full text-xs font-bold
-                      ${isActive ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#572E4A] text-white'}
-                    `}>
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+          {/* Bottom Actions */}
+          <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
+            {onGoToAdmin && (currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin')) && (
+              <button
+                onClick={onGoToAdmin}
+                title={isCollapsed ? 'Ke Admin Portal' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full text-xs font-bold bg-[#2C4219] text-white hover:bg-[#1E2E11] transition-all shadow-xs border border-[#A8B774]/30 ${isCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <ShieldCheck className="w-4 h-4 text-[#A8B774] shrink-0" />
+                {!isCollapsed && <span>Ke Admin Portal</span>}
+              </button>
+            )}
 
-        {/* Bottom Actions */}
-        <div className="space-y-2 pt-4 border-t border-[#E6E1D5]">
-          {onGoToAdmin && (currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin')) && (
-            <button
-              onClick={onGoToAdmin}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-bold bg-[#2C4219] text-white hover:bg-[#1E2E11] transition-all shadow-xs border border-[#A8B774]/30"
-            >
-              <ShieldCheck className="w-4 h-4 text-[#A8B774]" />
-              <span>Ke Admin Portal</span>
-            </button>
-          )}
-
-          {onLogout && (
-            <button
-              onClick={() => {
-                onLogout();
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4 text-[#C53030]" />
-              <span>Keluar</span>
-            </button>
-          )}
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title={isCollapsed ? 'Keluar' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full text-xs font-bold text-[#C53030] hover:bg-[#C53030]/10 transition-colors ${isCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <LogOut className="w-4 h-4 text-[#C53030] shrink-0" />
+                {!isCollapsed && <span>Keluar</span>}
+              </button>
+            )}
+          </div>
         </div>
       </aside>
     </>

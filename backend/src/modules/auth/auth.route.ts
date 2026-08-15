@@ -74,6 +74,10 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response,
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new AppError('Email atau password salah', 401);
     }
+    
+    if (user.isActive === false) {
+      throw new AppError('Akun Anda telah dinonaktifkan. Silakan hubungi Administrator.', 403);
+    }
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role, name: user.name },

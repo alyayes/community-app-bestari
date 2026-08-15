@@ -76,7 +76,11 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
         registerTitle: data.registerTitle,
         registerDesc: data.registerDesc,
         registerImage: data.registerImage,
-        registerImages: Array.isArray(data.registerImages) ? data.registerImages : (data.registerImage ? [{ url: data.registerImage, title: '', caption: '' }] : [])
+        registerImages: Array.isArray(data.registerImages) ? data.registerImages : (data.registerImage ? [{ url: data.registerImage, title: '', caption: '' }] : []),
+        footerCopyright: data.footerCopyright,
+        footerPrivacy: data.footerPrivacy,
+        footerTerms: data.footerTerms,
+        footerHelp: data.footerHelp
       },
       create: {
         id: 'global',
@@ -93,7 +97,11 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
         registerTitle: data.registerTitle,
         registerDesc: data.registerDesc,
         registerImage: data.registerImage,
-        registerImages: Array.isArray(data.registerImages) ? data.registerImages : []
+        registerImages: Array.isArray(data.registerImages) ? data.registerImages : [],
+        footerCopyright: data.footerCopyright || '© 2026 KWT Melati Sorgum. Seluruh hak cipta dilindungi.',
+        footerPrivacy: data.footerPrivacy || '',
+        footerTerms: data.footerTerms || '',
+        footerHelp: data.footerHelp || ''
       }
     });
 

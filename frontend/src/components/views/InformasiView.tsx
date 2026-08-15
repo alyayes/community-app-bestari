@@ -91,11 +91,12 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
       doc.text(titleLines, margin, yPos);
       yPos += (titleLines.length * 10);
 
-      // Draw Meta (Kategori, Tanggal)
+      // Draw Meta (Kategori, Penulis, Tanggal)
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 100, 100);
-      const metaText = `Kategori: ${selectedArticle.category || 'Umum'}   |   Tanggal: ${selectedArticle.date}`;
+      const authorName = selectedArticle.author?.name || 'Sekretariat KWT Sorgum';
+      const metaText = `Kategori: ${selectedArticle.category || 'Umum'}   |   Penulis: ${authorName}   |   Tanggal: ${selectedArticle.date}`;
       doc.text(metaText, margin, yPos);
       yPos += 10;
 
@@ -281,9 +282,10 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             </h2>
             <div className="space-y-4 text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
               {selectedArticle.content && selectedArticle.content.length > 0 ? (
-                selectedArticle.content.map((p, idx) => (
-                  <p key={idx}>{p}</p>
-                ))
+                <div 
+                  className="[&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-4 [&>h1]:text-[#2C4219] [&>h2]:text-xl [&>h2]:font-bold [&>h2]:mb-3 [&>h2]:mt-5 [&>h2]:text-[#2C4219] [&>h3]:text-lg [&>h3]:font-bold [&>h3]:mb-2 [&>h3]:mt-4 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4 [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-4 [&>li]:mb-1 [&>strong]:font-bold [&>em]:italic"
+                  dangerouslySetInnerHTML={{ __html: selectedArticle.content.join('\n') }}
+                />
               ) : (
                 <p>{selectedArticle.summary}</p>
               )}
@@ -379,15 +381,6 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="pt-12 border-t border-[#E6E1D5] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#433A30]/70 font-semibold tracking-wider print:hidden">
-          <p>KWT SORGUM © 2026. NURTURING COMMUNITY & GROWTH</p>
-          <div className="flex items-center gap-6">
-            <button className="hover:text-[#2C4219] transition-colors">Kebijakan Privasi</button>
-            <button className="hover:text-[#2C4219] transition-colors">Ketentuan Layanan</button>
-            <button className="hover:text-[#2C4219] transition-colors">Kontak Kami</button>
-          </div>
-        </div>
       </div>
     );
   }
@@ -464,15 +457,15 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   {art.title}
                 </h3>
 
-                <p className="text-xs text-[#433A30]/80 line-clamp-3 leading-relaxed font-normal">
-                  {art.summary}
-                </p>
+                <div 
+                  className="text-xs text-[#433A30]/80 line-clamp-3 leading-relaxed font-normal [&>h1]:text-sm [&>h1]:font-bold [&>h1]:text-[#2C4219] [&>h2]:text-sm [&>h2]:font-bold [&>h2]:text-[#2C4219] [&>h3]:text-sm [&>h3]:font-bold [&>p]:mb-1 [&>strong]:font-bold [&>em]:italic"
+                  dangerouslySetInnerHTML={{ __html: (art.content && art.content.length > 0) ? art.content[0] : art.summary }}
+                />
               </div>
             </div>
 
             {/* Read More Footer */}
-            <div className="px-5 pb-5 pt-2 border-t border-[#E6E1D5]/50 flex items-center justify-between text-xs font-bold text-[#2C4219]">
-              <span className="group-hover:underline">Baca Selengkapnya</span>
+            <div className="px-5 pb-5 pt-2 border-t border-[#E6E1D5]/50 flex items-center justify-end text-xs font-bold text-[#2C4219]">
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
