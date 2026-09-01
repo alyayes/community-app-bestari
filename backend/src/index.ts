@@ -19,6 +19,7 @@ import hargaPasarRoutes from './modules/harga-pasar/hargaPasar.route';
 import uploadRoutes from './modules/upload/upload.route';
 import cmsRoutes from './modules/cms/cms.route';
 import sttRoutes from './modules/stt/stt.route';
+import scmRoutes from './modules/scm/scm.route';
 
 dotenv.config();
 
@@ -48,6 +49,7 @@ app.use('/api/harga-pasar', hargaPasarRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/stt', sttRoutes);
+app.use('/api/scm', scmRoutes);
 
 // 404
 app.use((_req, res) => {

@@ -24,6 +24,8 @@ interface HeaderProps {
   onClearAllNotifications?: () => void;
   onMarkAllRead?: () => void;
   onClickNotification?: (id: string) => void;
+  appMode?: 'lite' | 'pro';
+  onGoToBeranda?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -40,7 +42,9 @@ export const Header: React.FC<HeaderProps> = ({
   onDeleteNotification,
   onClearAllNotifications,
   onMarkAllRead,
-  onClickNotification
+  onClickNotification,
+  appMode,
+  onGoToBeranda
 }) => {
   const [showNotifications, setShowNotifications] = React.useState(false);
   const notificationRef = React.useRef<HTMLDivElement>(null);
@@ -58,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
   const titles: Record<NavItem, string> = {
     beranda: 'Beranda Utama',
     agenda: 'Agenda Kegiatan',
-    informasi: 'Pusat Informasi & Pengetahuan',
+    informasi: 'Informasi',
     pengumuman: 'Pengumuman Resmi',
     diskusi: 'Diskusi & Komunitas',
     dashboard: 'Data Sorgum',
@@ -74,16 +78,26 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={onToggleMobileMenu}
-            className="lg:hidden p-2 rounded-xl bg-white border border-[#E6E1D5] text-[#2C4219] hover:bg-[#FAF6EE] transition-colors"
-            aria-label="Toggle Navigation"
+            className="md:hidden p-2 -ml-2 rounded-xl bg-transparent text-[#2C4219] hover:bg-[#E6E1D5] transition-colors"
+            title="Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           <div>
-            <h1 className="font-title font-bold text-lg md:text-xl text-[#2C4219] leading-tight">
-              {currentTitle}
-            </h1>
+            {appMode === 'lite' && activeNav !== 'beranda' ? (
+              <button 
+                onClick={onGoToBeranda}
+                className="flex items-center gap-1.5 font-bold text-[#2C4219] hover:text-[#1E2E11]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                Kembali ke Beranda
+              </button>
+            ) : (
+              <h1 className="font-title font-bold text-lg md:text-xl text-[#2C4219] leading-tight">
+                {currentTitle}
+              </h1>
+            )}
           </div>
         </div>
 

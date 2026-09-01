@@ -5,7 +5,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
-import { SERVER_BASE } from '../../api/client';
+import { SERVER_BASE, getToken } from '../../api/client';
 
 interface LandingViewProps {
   currentUser: UserProfile;
@@ -34,6 +34,7 @@ const HERO_IMAGES = [
 ];
 
 export const LandingView: React.FC<LandingViewProps> = ({
+  currentUser,
   cmsData,
   onGoToLogin,
   onGoToRegister,
@@ -185,21 +186,41 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
           {/* TWO ENLARGED CTA BUTTONS WITH MICRO-INTERACTIONS */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
-            <button
-              onClick={onGoToRegister}
-              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
-            >
-              <UserPlus className="w-5 h-5 text-[#A8B774]" />
-              <span>Daftar Sekarang</span>
-            </button>
+            {getToken() ? (
+              <button
+                onClick={() => {
+                  const isAdmin = currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin');
+                  if (isAdmin) {
+                    onEnterApp('dashboard'); // Assuming admin goes to dashboard or we could just use a special handler
+                    // Actually wait, onEnterApp in LandingView just sets pageMode to 'app'. 
+                    // Let's just dispatch an event or use window.location.reload() for simplicity, or we can use onEnterApp.
+                  }
+                  onEnterApp();
+                }}
+                className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
+              >
+                <LogIn className="w-5 h-5 text-[#A8B774]" />
+                <span>Masuk Aplikasi</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={onGoToRegister}
+                  className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-[#A8B774]"
+                >
+                  <UserPlus className="w-5 h-5 text-[#A8B774]" />
+                  <span>Daftar Sekarang</span>
+                </button>
 
-            <button
-              onClick={onGoToLogin}
-              className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
-            >
-              <LogIn className="w-5 h-5 text-[#A8B774]" />
-              <span>Masuk Akun</span>
-            </button>
+                <button
+                  onClick={onGoToLogin}
+                  className="w-[220px] sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-white/20 hover:bg-white/30 text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 backdrop-blur-md border-2 border-white/60 shadow-xl hover:scale-105 active:scale-95 transition-all duration-300"
+                >
+                  <LogIn className="w-5 h-5 text-[#A8B774]" />
+                  <span>Masuk Akun</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>

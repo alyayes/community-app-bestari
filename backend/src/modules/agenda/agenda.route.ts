@@ -16,6 +16,9 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
   const rundown = typeof a.rundown === 'string' ? JSON.parse(a.rundown) : (a.rundown || []);
   const requirements = typeof a.requirements === 'string' ? JSON.parse(a.requirements) : (a.requirements || []);
   const benefits = typeof a.benefits === 'string' ? JSON.parse(a.benefits) : (a.benefits || []);
+  const materiUrls = typeof a.materiUrls === 'string' ? JSON.parse(a.materiUrls) : (a.materiUrls || []);
+  const dokumentasiUrls = typeof a.dokumentasiUrls === 'string' ? JSON.parse(a.dokumentasiUrls) : (a.dokumentasiUrls || []);
+  const linkUrls = typeof a.linkUrls === 'string' ? JSON.parse(a.linkUrls) : (a.linkUrls || []);
 
   const d = new Date(a.date + 'T00:00:00');
   const dayNumber = a.dayNumber || String(d.getDate()).padStart(2, '0');
@@ -49,6 +52,10 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
     rundown,
     requirements,
     benefits,
+    materiUrls,
+    dokumentasiUrls,
+    linkUrls,
+    certificateTemplate: a.certificateTemplate || null,
     targetParticipants: a.targetParticipants || '',
     quota: {
       registered: a.quotaRegistered ?? peserta.length,
@@ -61,6 +68,11 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
     creatorId: a.creatorId,
     isRegistered: userId ? peserta.some((p: any) => p.userId === userId) : false,
     isReminded: userId ? reminders.some((r: any) => r.userId === userId) : false,
+    peserta: peserta.map((p: any) => ({
+      userId: p.userId,
+      userName: p.userName,
+      attended: p.attended || false
+    }))
   };
 }
 
@@ -79,6 +91,46 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         }
       } catch (e) {
         // Ignore invalid token for public route
+      }
+    }
+
+    // Auto-update status to 'Selesai' for past agendas based on date and time
+    const activeAgendas = await prisma.agenda.findMany({
+      where: { status: { not: 'Selesai' } }
+    });
+
+    if (activeAgendas.length > 0) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      for (const a of activeAgendas) {
+        if (!a.date) continue;
+        let isPast = false;
+        
+        if (a.date < todayStr) {
+          isPast = true;
+        } else if (a.date === todayStr) {
+          let endTime = "23:59";
+          if (a.time && a.time.includes('-')) {
+             const parts = a.time.split('-');
+             if (parts.length > 1) endTime = parts[1].trim();
+          } else if (a.time) {
+             endTime = a.time.trim();
+          }
+          
+          endTime = endTime.replace(/\./g, ':');
+          if (endTime < currentTimeStr) {
+            isPast = true;
+          }
+        }
+
+        if (isPast) {
+          await prisma.agenda.update({
+            where: { id: a.id },
+            data: { status: 'Selesai' }
+          });
+        }
       }
     }
 
@@ -234,6 +286,33 @@ router.put('/:id', authenticate, validate(updateAgendaSchema), async (req: Reque
       },
     });
     return successResponse(res, toAgenda(a), 'Agenda berhasil diperbarui');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── PUT /api/agenda/:id/attendance ─────────────
+router.put('/:id/attendance', authenticate, authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agendaId = String(req.params.id);
+    const { userId, status, validated, attended } = req.body;
+
+    const existing = await prisma.agendaPeserta.findUnique({
+      where: { agendaId_userId: { agendaId, userId } }
+    });
+
+    if (!existing) throw new NotFoundError('Peserta tidak ditemukan');
+
+    await prisma.agendaPeserta.update({
+      where: { agendaId_userId: { agendaId, userId } },
+      data: { 
+        status: status !== undefined ? String(status) : undefined, 
+        validated: validated !== undefined ? Boolean(validated) : undefined,
+        attended: attended !== undefined ? Boolean(attended) : undefined
+      },
+    });
+
+    return successResponse(res, { success: true }, 'Validasi kehadiran berhasil diperbarui');
   } catch (err) {
     next(err);
   }

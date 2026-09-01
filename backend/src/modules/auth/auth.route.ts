@@ -26,6 +26,7 @@ function toProfile(u: any) {
     memberSince: u.memberSince || '',
     firstName: u.firstName || u.name.split(' ')[0] || '',
     lastName: u.lastName || u.name.split(' ').slice(1).join(' ') || '',
+    certificateName: u.certificateName || '',
     dob: u.dob || '',
     email: u.email,
     country: u.country || '',
@@ -74,6 +75,10 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response,
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new AppError('Email atau password salah', 401);
     }
+    
+    if (user.isActive === false) {
+      throw new AppError('Akun Anda telah dinonaktifkan. Silakan hubungi Administrator.', 403);
+    }
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role, name: user.name },
@@ -102,7 +107,7 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
 router.put('/profile', authenticate, validate(updateProfileSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.userId;
-    const { firstName, lastName, dob, email, phone, avatar, country, city, postalCode, lahanLocation, sorghumType, memberSince } = req.body;
+    const { firstName, lastName, certificateName, dob, email, phone, avatar, country, city, postalCode, lahanLocation, sorghumType, memberSince } = req.body;
 
     const dataToUpdate: any = {};
     if (firstName !== undefined) dataToUpdate.firstName = firstName;
@@ -116,6 +121,7 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
     }
     
     if (dob !== undefined) dataToUpdate.dob = dob;
+    if (certificateName !== undefined) dataToUpdate.certificateName = certificateName;
     if (email !== undefined) dataToUpdate.email = email;
     if (phone !== undefined) dataToUpdate.phone = phone;
     if (avatar !== undefined) dataToUpdate.avatar = avatar;

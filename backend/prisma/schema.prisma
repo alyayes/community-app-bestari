@@ -23,12 +23,14 @@ model User {
   memberSince   String?   @map("member_since")
   firstName     String?   @map("first_name")
   lastName      String?   @map("last_name")
+  certificateName String? @map("certificate_name")
   dob           String?
   resetToken    String?   @map("reset_token")
   resetTokenExp DateTime? @map("reset_token_exp")
   country       String?
   city          String?
   postalCode    String?   @map("postal_code")
+  isActive      Boolean   @default(true) @map("is_active")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -107,6 +109,10 @@ model Agenda {
   rundown            Json?    // {time, activity}[]
   requirements       Json?    // string[]
   benefits           Json?    // string[]
+  materiUrls         Json?    @map("materi_urls") // string[]
+  dokumentasiUrls    Json?    @map("dokumentasi_urls") // string[]
+  linkUrls           Json?    @map("link_urls") // string[]
+  certificateTemplate String? @db.Text @map("certificate_template")
   targetParticipants String?  @map("target_participants")
   quotaRegistered    Int?     @map("quota_registered")
   quotaMax           Int?     @map("quota_max")
@@ -218,6 +224,9 @@ model AgendaPeserta {
   agendaId  String   @map("agenda_id")
   userId    String   @map("user_id")
   userName  String   @map("user_name")
+  status    String   @default("Pending")
+  validated Boolean  @default(false)
+  attended  Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
 
   agenda Agenda @relation(fields: [agendaId], references: [id], onDelete: Cascade)
@@ -305,6 +314,12 @@ model Cms {
   registerDesc   String   @db.Text
   registerImage  String   @db.Text
   registerImages Json?    // Array of images (carousel)
+  
+  // Footer
+  footerCopyright String? @default("© 2026 KWT Melati Sorgum. Seluruh hak cipta dilindungi.") @map("footer_copyright")
+  footerPrivacy   String? @db.LongText @map("footer_privacy")
+  footerTerms     String? @db.LongText @map("footer_terms")
+  footerHelp      String? @db.LongText @map("footer_help")
 
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
