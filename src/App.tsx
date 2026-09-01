@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard } from 'lucide-react';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, UserProfile, CmsData } from './types';
 import {
   CURRENT_USER,
@@ -14,12 +15,16 @@ import { api, apiLogin, apiRegister, getToken, setToken } from './api/client';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { BerandaView } from './components/views/BerandaView';
+import { BerandaViewLite } from './components/views/BerandaViewLite';
 import { AgendaView } from './components/views/AgendaView';
 import { InformasiView } from './components/views/InformasiView';
+import { InformasiViewLite } from './components/views/InformasiViewLite';
 import { PengumumanView } from './components/views/PengumumanView';
 import { AnnouncementDetailView } from './components/views/AnnouncementDetailView';
 import { DiskusiView } from './components/views/DiskusiView';
+import { DiskusiViewLite } from './components/views/DiskusiViewLite';
 import { DashboardDesaView } from './components/views/DashboardDesaView';
+import { DashboardDesaViewLite } from './components/views/DashboardDesaViewLite';
 import { ProfilView } from './components/views/ProfilView';
 
 // Landing, Login, & Register Pages
@@ -44,6 +49,9 @@ export function App() {
   const [activeNav, setActiveNav] = useState<NavItem>(() => {
     return (sessionStorage.getItem('bestari_activenav') as NavItem) || 'beranda';
   });
+  const [appMode, setAppMode] = useState<'lite' | 'pro'>(() => {
+    return (sessionStorage.getItem('bestari_appmode') as 'lite' | 'pro') || 'pro';
+  });
 
   useEffect(() => {
     sessionStorage.setItem('bestari_pagemode', pageMode);
@@ -52,6 +60,10 @@ export function App() {
   useEffect(() => {
     sessionStorage.setItem('bestari_activenav', activeNav);
   }, [activeNav]);
+
+  useEffect(() => {
+    sessionStorage.setItem('bestari_appmode', appMode);
+  }, [appMode]);
   const [currentUser, setCurrentUser] = useState<UserProfile>(CURRENT_USER);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -884,19 +896,27 @@ export function App() {
         />
 
         {/* Dynamic Screen Render */}
-        <main className={`flex-1 w-full flex flex-col min-h-[calc(100vh-80px)] ${activeNav === 'diskusi' ? 'px-3 sm:px-5 py-3' : 'px-4 lg:px-8 pt-6 pb-12'}`}>
+        <main className={`flex-1 w-full flex flex-col min-h-[calc(100vh-80px)] ${activeNav === 'diskusi' ? 'px-3 sm:px-5 py-3' : 'px-4 lg:px-8 pt-6 pb-12'} md:pb-12 pb-24`}>
           {activeNav === 'beranda' && (
-            <BerandaView
-              currentUser={currentUser}
-              articles={articles}
-              announcements={announcements}
-              events={events}
-              setActiveNav={setActiveNav}
-              onSelectArticle={handleSelectArticle}
-              onSelectAnnouncement={handleSelectAnnouncement}
-              onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
-              cmsData={cmsData}
-            />
+            appMode === 'lite' ? (
+              <BerandaViewLite
+                currentUser={currentUser}
+                events={events}
+                setActiveNav={setActiveNav}
+              />
+            ) : (
+              <BerandaView
+                currentUser={currentUser}
+                articles={articles}
+                announcements={announcements}
+                events={events}
+                setActiveNav={setActiveNav}
+                onSelectArticle={handleSelectArticle}
+                onSelectAnnouncement={handleSelectAnnouncement}
+                onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+                cmsData={cmsData}
+              />
+            )
           )}
 
           {activeNav === 'agenda' && (
@@ -909,16 +929,26 @@ export function App() {
               onRegisterEvent={handleRegisterAgenda}
               onUnregisterEvent={handleUnregisterAgenda}
               searchQuery={searchQuery}
+              appMode={appMode}
             />
           )}
 
           {activeNav === 'informasi' && (
-            <InformasiView
-              articles={articles}
-              selectedArticle={selectedArticle}
-              onSelectArticle={handleSelectArticle}
-              searchQuery={searchQuery}
-            />
+            appMode === 'lite' ? (
+              <InformasiViewLite
+                articles={articles}
+                selectedArticle={selectedArticle}
+                onSelectArticle={handleSelectArticle}
+                searchQuery={searchQuery}
+              />
+            ) : (
+              <InformasiView
+                articles={articles}
+                selectedArticle={selectedArticle}
+                onSelectArticle={handleSelectArticle}
+                searchQuery={searchQuery}
+              />
+            )
           )}
 
           {activeNav === 'pengumuman' && (
@@ -938,43 +968,111 @@ export function App() {
           )}
 
           {activeNav === 'diskusi' && (
-            <DiskusiView
-              threads={threads}
-              currentUser={currentUser}
-              onOpenCreateModal={() => setIsCreateTopicOpen(true)}
-              onToggleLikeThread={handleToggleLikeThread}
-              onToggleLikeComment={handleToggleLikeComment}
-              onAddComment={handleAddComment}
-              onEditComment={handleEditComment}
-              onDeleteComment={handleDeleteComment}
-              onDeleteThread={handleDeleteThread}
-              onUpdateThread={handleUpdateThread}
-            />
+            appMode === 'lite' ? (
+              <DiskusiViewLite
+                threads={threads}
+                currentUser={currentUser}
+                onOpenCreateModal={() => setIsCreateTopicOpen(true)}
+                onAddComment={handleAddComment}
+                onToggleLikeThread={handleToggleLikeThread}
+                onToggleLikeComment={handleToggleLikeComment}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+                onDeleteThread={handleDeleteThread}
+                onUpdateThread={handleUpdateThread}
+              />
+            ) : (
+              <DiskusiView
+                threads={threads}
+                currentUser={currentUser}
+                onOpenCreateModal={() => setIsCreateTopicOpen(true)}
+                onToggleLikeThread={handleToggleLikeThread}
+                onToggleLikeComment={handleToggleLikeComment}
+                onAddComment={handleAddComment}
+                onEditComment={handleEditComment}
+                onDeleteComment={handleDeleteComment}
+                onDeleteThread={handleDeleteThread}
+                onUpdateThread={handleUpdateThread}
+              />
+            )
           )}
 
           {activeNav === 'dashboard' && (
-            <DashboardDesaView
-              landPlots={landPlots}
-              harvestRecords={harvestRecords}
-              members={members}
-              onSimpanPanen={() => setIsMulaiPanenOpen(true)}
-              totalUsers={dashboardStats.totalUsers || 48}
-              totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
-              onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
-            />
+            appMode === 'lite' ? (
+              <DashboardDesaViewLite
+                landPlots={landPlots}
+                harvestRecords={harvestRecords}
+                members={members}
+                onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+              />
+            ) : (
+              <DashboardDesaView
+                landPlots={landPlots}
+                harvestRecords={harvestRecords}
+                members={members}
+                onSimpanPanen={() => setIsMulaiPanenOpen(true)}
+                totalUsers={dashboardStats.totalUsers || 48}
+                totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
+                onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+              />
+            )
           )}
 
           {activeNav === 'profil' && (
             <ProfilView
               currentUser={currentUser}
               setCurrentUser={setCurrentUser}
+              appMode={appMode}
+              setAppMode={setAppMode}
             />
           )}
 
         </main>
 
-        {/* Footer User */}
-        <footer className="mt-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 whitespace-nowrap overflow-x-auto scrollbar-hide">
+        {/* Mobile Bottom Navigation (Visible only on md:hidden) */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E6E1D5] flex md:hidden items-center justify-around pb-safe z-40">
+          {[
+            { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
+            { id: 'informasi', label: 'Informasi', icon: <BookOpen className="w-5 h-5" /> },
+            { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-6 h-6" />, isProminent: true },
+            { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
+            { id: 'dashboard', label: 'Data Sorgum', icon: <LayoutDashboard className="w-5 h-5" /> },
+          ].map((item) => {
+            const isActive = activeNav === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveNav(item.id as any)}
+                className={`flex flex-col items-center justify-center w-full py-2 relative transition-all duration-300 ${isActive && !item.isProminent ? 'text-[#2C4219]' : 'text-[#7A7062] hover:text-[#433A30]'}`}
+              >
+                {!item.isProminent && (
+                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-md transition-all duration-300 bg-[#2C4219] ${isActive ? 'w-1/2 opacity-100' : 'w-0 opacity-0'}`}></div>
+                )}
+                {item.isProminent ? (
+                  <div className="flex flex-col items-center justify-center -mt-8 group">
+                    <div className={`relative w-14 h-14 flex items-center justify-center rounded-full border-4 border-white shadow-lg transition-all duration-300 active:scale-95 ${isActive ? 'bg-[#2C4219] text-[#A8B774] shadow-[#2C4219]/40 -translate-y-1' : 'bg-[#2C4219] text-white hover:-translate-y-0.5'}`}>
+                      {isActive && (
+                        <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-[#2C4219]"></span>
+                      )}
+                      {item.icon}
+                    </div>
+                    <span className={`text-[10px] font-black mt-1.5 transition-colors ${isActive ? 'text-[#2C4219]' : 'text-[#7A7062]'}`}>{item.label}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`transition-transform duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
+                      {item.icon}
+                    </div>
+                    <span className={`text-[9px] font-bold mt-1 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>{item.label}</span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer User (Hidden on Mobile, shown on md up) */}
+        <footer className="hidden md:flex flex-wrap mt-auto py-4 px-4 sm:px-6 lg:px-8 items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 text-center">
           <div className="opacity-80">
             {cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.'}
           </div>

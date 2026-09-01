@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Image as ImageIcon
 } from 'lucide-react';
+import { getCategoryColor } from './AgendaView';
 
 interface BerandaViewProps {
   currentUser: UserProfile;
@@ -90,7 +91,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
       return e.status !== 'Selesai' && !isPast;
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 2);
+    .slice(0, 5);
 
   return (
     <div className="space-y-6 pb-12 w-full">
@@ -212,50 +213,53 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
         {/* Right 1 Column: Pengumuman Urgent & Upcoming Agenda */}
         <div className="space-y-6">
           {/* Urgent Announcements */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Megaphone className="w-5 h-5 text-[#572E4A]" />
-                <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Penting</h3>
+          {/* DI-HIDE SEMENTARA */}
+          {false && (
+            <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-[#572E4A]" />
+                  <h3 className="font-title font-bold text-base text-[#2C4219]">Pengumuman Penting</h3>
+                </div>
+                <button
+                  onClick={() => setActiveNav('pengumuman')}
+                  className="text-xs font-semibold text-[#2C4219] hover:underline"
+                >
+                  Semua
+                </button>
               </div>
-              <button
-                onClick={() => setActiveNav('pengumuman')}
-                className="text-xs font-semibold text-[#2C4219] hover:underline"
-              >
-                Semua
-              </button>
-            </div>
 
-            <div className="space-y-3">
-              {latestAnnouncements.length === 0 ? (
-                <div className="text-center text-xs text-[#433A30]/50 py-4">Belum ada pengumuman</div>
-              ) : (
-                latestAnnouncements.map((ann) => (
-                  <div
-                    key={ann.id}
-                    onClick={() => onSelectAnnouncement(ann)}
-                    className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#572E4A] cursor-pointer transition-all space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span 
-                        className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
-                        style={{ backgroundColor: ann.badgeColor }}
-                      >
-                        {ann.category}
-                      </span>
-                      <span className="text-[10px] text-[#433A30]/70">{ann.timeAgo}</span>
+              <div className="space-y-3">
+                {latestAnnouncements.length === 0 ? (
+                  <div className="text-center text-xs text-[#433A30]/50 py-4">Belum ada pengumuman</div>
+                ) : (
+                  latestAnnouncements.map((ann) => (
+                    <div
+                      key={ann.id}
+                      onClick={() => onSelectAnnouncement(ann)}
+                      className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#572E4A] cursor-pointer transition-all space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span 
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
+                          style={{ backgroundColor: ann.badgeColor }}
+                        >
+                          {ann.category}
+                        </span>
+                        <span className="text-[10px] text-[#433A30]/70">{ann.timeAgo}</span>
+                      </div>
+                      <h4 className="font-title font-bold text-xs text-[#2C4219] line-clamp-2">
+                        {ann.title}
+                      </h4>
+                      <p className="text-[11px] text-[#433A30] line-clamp-2">
+                        {ann.summary}
+                      </p>
                     </div>
-                    <h4 className="font-title font-bold text-xs text-[#2C4219] line-clamp-2">
-                      {ann.title}
-                    </h4>
-                    <p className="text-[11px] text-[#433A30] line-clamp-2">
-                      {ann.summary}
-                    </p>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Agenda Mendatang Widget */}
           <div className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-4">
@@ -279,8 +283,8 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                   onClick={() => setActiveNav('agenda')}
                   className="p-3 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center gap-3 cursor-pointer hover:bg-white hover:border-[#2C4219] transition-all"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#2C4219] text-white flex flex-col items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-[#A8B774] leading-none">{ev.monthAbbr}</span>
+                  <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${getCategoryColor(ev.category)}`}>
+                    <span className="text-xs font-bold leading-none opacity-90">{ev.monthAbbr}</span>
                     <span className="font-title font-bold text-base leading-none mt-0.5">{ev.dayNumber}</span>
                   </div>
                   <div className="min-w-0 flex-1">

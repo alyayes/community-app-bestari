@@ -8,6 +8,7 @@ import {
   Search,
   Trash2,
   Send,
+  ArrowLeft,
   Paperclip,
   Smile,
   Users,
@@ -54,6 +55,10 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 }) => {
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Topik');
+  
+  // Mobile responsive state
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Active chat group selection state
@@ -388,7 +393,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         {/* ========================================================================= */}
         {/* LEFT SIDEBAR: Group Chats / Topics Navigation                             */}
         {/* ========================================================================= */}
-        <div className="md:col-span-5 lg:col-span-4 border-r border-[#E6E1D5] flex flex-col bg-[#FAF8F3] h-full overflow-hidden">
+        <div className={`${mobileView === 'list' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-5 lg:col-span-4 border-r border-[#E6E1D5] bg-[#FAF8F3] h-full overflow-hidden`}>
 
           {/* Header Bar */}
           <div className="p-3.5 sm:p-4 bg-white border-b border-[#E6E1D5] space-y-3 shrink-0">
@@ -454,9 +459,8 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
             {filteredThreads.length > 0 ? (
               filteredThreads.map((thread) => {
                 const isActive = activeThread?.id === thread.id;
-                const lastComment = thread.comments[thread.comments.length - 1];
-                const lastMessageText = lastComment ? lastComment.content : thread.summary;
-                const lastTime = lastComment ? lastComment.timeAgo : thread.timeAgo;
+                const previewText = thread.summary;
+                const previewTime = thread.timeAgo;
                 const emoji = getCategoryEmoji(thread.category);
 
                 return (
@@ -464,7 +468,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                     key={thread.id}
                     onClick={() => {
                       setActiveThreadId(thread.id);
-                      setQuotedComment(null);
+                      setMobileView('chat');
                     }}
                     className={`p-3 sm:p-3.5 flex items-start gap-3 cursor-pointer transition-all ${isActive
                       ? 'bg-[#E3EAD3] border-l-4 border-[#2C4219] shadow-xs'
@@ -489,12 +493,12 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                           {thread.title}
                         </h3>
                         <span className="text-[10px] text-[#433A30]/50 font-medium shrink-0">
-                          {lastTime}
+                          {previewTime}
                         </span>
                       </div>
 
                       <p className="text-[11px] text-[#433A30]/70 line-clamp-1 font-normal mb-1">
-                        {lastComment ? `${lastComment.authorName}: ${lastMessageText}` : lastMessageText}
+                        {thread.authorName}: {previewText}
                       </p>
 
                       <div className="flex items-center justify-between gap-2">
@@ -530,19 +534,26 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
         {/* ========================================================================= */}
         {/* RIGHT STREAM AREA: Active Group Chat                                      */}
         {/* ========================================================================= */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col bg-[#FAF6EE]/50 h-full overflow-hidden relative">
+        <div className={`${mobileView === 'chat' ? 'flex' : 'hidden'} md:flex flex-col md:col-span-7 lg:col-span-8 bg-[#FAF6EE]/50 h-full overflow-hidden relative`}>
 
           {activeThread ? (
             <>
               {/* Group Chat Top Header */}
               <div className="px-4 py-3 bg-white border-b border-[#E6E1D5] flex items-center justify-between gap-3 shrink-0">
-                <div
-                  className="flex items-center gap-3 min-w-0 cursor-pointer hover:bg-black/5 p-1 -m-1 rounded transition-colors"
-                  onClick={() => setIsDetailModalOpen(true)}
-                  title="Lihat Detail Komunitas"
-                >
-                  {activeThread.groupAvatar ? (
-                    <img
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <button 
+                    className="md:hidden p-1.5 -ml-1.5 hover:bg-black/5 rounded-lg text-[#433A30]/60 active:scale-95 transition-all shrink-0"
+                    onClick={() => setMobileView('list')}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <div
+                    className="flex items-center gap-3 min-w-0 cursor-pointer hover:bg-black/5 p-1 -m-1 rounded transition-colors"
+                    onClick={() => setIsDetailModalOpen(true)}
+                    title="Lihat Detail Komunitas"
+                  >
+                    {activeThread.groupAvatar ? (
+                      <img
                       src={activeThread.groupAvatar}
                       alt={activeThread.title}
                       className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-2xs border border-[#2C4219]/20"
@@ -567,6 +578,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                     </p>
                   </div>
                 </div>
+              </div>
 
                 {canDeleteThread(activeThread) && currentUser.name === activeThread.authorName && (
                   <div className="flex items-center gap-1">
@@ -871,6 +883,9 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
                                 {isMe && (
                                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 ml-2 self-center order-first">
+                                    <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Balas">
+                                      <CornerDownRight className="w-4 h-4" />
+                                    </button>
                                     {(!comment.createdAt || Date.now() - new Date(comment.createdAt).getTime() < 15 * 60 * 1000) && (
                                       <button onClick={() => { 
                                         setEditingCommentId(comment.id); 

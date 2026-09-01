@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { BASE_URL } from '../../api/client';
+import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 
 interface AgendaViewProps {
+  appMode?: 'lite' | 'pro';
   events: AgendaEvent[];
   currentUser: UserProfile;
   onAddEvent: (event: AgendaEvent) => void;
@@ -39,16 +41,83 @@ interface AgendaViewProps {
   onDeleteEvent?: (eventId: string) => void;
   onRegisterEvent?: (eventId: string) => void;
   onUnregisterEvent?: (eventId: string) => void;
+  onUpdateAttendance?: (eventId: string, status: 'Hadir' | 'Tidak Hadir') => void;
   searchQuery?: string;
 }
 
-export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, currentUser, onAddEvent, onEditEvent, onDeleteEvent, onRegisterEvent, onUnregisterEvent, searchQuery = '' }) => {
-  const events = rawEvents.filter(e => {
-    const isPast = e.date && !isNaN(new Date(e.date).getTime()) && new Date(e.date).getTime() < new Date().setHours(0, 0, 0, 0);
-    return e.status !== 'Selesai' && !isPast;
-  });
-  const defaultSelected = events.find(e => e.id === 'ev_10') || events[0];
+export const getCategoryColor = (category: string) => {
+  const cat = (category || '').toUpperCase();
+  if (cat.includes('KREATIF')) return 'bg-[#e5a300] text-white'; // Citrus Yellow
+  if (cat.includes('WORKSHOP')) return 'bg-[#293379] text-white'; // Blue Crate
+  if (cat.includes('PANEN')) return 'bg-[#ee7302] text-white'; // Orange
+  if (cat.includes('UMKM')) return 'bg-[#a6af32] text-white'; // Lettuce Green (changed text to white)
+  if (cat.includes('RAPAT')) return 'bg-[#b81817] text-white'; // Tomatoe Red
+  return 'bg-[#607829] text-white'; // Green Beans
+};
+
+const getCategoryBorderColor = (category: string) => {
+  const cat = (category || '').toUpperCase();
+  if (cat.includes('KREATIF')) return 'border-[#e5a300]'; 
+  if (cat.includes('WORKSHOP')) return 'border-[#293379]'; 
+  if (cat.includes('PANEN')) return 'border-[#ee7302]'; 
+  if (cat.includes('UMKM')) return 'border-[#a6af32]'; 
+  if (cat.includes('RAPAT')) return 'border-[#b81817]'; 
+  return 'border-[#607829]'; 
+};
+
+const getCategoryHoverBorderColor = (category: string) => {
+  const cat = (category || '').toUpperCase();
+  if (cat.includes('KREATIF')) return 'hover:border-[#e5a300]'; 
+  if (cat.includes('WORKSHOP')) return 'hover:border-[#293379]'; 
+  if (cat.includes('PANEN')) return 'hover:border-[#ee7302]'; 
+  if (cat.includes('UMKM')) return 'hover:border-[#a6af32]'; 
+  if (cat.includes('RAPAT')) return 'hover:border-[#b81817]'; 
+  return 'hover:border-[#607829]'; 
+};
+
+export const AgendaView: React.FC<AgendaViewProps> = ({ 
+  appMode,
+  events: rawEvents, 
+  currentUser, 
+  onAddEvent, 
+  onEditEvent, 
+  onDeleteEvent, 
+  onRegisterEvent, 
+  onUnregisterEvent, 
+  onUpdateAttendance, 
+  searchQuery = '' 
+}) => {
+  const isEventPast = (e: AgendaEvent) => {
+    if (e.status === 'Selesai') return true;
+    if (!e.date) return false;
+    
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    if (e.date < todayStr) return true;
+    if (e.date === todayStr) {
+      const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+      let endTime = "23:59";
+      if (e.time && e.time.includes('-')) {
+         const parts = e.time.split('-');
+         if (parts.length > 1) endTime = parts[1].trim();
+      } else if (e.time) {
+         endTime = e.time.trim();
+      }
+      endTime = endTime.replace(/\./g, ':');
+      if (endTime < currentTimeStr) return true;
+    }
+    return false;
+  };
+
+  const isUserRegistered = (e: AgendaEvent) => {
+    return e.peserta?.some(p => p.userId === currentUser?.id) || false;
+  };
+
+  const events = rawEvents;
+  const defaultSelected = events.find(e => !isEventPast(e)) || events[0];
   const [selectedEvent, setSelectedEvent] = useState<AgendaEvent>(defaultSelected);
+  const [claimedCerts, setClaimedCerts] = useState<Record<string, boolean>>({});
 
   // Sync selected event when events list updates (e.g. registration status changes, or event date goes past)
   React.useEffect(() => {
@@ -67,7 +136,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
   }, [events]);
 
   // View mode switcher: 'kalender' | 'daftar'
-  const [viewMode, setViewMode] = useState<'kalender' | 'daftar'>('kalender');
+  const [viewMode, setViewMode] = useState<'kalender' | 'daftar'>(appMode === 'lite' ? 'daftar' : 'kalender');
   const [calendarGranularity, setCalendarGranularity] = useState<'hari' | 'minggu' | 'bulan'>('bulan');
   const [remindedEvents, setRemindedEvents] = useState<Record<string, boolean>>({});
 
@@ -271,21 +340,38 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+  const [statusFilter, setStatusFilter] = useState<'Semua' | 'Akan Datang' | 'Riwayat' | 'Sudah Daftar'>('Semua');
 
   const categoriesList = ['Semua', 'WORKSHOP KREATIF', 'WORKSHOP', 'PANEN BERSAMA', 'PELATIHAN UMKM', 'RAPAT RUTIN'];
+  const statusFilters = ['Semua', 'Akan Datang', 'Riwayat', 'Sudah Daftar'];
 
   // Filtered list based on search term and category
   const activeSearch = searchTerm || searchQuery;
   const filteredEvents = events.filter(e => {
-    // Sembunyikan agenda yang sudah selesai (lewat tanggal) dari daftar user
-    const todayObj = new Date();
-    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-    if (e.status === 'Selesai' || e.date < todayStr) return false;
+    const isPast = isEventPast(e);
+    
+    // Check status filter
+    if (statusFilter === 'Akan Datang' && isPast) return false;
+    if (statusFilter === 'Riwayat' && !isPast) return false;
+    if (statusFilter === 'Sudah Daftar' && !isUserRegistered(e)) return false;
+
     const matchesSearch = e.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
       (e.location && e.location.toLowerCase().includes(activeSearch.toLowerCase())) ||
       (e.organizer && e.organizer.toLowerCase().includes(activeSearch.toLowerCase()));
     const matchesCat = selectedCategory === 'Semua' || e.category?.toUpperCase() === selectedCategory.toUpperCase();
     return matchesSearch && matchesCat;
+  }).sort((a, b) => {
+    const todayObj = new Date();
+    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+    const aPast = a.status === 'Selesai' || a.date < todayStr;
+    const bPast = b.status === 'Selesai' || b.date < todayStr;
+    
+    // If "Semua", put past events at the bottom
+    if (aPast && !bPast) return 1;
+    if (!aPast && bPast) return -1;
+    
+    // Otherwise sort by date ascending
+    return a.date.localeCompare(b.date);
   });
 
   const toggleReminder = (eventId: string) => {
@@ -301,7 +387,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
-    if (event.isRegistered) {
+    if (isUserRegistered(event)) {
       if (event.creatorId && event.creatorId === currentUser?.id) {
         setPopupData({ show: true, type: 'creator_error', eventName: event.title });
         return;
@@ -447,6 +533,54 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
     }
   };
 
+  const handleDownloadCertificate = async (certTemplateJson: string, event: AgendaEvent) => {
+    try {
+      localStorage.setItem(`cert_claimed_${event.id}_${currentUser?.id}`, 'true');
+      setClaimedCerts(prev => ({ ...prev, [event.id]: true }));
+
+      let config: any;
+      try {
+        config = JSON.parse(certTemplateJson);
+      } catch {
+        alert('Format sertifikat tidak valid.');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const name = currentUser?.certificateName || currentUser?.name || 'Peserta';
+
+      // Load images async (logo & signature)
+      const loadImage = (url: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
+        const im = new Image(); im.crossOrigin = 'Anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = url;
+      });
+
+      let logoImg: HTMLImageElement | null = null;
+      let sigImg: HTMLImageElement | null = null;
+      
+      if (config.logoUrl) {
+        try { logoImg = await loadImage(config.logoUrl); } catch {}
+      }
+      if (config.signatureUrl) {
+        try { sigImg = await loadImage(config.signatureUrl); } catch {}
+      }
+
+      drawCertificateOnCanvas(canvas, config, name, event, logoImg, sigImg);
+
+      // Download
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Sertifikat-${event.title}-${name}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch(err) {
+      console.error('Gagal mengunduh sertifikat:', err);
+      alert('Terjadi kesalahan saat mencetak sertifikat. Pastikan koneksi internet stabil.');
+    }
+  };
+
   // Real Calendar Logic State
   const [currentMonth, setCurrentMonth] = useState<Date>(() => {
     const d = new Date();
@@ -476,37 +610,71 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
   const startDayOffset = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const monthNamesFull = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+  const unclaimedCertificates = events.filter(e => {
+    return isEventPast(e) && 
+           isCertificateActive(e.certificateTemplate) && 
+           e.peserta?.find(p => p.userId === currentUser?.id)?.attended &&
+           !localStorage.getItem(`cert_claimed_${e.id}_${currentUser?.id}`) &&
+           !claimedCerts[e.id];
+  });
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">
+      {unclaimedCertificates.length > 0 && (
+        <div className="bg-gradient-to-r from-[#D97706] to-[#B45309] rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3 text-white">
+            <div className="p-2 bg-white/20 rounded-full animate-pulse">
+              <Award className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">Sertifikat Baru Tersedia!</h3>
+              <p className="text-xs text-white/90">Anda memiliki {unclaimedCertificates.length} sertifikat kegiatan yang belum diunduh.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => {
+              if (unclaimedCertificates[0]?.certificateTemplate) {
+                handleDownloadCertificate(unclaimedCertificates[0].certificateTemplate, unclaimedCertificates[0]);
+              }
+            }}
+            className="w-full sm:w-auto px-4 py-2 bg-white text-[#B45309] font-bold text-xs rounded-xl hover:bg-orange-50 transition-colors shadow-sm"
+          >
+            Unduh Sertifikat
+          </button>
+        </div>
+      )}
+
       {/* UNIFIED TOP CONTROL BAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* View Toggle Buttons */}
-        <div className="bg-[#FAF6EE] p-1 rounded-2xl border border-[#E6E1D5] flex items-center gap-1 shadow-2xs self-start sm:self-auto">
-          <button
-            onClick={() => setViewMode('kalender')}
-            className={`
-              px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
-              ${viewMode === 'kalender'
-                ? 'bg-white text-[#2C4219] shadow-2xs'
-                : 'text-[#433A30]/70 hover:text-[#2C4219]'}
-            `}
-          >
-            <Grid className="w-4 h-4 text-[#2C4219]" />
-            <span>Kalender</span>
-          </button>
-          <button
-            onClick={() => setViewMode('daftar')}
-            className={`
-              px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
-              ${viewMode === 'daftar'
-                ? 'bg-white text-[#2C4219] shadow-2xs'
-                : 'text-[#433A30]/70 hover:text-[#2C4219]'}
-            `}
-          >
-            <List className="w-4 h-4 text-[#2C4219]" />
-            <span>Daftar</span>
-          </button>
-        </div>
+        {appMode !== 'lite' && (
+          <div className="bg-[#FAF6EE] p-1 rounded-2xl border border-[#E6E1D5] flex items-center gap-1 shadow-2xs self-start sm:self-auto">
+            <button
+              onClick={() => setViewMode('kalender')}
+              className={`
+                px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
+                ${viewMode === 'kalender'
+                  ? 'bg-white text-[#2C4219] shadow-2xs'
+                  : 'text-[#433A30]/70 hover:text-[#2C4219]'}
+              `}
+            >
+              <Grid className="w-4 h-4 text-[#2C4219]" />
+              <span>Kalender</span>
+            </button>
+            <button
+              onClick={() => setViewMode('daftar')}
+              className={`
+                px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all
+                ${viewMode === 'daftar'
+                  ? 'bg-white text-[#2C4219] shadow-2xs'
+                  : 'text-[#433A30]/70 hover:text-[#2C4219]'}
+              `}
+            >
+              <List className="w-4 h-4 text-[#2C4219]" />
+              <span>Daftar</span>
+            </button>
+          </div>
+        )}
 
         {/* Right Section: Search Bar & Add Agenda Button */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -523,14 +691,14 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
             </div>
           )}
 
-          <button
+          {/* <button
             onClick={openAddModal}
             className="px-6 py-3 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-bold text-sm flex items-center gap-2 shadow-sm transition-all active:scale-95 shrink-0"
             title="Tambah Agenda Baru"
           >
             <Plus className="w-5 h-5 text-[#A8B774]" />
             <span>Tambah Agenda</span>
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -630,7 +798,14 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                   const dMonthNumStr = (d.getMonth() + 1).toString().padStart(2, '0');
                   const dYearStr = d.getFullYear().toString();
 
-                  const dayEvents = events.filter(e => e.isRegistered && e.dayNumber === formattedDay && (e.monthAbbr === dMonthStr || e.date.startsWith(`${dYearStr}-${dMonthNumStr}-`)));
+                  const isAdmin = currentUser?.name?.toLowerCase().includes('admin');
+                  const dayEvents = events.filter(e => {
+                    const isDateMatch = e.dayNumber === formattedDay && (e.monthAbbr === dMonthStr || e.date.startsWith(`${dYearStr}-${dMonthNumStr}-`));
+                    if (!isDateMatch) return false;
+                    if (isEventPast(e)) return false;
+                    if (isAdmin) return true;
+                    return isUserRegistered(e);
+                  });
 
                   const isSelected = dayEvents.some(e => e.id === selectedEvent?.id);
                   const today = new Date();
@@ -689,7 +864,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                             title={ev.title}
                           >
                             <span className="truncate">{ev.title}</span>
-                            {ev.isRegistered && <Check className="w-4 h-4 shrink-0" />}
+                            {isUserRegistered(ev) && <Check className="w-4 h-4 shrink-0" />}
                           </div>
                         ))}
                         {calendarGranularity === 'hari' && dayEvents.length === 0 && (
@@ -726,10 +901,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
           <div className="lg:col-span-5 xl:col-span-4 space-y-6">
             {/* TOP CARD: SELECTED EVENT DETAIL CARD */}
             {selectedEvent ? (
-              <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5">
+              <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5 transition-all duration-300">
                 {/* Header: Category & Date */}
                 <div className="flex items-center justify-between">
-                  <span className="inline-block bg-[#A8B774] text-white text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs">
+                  <span className={`inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shadow-xs ${getCategoryColor(selectedEvent.category)}`}>
                     {selectedEvent.category}
                   </span>
 
@@ -779,18 +954,33 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                     <FileText className="w-4 h-4" />
                     Rincian Kegiatan
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleRegistration(selectedEvent.id);
-                    }}
-                    className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${selectedEvent.isRegistered
-                      ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
-                      : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
-                      }`}
-                  >
-                    {selectedEvent.isRegistered ? 'Terdaftar' : 'Daftar'}
-                  </button>
+                  {currentUser?.role !== 'admin' && (
+                    isEventPast(selectedEvent) ? (
+                      isUserRegistered(selectedEvent) ? (
+                        <div className="px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md flex items-center gap-2 cursor-default border border-emerald-400">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Telah Diikuti</span>
+                        </div>
+                      ) : (
+                        <div className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-2 cursor-default">
+                          <span>Telah Selesai</span>
+                        </div>
+                      )
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleRegistration(selectedEvent.id);
+                        }}
+                        className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${isUserRegistered(selectedEvent)
+                          ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
+                          : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
+                          }`}
+                      >
+                        {isUserRegistered(selectedEvent) ? 'Terdaftar' : 'Daftar'}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             ) : (
@@ -816,7 +1006,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
               {/* List of Upcoming Items */}
               <div className="space-y-2.5">
-                {events.slice(0, 3).map((ev) => {
+                {events.filter(e => !isEventPast(e)).slice(0, 3).map((ev) => {
                   const isSelected = selectedEvent?.id === ev.id;
                   const isUpcomingNov = ev.monthAbbr === 'NOV';
                   return (
@@ -827,8 +1017,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                         if (ev.date) setCurrentMonth(new Date(ev.date));
                       }}
                       className={`
-                        p-3 rounded-2xl bg-white border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:border-[#2C4219]
-                        ${isSelected ? 'border-[#2C4219] ring-1 ring-[#2C4219]/20' : 'border-[#E6E1D5]'}
+                        p-3 rounded-2xl bg-white transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:shadow-md
+                        ${isSelected ? `border-2 ${getCategoryBorderColor(ev.category)} shadow-sm` : 'border border-[#E6E1D5] hover:bg-gray-50'}
                       `}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -843,7 +1033,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
                         {/* Title & Subtitle */}
                         <div className="min-w-0">
-                          <h4 className="font-title font-bold text-xs text-[#2C4219] truncate">
+                          <span className={`inline-block text-[8px] font-bold uppercase px-1.5 py-0.5 rounded shadow-2xs mb-0.5 ${getCategoryColor(ev.category)}`}>
+                            {ev.category}
+                          </span>
+                          <h4 className="font-title font-bold text-xs text-[#2C4219] truncate leading-tight">
                             {ev.title}
                           </h4>
                           <p className="text-[11px] text-[#433A30]/70 truncate flex items-center gap-1 mt-0.5">
@@ -864,22 +1057,43 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
       ) : (
         /* DAFTAR VIEW MODE (LIST VIEW WITH FULL DETAILS & FILTERING) */
         <div className="space-y-4">
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-            {categoriesList.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`
-                  px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all
-                  ${selectedCategory === cat
-                    ? 'bg-[#2C4219] text-white shadow-2xs'
-                    : 'bg-white text-[#433A30] border border-[#E6E1D5] hover:bg-[#FAF6EE]'}
-                `}
+          {/* Filters Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1">
+              {categoriesList.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`
+                    px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border
+                    ${selectedCategory === cat
+                      ? (cat === 'Semua' 
+                          ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-md scale-105' 
+                          : `${getCategoryColor(cat)} border-transparent shadow-md scale-105`)
+                      : 'bg-white text-[#433A30] border-[#E6E1D5] hover:bg-[#FAF6EE] hover:scale-105'}
+                  `}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            {/* Status Filter Dropdown */}
+            <div className="relative shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="appearance-none bg-white border border-[#E6E1D5] text-[#2C4219] font-bold text-xs py-2 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#E5A300] focus:ring-1 focus:ring-[#E5A300] cursor-pointer hover:bg-[#FAF6EE] transition-colors min-w-[140px]"
               >
-                {cat}
-              </button>
-            ))}
+                {statusFilters.map((st) => (
+                  <option key={st} value={st}>{st === 'Semua' ? 'Semua Waktu' : st}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#A19D94]">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
+            </div>
           </div>
 
           {/* Agenda Event Cards Grid */}
@@ -887,11 +1101,11 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
             {filteredEvents.map((ev) => (
               <div
                 key={ev.id}
-                className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-2xs hover:border-[#2C4219] transition-all flex flex-col justify-between space-y-4"
+                className={`bg-white p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 border-[#E6E1D5] ${getCategoryHoverBorderColor(ev.category)} hover:border-2 hover:shadow-md`}
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="bg-[#A8B774] text-white text-[10px] font-bold uppercase px-2.5 py-0.5 rounded">
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded ${getCategoryColor(ev.category)}`}>
                       {ev.category}
                     </span>
                     <span className="text-xs text-[#433A30]/70 font-semibold">
@@ -925,15 +1139,30 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                   </button>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleRegistration(ev.id)}
-                      className={`
-                        px-3 py-1.5 rounded-xl text-xs font-bold transition-all
-                        ${ev.isRegistered ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#2C4219] text-white'}
-                      `}
-                    >
-                      {ev.isRegistered ? 'Terdaftar' : 'Daftar'}
-                    </button>
+                    {currentUser?.role !== 'admin' && (
+                      isEventPast(ev) ? (
+                        isUserRegistered(ev) ? (
+                          <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm flex items-center gap-1.5 cursor-default border border-emerald-400">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Telah Diikuti</span>
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1.5 cursor-default">
+                            <span>Selesai</span>
+                          </div>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => toggleRegistration(ev.id)}
+                          className={`
+                            px-3 py-1.5 rounded-xl text-xs font-bold transition-all
+                            ${isUserRegistered(ev) ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'}
+                          `}
+                        >
+                          {isUserRegistered(ev) ? 'Terdaftar' : 'Daftar'}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -944,12 +1173,12 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
       {/* DETAILED ACTIVITY MODAL (RINCIAN FULL KEGIATAN) */}
       {showDetailModal && selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl p-6 sm:p-8 shadow-xl border border-[#E6E1D5] space-y-6 animate-in fade-in zoom-in-95">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-[#E6E1D5]">
               <div>
-                <span className="bg-[#A8B774] text-[#2C4219] text-[10px] font-bold uppercase px-2.5 py-1 rounded">
+                <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded ${getCategoryColor(selectedEvent.category)}`}>
                   {selectedEvent.category}
                 </span>
                 <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] mt-2">
@@ -986,6 +1215,149 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
               </p>
             </div>
 
+            {/* Materi & Dokumentasi */}
+            {(isUserRegistered(selectedEvent) || isEventPast(selectedEvent)) && (
+              <div className="space-y-4 pt-2">
+                {selectedEvent.materiUrls && selectedEvent.materiUrls.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-[#E5A300]/20 flex items-center justify-center text-[#E5A300]">
+                        <FileText className="w-3.5 h-3.5" />
+                      </div>
+                      Unduh Materi Kegiatan
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedEvent.materiUrls.map((url, idx) => {
+                        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
+
+                        if (isImage) {
+                          return (
+                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
+                              <img src={url} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+                                <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                  Lihat Gambar
+                                </span>
+                              </div>
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
+                            <div className="w-10 h-10 rounded-xl bg-[#E5A300]/10 text-[#E5A300] flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[13px]">Materi Berkas {idx + 1}</span>
+                              <span className="text-[10px] text-[#A19D94] font-medium mt-0.5">Ketuk untuk mengunduh</span>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {selectedEvent.dokumentasiUrls && selectedEvent.dokumentasiUrls.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-[#A8B774]/30 flex items-center justify-center text-[#2C4219]">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                      </div>
+                      Galeri Dokumentasi
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedEvent.dokumentasiUrls.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
+                            <img src={url} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+                              <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                Lihat Penuh
+                              </span>
+                            </div>
+                          </a>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+                {selectedEvent.linkUrls && selectedEvent.linkUrls.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-[#293379]/20 flex items-center justify-center text-[#293379]">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                      </div>
+                      Tautan Tambahan
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {selectedEvent.linkUrls.map((url, idx) => (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#F8FAFC] p-3 rounded-2xl border border-[#E2E8F0] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#293379] flex items-center gap-3 text-xs font-bold text-[#1E293B] transition-all duration-300">
+                          <div className="w-10 h-10 rounded-xl bg-[#293379]/10 text-[#293379] flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                          </div>
+                          <div className="flex flex-col flex-1 overflow-hidden">
+                            <span className="text-[13px] truncate">Tautan {idx + 1}</span>
+                            <span className="text-[10px] text-[#64748B] font-medium mt-0.5 truncate">{url}</span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Sertifikat Kehadiran */}
+                {isEventPast(selectedEvent) && isUserRegistered(selectedEvent) && 
+                 selectedEvent.certificateTemplate && 
+                 selectedEvent.peserta?.find(p => p.userId === currentUser?.id)?.attended && (
+                  <div className="space-y-3 pt-2">
+                    <h3 className="font-title font-bold text-sm text-[#D97706] flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-[#D97706]/20 flex items-center justify-center text-[#D97706]">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                      </div>
+                      Sertifikat Penghargaan
+                    </h3>
+                    
+                    {isCertificateActive(selectedEvent.certificateTemplate) ? (
+                      <button
+                        onClick={() => handleDownloadCertificate(selectedEvent.certificateTemplate!, selectedEvent)}
+                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
+                      >
+                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Unduh Sertifikat Kehadiran Anda
+                      </button>
+                    ) : (
+                      <div className="relative overflow-hidden bg-gradient-to-br from-[#FEF2F2] to-[#FFF7ED] border border-[#FECACA] rounded-2xl p-4 sm:p-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                        <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                          <div className="w-10 h-10 rounded-full bg-red-100/80 flex items-center justify-center shrink-0 border border-red-200">
+                            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-bold text-sm text-red-700">Sertifikat Dinonaktifkan</h4>
+                            <p className="text-[11px] sm:text-xs text-red-600/80 font-medium leading-relaxed">
+                              Sertifikat untuk agenda ini sedang tidak tersedia atau dinonaktifkan sementara. Silakan hubungi <strong>admin</strong> untuk informasi lebih lanjut atau bantuan pencetakan manual.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {(!selectedEvent.materiUrls?.length && !selectedEvent.dokumentasiUrls?.length && !selectedEvent.linkUrls?.length && !isCertificateActive(selectedEvent.certificateTemplate)) && (
+                  <div className="bg-[#FAF6EE]/50 p-4 rounded-2xl border border-[#E6E1D5]/50 text-center">
+                    <p className="text-[11px] text-[#A19D94] font-medium italic">Belum ada berkas materi, dokumentasi, atau tautan yang diunggah.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+
             {/* Modal Footer Actions */}
             <div className="flex items-center justify-between pt-4 border-t border-[#E6E1D5]">
               <button
@@ -995,19 +1367,34 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
                 Tutup Window
               </button>
 
-              <button
-                onClick={() => {
-                  toggleRegistration(selectedEvent.id);
-                  setShowDetailModal(false);
-                }}
-                className={`
-                  px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95
-                  ${selectedEvent.isRegistered ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'}
-                `}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{selectedEvent.isRegistered ? 'Terdaftar (Batal Pendaftaran)' : 'Konfirmasi Pendaftaran Sekarang'}</span>
-              </button>
+              {currentUser?.role !== 'admin' && (
+                isEventPast(selectedEvent) ? (
+                  isUserRegistered(selectedEvent) ? (
+                    <div className="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md cursor-default border border-emerald-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Kegiatan Telah Selesai Diikuti</span>
+                    </div>
+                  ) : (
+                    <div className="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-[#E6E1D5]/50 text-[#7A7062] cursor-default">
+                      <span>Kegiatan Telah Selesai</span>
+                    </div>
+                  )
+                ) : (
+                  <button
+                    onClick={() => {
+                      toggleRegistration(selectedEvent.id);
+                      setShowDetailModal(false);
+                    }}
+                    className={`
+                      px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95
+                      ${isUserRegistered(selectedEvent) ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'}
+                    `}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isUserRegistered(selectedEvent) ? 'Terdaftar (Batal Pendaftaran)' : 'Konfirmasi Pendaftaran Sekarang'}</span>
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -1015,7 +1402,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
       {/* ADD AGENDA MODAL */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E6E1D5] shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
               <h3 className="font-title font-bold text-lg text-[#2C4219]">
@@ -1209,7 +1596,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({ events: rawEvents, curre
 
       {/* SUCCESS POPUP MODAL */}
       {popupData.show && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in fade-in zoom-in duration-300">
             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6 shadow-lg ${popupData.type === 'register' ? 'bg-[#A8B774]/20 text-[#2C4219]' : popupData.type === 'creator_error' ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-500'}`}>
               {popupData.type === 'register' ? <CheckCircle2 className="w-10 h-10" /> : popupData.type === 'creator_error' ? <AlertTriangle className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}

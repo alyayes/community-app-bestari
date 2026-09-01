@@ -61,10 +61,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
 
   const getCategoryBadgeClass = (category: string) => {
     const cat = category?.toUpperCase();
-    if (cat === 'PANEN') return 'bg-[#2C4219] text-white';
-    if (cat === 'INOVASI') return 'bg-[#A8B774] text-white';
-    if (cat === 'BUDIDAYA') return 'bg-[#FAF6EE] text-[#2C4219] border border-[#2C4219]/20';
-    return 'bg-[#FAF6EE] text-[#433A30] border border-[#E6E1D5]';
+    if (cat === 'PANEN') return 'bg-[#ee7302] text-white border-transparent';
+    if (cat === 'INOVASI') return 'bg-[#e5a300] text-white border-transparent';
+    if (cat === 'BUDIDAYA') return 'bg-[#607829] text-white border-transparent';
+    if (cat === 'PENGETAHUAN') return 'bg-[#293379] text-white border-transparent';
+    return 'bg-[#2C4219] text-white border-transparent';
   };
 
   const handleDownloadPDF = async () => {
@@ -395,10 +396,12 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
                 selectedCategory === cat
-                  ? 'bg-[#2C4219] text-white shadow-xs'
-                  : 'bg-white text-[#433A30] hover:bg-[#FAF6EE] border border-[#E6E1D5]'
+                  ? (cat === 'Semua' 
+                      ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-md scale-105' 
+                      : `${getCategoryBadgeClass(cat)} shadow-md scale-105`)
+                  : 'bg-white text-[#433A30] border-[#E6E1D5] hover:bg-[#FAF6EE] hover:scale-105'
               }`}
             >
               {cat}

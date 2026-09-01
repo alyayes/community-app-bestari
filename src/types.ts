@@ -24,6 +24,7 @@ export interface CmsData {
 export interface UserProfile {
   id: string;
   name: string;
+  certificateName?: string;
   role: string;
   avatar: string;
   isAdmin?: boolean;
@@ -94,10 +95,19 @@ export interface AgendaEvent {
   rundown?: { time: string; activity: string }[];
   requirements?: string[];
   benefits?: string[];
+  materiUrls?: string[];
+  dokumentasiUrls?: string[];
+  linkUrls?: string[];
   targetParticipants?: string;
   quota?: { registered: number; max: number };
   contactPerson?: { name: string; phone: string };
   creatorId?: string;
+  certificateTemplate?: string;
+  peserta?: {
+    userId: string;
+    userName: string;
+    attended: boolean;
+  }[];
   isRegistered?: boolean;
 }
 

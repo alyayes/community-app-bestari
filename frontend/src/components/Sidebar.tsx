@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
     { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-5 h-5" /> },
     { id: 'informasi', label: 'Informasi', icon: <Info className="w-5 h-5" /> },
-    { id: 'pengumuman', label: 'Pengumuman', icon: <Megaphone className="w-5 h-5" />, badge: unreadAnnouncementsCount },
+    // { id: 'pengumuman', label: 'Pengumuman', icon: <Megaphone className="w-5 h-5" />, badge: unreadAnnouncementsCount },
     { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
     { id: 'dashboard', label: 'Data Sorgum', icon: <BarChart3 className="w-5 h-5" /> },
   ];
@@ -74,14 +74,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop */}
       {/* Mobile Backdrop */}
       {isOpenMobile && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden"
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] md:hidden transition-opacity"
           onClick={() => setIsOpenMobile(false)}
         />
       )}
 
       <aside className={`
-        fixed top-0 left-0 bottom-0 h-screen overflow-visible z-50 bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
+        fixed top-0 left-0 bottom-0 h-[100dvh] overflow-visible z-[100] bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
         ${isOpenMobile ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-20' : 'md:w-64'}
       `}>
@@ -129,6 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <nav className="space-y-2">
                 {navItems.map((item) => {
                   const isActive = activeNav === item.id;
+                  const isImportant = ['beranda', 'agenda', 'informasi', 'diskusi', 'dashboard'].includes(item.id);
                   return (
                     <button
                       key={item.id}
@@ -137,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         if (isOpenMobile && window.innerWidth < 768) setIsOpenMobile(false);
                       }}
                       title={isCollapsed ? item.label : undefined}
-                      className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all relative group
+                      className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all relative group ${isImportant ? 'hidden md:flex' : 'flex'}
                         ${isActive
                           ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                           : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
@@ -162,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Bottom Actions */}
-          <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
+          <div className="mt-auto space-y-2 pt-4 pb-8 md:pb-4 border-t border-[#E6E1D5]">
             {onGoToAdmin && (currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin')) && (
               <button
                 onClick={onGoToAdmin}
