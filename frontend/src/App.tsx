@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard } from 'lucide-react';
+import { Home, BookOpen, Calendar, MessageSquare, Sprout } from 'lucide-react';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, UserProfile, CmsData } from './types';
 import {
   CURRENT_USER,
@@ -1122,7 +1122,7 @@ export function App() {
           { id: 'informasi', label: 'Informasi', icon: <BookOpen className="w-5 h-5" /> },
           { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-6 h-6" />, isProminent: true },
           { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
-          { id: 'dashboard', label: 'Data', icon: <LayoutDashboard className="w-5 h-5" /> },
+          { id: 'dashboard', label: 'Data Sorgum', icon: <Sprout className="w-5 h-5" /> },
         ].map((item) => {
           const isActive = activeNav === item.id;
           return (
@@ -1149,7 +1149,7 @@ export function App() {
                   <div className={`transition-transform duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
                     {item.icon}
                   </div>
-                  <span className={`text-[9px] font-bold mt-1 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>{item.label}</span>
+                  <span className={`text-[9px] font-bold mt-1 truncate w-full text-center px-1 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>{item.label}</span>
                 </>
               )}
             </button>

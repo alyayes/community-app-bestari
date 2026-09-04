@@ -76,7 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="w-full flex items-center justify-between gap-4">
         {/* Left Side: Mobile Menu Button & View Title */}
         <div className="flex items-center gap-3">
-          {appMode !== 'lite' && (
+          {(currentUser.role.toLowerCase().includes('ketua') || currentUser.isAdmin) && (
             <button
               onClick={onToggleMobileMenu}
               className="md:hidden p-2 -ml-2 rounded-xl bg-transparent text-[#2C4219] hover:bg-[#E6E1D5] transition-colors"

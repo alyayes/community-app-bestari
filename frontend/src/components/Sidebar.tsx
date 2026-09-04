@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Backdrop */}
       {/* Mobile Backdrop */}
-      {isOpenMobile && appMode !== 'lite' && (
+      {isOpenMobile && (currentUser.role.toLowerCase().includes('ketua') || currentUser.isAdmin) && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] md:hidden transition-opacity"
           onClick={() => setIsOpenMobile(false)}
@@ -86,9 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside className={`
         fixed top-0 left-0 bottom-0 h-[100dvh] overflow-visible z-[100] bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
-        ${isOpenMobile && appMode !== 'lite' ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${isOpenMobile && (currentUser.role.toLowerCase().includes('ketua') || currentUser.isAdmin) ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-20' : 'md:w-64'}
-        ${appMode === 'lite' ? 'max-md:hidden' : ''}
+        ${!currentUser.role.toLowerCase().includes('ketua') && !currentUser.isAdmin ? 'max-md:hidden' : ''}
       `}>
         {/* Toggle Collapse Button (Desktop Only) */}
         {setIsCollapsed && (

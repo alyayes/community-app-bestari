@@ -551,8 +551,8 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         </div>
       )}
 
-      {/* Logout Action (Mobile only for Lite Mode) */}
-      {appMode === 'lite' && onLogout && (
+      {/* Logout Action (Mobile only for normal users) */}
+      {(!currentUser.role.toLowerCase().includes('ketua') && !currentUser.isAdmin) && onLogout && (
         <div className="md:hidden mt-8 border-t border-[#E6E1D5] pt-6">
           <button
             onClick={onLogout}
