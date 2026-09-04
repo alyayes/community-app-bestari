@@ -32,6 +32,7 @@ import { LandingView } from './components/views/LandingView';
 import { LoginView } from './components/views/LoginView';
 import { RegisterView } from './components/views/RegisterView';
 import { AdminPortalView } from './components/views/admin/AdminPortalView';
+import { AdminPortalViewLite } from './components/views/admin/AdminPortalViewLite';
 
 // Modals
 import { CreateTopicModal } from './components/modals/CreateTopicModal';
@@ -804,9 +805,50 @@ export function App() {
   }
 
   if (pageMode === 'admin') {
+    if (appMode === 'lite') {
+      return (
+        <AdminPortalViewLite
+          currentUser={currentUser}
+          setCurrentUser={setCurrentUser}
+          setAppMode={setAppMode}
+          articles={articles}
+          announcements={announcements}
+          threads={threads}
+          agendas={events}
+          landPlots={landPlots}
+          harvestRecords={harvestRecords}
+          members={members}
+          cmsData={cmsData}
+          dashboardStats={dashboardStats}
+          onUpdateCmsData={handleUpdateCmsData}
+          onUpdateArticles={(list) => setArticles(list.filter(a => (a as any).status !== 'Draft'))}
+          onUpdateAnnouncements={setAnnouncements}
+          onUpdateThreads={setThreads}
+          onUpdateAgendas={setEvents}
+          onLogout={handleLogout}
+          onNavigateToPage={(page) => {
+            if (page === 'beranda') setPageMode('landing');
+            else if (page === 'login') setPageMode('login');
+            else if (page === 'register') setPageMode('register');
+            else {
+              setPageMode('app');
+              setActiveNav(page as any);
+            }
+          }}
+          onSelectArticle={(art) => {
+            setSelectedArticle(art);
+            setPageMode('app');
+            setActiveNav('informasi');
+          }}
+        />
+      );
+    }
+    
     return (
       <AdminPortalView
         currentUser={currentUser}
+        setCurrentUser={setCurrentUser}
+        setAppMode={setAppMode}
         articles={articles}
         announcements={announcements}
         threads={threads}
@@ -896,7 +938,7 @@ export function App() {
         />
 
         {/* Dynamic Screen Render */}
-        <main className={`flex-1 w-full flex flex-col min-h-[calc(100vh-80px)] ${activeNav === 'diskusi' ? 'px-3 sm:px-5 py-3' : 'px-4 lg:px-8 pt-6 pb-12'} md:pb-12 pb-24`}>
+        <main className={`flex-1 w-full flex flex-col ${activeNav === 'diskusi' ? 'p-0' : 'px-4 lg:px-8 pt-6 pb-12 md:pb-12 pb-24'}`}>
           {activeNav === 'beranda' && (
             appMode === 'lite' ? (
               <BerandaViewLite
@@ -1072,7 +1114,7 @@ export function App() {
         </div>
 
         {/* Footer User (Hidden on Mobile, shown on md up) */}
-        <footer className="hidden md:flex flex-wrap mt-auto py-4 px-4 sm:px-6 lg:px-8 items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 text-center">
+        <footer className="sticky bottom-0 z-40 hidden md:flex flex-wrap mt-auto py-4 px-4 sm:px-6 lg:px-8 items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 text-center">
           <div className="opacity-80">
             {cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.'}
           </div>

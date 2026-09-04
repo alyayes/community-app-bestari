@@ -67,7 +67,8 @@ import {
   Menu,
   ChevronLeft,
   ChevronRight,
-  Award
+  Award,
+  ArrowRightLeft
 } from 'lucide-react';
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
@@ -81,6 +82,7 @@ Font.whitelist = customFonts;
 Quill.register(Font, true);
 
 interface AdminPortalViewProps {
+  setAppMode?: (mode: 'lite' | 'pro') => void;
   currentUser: UserProfile;
   articles: InfoArticle[];
   announcements: Announcement[];
@@ -118,7 +120,39 @@ const getCategoryColor = (category: string) => {
   return 'bg-[#607829] text-white'; // Green Beans
 };
 
+
+const DEFAULT_USERS_LIST = [
+  {
+    id: 'usr_01',
+    name: 'Alya Permata (Admin)',
+    email: 'admin@kwtsorgum.id',
+    role: 'ADMIN',
+    phone: '0812-3456-7890',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_02',
+    name: 'Ibu Hj. Kartini',
+    email: 'kartini@kwtsorgum.id',
+    role: 'Ketua KWT',
+    phone: '0812-7890-4321',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_03',
+    name: 'Ibu Siti Rahma',
+    email: 'siti.rahma@kwtsorgum.id',
+    role: 'Bendahara KWT',
+    phone: '0813-9988-7766',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200'
+  }
+];
+
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
+  setAppMode,
   currentUser,
   articles,
   announcements,
@@ -1331,6 +1365,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
           {/* Bottom Actions */}
           <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
+            {setAppMode && (
+              <button
+                onClick={() => setAppMode('lite')}
+                title={isSidebarAdminCollapsed ? 'Lite Mode' : undefined}
+                className={`w-full flex items-center gap-2.5 py-2.5 rounded-full text-xs font-bold bg-[#E3EBD3] text-[#2C4219] border border-[#A8B774]/40 hover:bg-[#2C4219] hover:text-white transition-all shadow-2xs ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'px-4'}`}
+              >
+                <ArrowRightLeft className="w-4 h-4 shrink-0" />
+                {!isSidebarAdminCollapsed && <span>Lite Mode</span>}
+              </button>
+            )}
             <button
               onClick={onLogout}
               title={isSidebarAdminCollapsed ? 'Keluar' : undefined}
@@ -3308,7 +3352,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                {usersList.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
+                {((usersList && usersList.length > 0) ? usersList : ((members && members.length > 0) ? members : DEFAULT_USERS_LIST)).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
                   <div key={u.id} className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group flex flex-col relative">
                     {/* Card Header (Avatar & Name & Status) */}
                     <div className="p-6 pb-5 flex items-start gap-4">
@@ -3389,7 +3433,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                 ))}
 
-                {usersList.length === 0 && (
+                {((usersList && usersList.length > 0) ? usersList : ((members && members.length > 0) ? members : DEFAULT_USERS_LIST)).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).length === 0 && (
                   <div className="col-span-full py-16 text-center border-2 border-dashed border-[#E6E1D5] rounded-3xl bg-[#FAF6EE]/50">
                     <div className="w-16 h-16 rounded-full bg-white border border-[#E6E1D5] flex items-center justify-center mx-auto mb-4 text-[#A8B774] shadow-sm">
                       <Users className="w-8 h-8" />

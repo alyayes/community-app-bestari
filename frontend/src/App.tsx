@@ -864,6 +864,7 @@ export function App() {
         webName={cmsData?.webName}
         webSubtitle={cmsData?.webSubtitle}
         webLogo={cmsData?.webLogo}
+        appMode={appMode}
       />
 
       {/* Main Container Area with offset for Sidebar on desktop */}
@@ -893,6 +894,7 @@ export function App() {
           }}
           onOpenNotifications={() => setIsNotificationsModalOpen(true)}
           onClickProfile={() => setActiveNav('profil')}
+          appMode={appMode}
         />
 
         {/* Dynamic Screen Render */}
@@ -1024,52 +1026,13 @@ export function App() {
               setCurrentUser={setCurrentUser}
               appMode={appMode}
               setAppMode={setAppMode}
+              onLogout={handleLogout}
             />
           )}
 
         </main>
 
-        {/* Mobile Bottom Navigation (Visible only on md:hidden) */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E6E1D5] flex md:hidden items-center justify-around pb-safe z-40">
-          {[
-            { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
-            { id: 'informasi', label: 'Informasi', icon: <BookOpen className="w-5 h-5" /> },
-            { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-6 h-6" />, isProminent: true },
-            { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
-            { id: 'dashboard', label: 'Data Sorgum', icon: <LayoutDashboard className="w-5 h-5" /> },
-          ].map((item) => {
-            const isActive = activeNav === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveNav(item.id as any)}
-                className={`flex flex-col items-center justify-center w-full py-2 relative transition-all duration-300 ${isActive && !item.isProminent ? 'text-[#2C4219]' : 'text-[#7A7062] hover:text-[#433A30]'}`}
-              >
-                {!item.isProminent && (
-                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-md transition-all duration-300 bg-[#2C4219] ${isActive ? 'w-1/2 opacity-100' : 'w-0 opacity-0'}`}></div>
-                )}
-                {item.isProminent ? (
-                  <div className="flex flex-col items-center justify-center -mt-8 group">
-                    <div className={`relative w-14 h-14 flex items-center justify-center rounded-full border-4 border-white shadow-lg transition-all duration-300 active:scale-95 ${isActive ? 'bg-[#2C4219] text-[#A8B774] shadow-[#2C4219]/40 -translate-y-1' : 'bg-[#2C4219] text-white hover:-translate-y-0.5'}`}>
-                      {isActive && (
-                        <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-[#2C4219]"></span>
-                      )}
-                      {item.icon}
-                    </div>
-                    <span className={`text-[10px] font-black mt-1.5 transition-colors ${isActive ? 'text-[#2C4219]' : 'text-[#7A7062]'}`}>{item.label}</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className={`transition-transform duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
-                      {item.icon}
-                    </div>
-                    <span className={`text-[9px] font-bold mt-1 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>{item.label}</span>
-                  </>
-                )}
-              </button>
-            );
-          })}
-        </div>
+
 
         {/* Footer User (Hidden on Mobile, shown on md up) */}
         <footer className="hidden md:flex flex-wrap mt-auto py-4 px-4 sm:px-6 lg:px-8 items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 text-center">
@@ -1152,6 +1115,48 @@ export function App() {
           }}
         />
       )}
+      {/* Mobile Bottom Navigation (Visible only on md:hidden) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E6E1D5] flex md:hidden items-center justify-between px-1 pb-safe z-50">
+        {[
+          { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
+          { id: 'informasi', label: 'Informasi', icon: <BookOpen className="w-5 h-5" /> },
+          { id: 'agenda', label: 'Agenda', icon: <Calendar className="w-6 h-6" />, isProminent: true },
+          { id: 'diskusi', label: 'Diskusi', icon: <MessageSquare className="w-5 h-5" /> },
+          { id: 'dashboard', label: 'Data', icon: <LayoutDashboard className="w-5 h-5" /> },
+        ].map((item) => {
+          const isActive = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id as any)}
+              className={`flex flex-col items-center justify-center w-1/5 min-w-0 py-2 relative transition-all duration-300 ${isActive && !item.isProminent ? 'text-[#2C4219]' : 'text-[#7A7062] hover:text-[#433A30]'}`}
+            >
+              {!item.isProminent && (
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-md transition-all duration-300 bg-[#2C4219] ${isActive ? 'w-1/2 opacity-100' : 'w-0 opacity-0'}`}></div>
+              )}
+              {item.isProminent ? (
+                <div className="flex flex-col items-center justify-center -mt-8 group">
+                  <div className={`relative w-14 h-14 flex items-center justify-center rounded-full border-4 border-white shadow-lg transition-all duration-300 active:scale-95 ${isActive ? 'bg-[#2C4219] text-[#A8B774] shadow-[#2C4219]/40 -translate-y-1' : 'bg-[#2C4219] text-white hover:-translate-y-0.5'}`}>
+                    {isActive && (
+                      <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-[#2C4219]"></span>
+                    )}
+                    {item.icon}
+                  </div>
+                  <span className={`text-[10px] font-black mt-1.5 transition-colors ${isActive ? 'text-[#2C4219]' : 'text-[#7A7062]'}`}>{item.label}</span>
+                </div>
+              ) : (
+                <>
+                  <div className={`transition-transform duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
+                    {item.icon}
+                  </div>
+                  <span className={`text-[9px] font-bold mt-1 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-80'}`}>{item.label}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {renderAdminReturnBtn()}
     </div>
   );

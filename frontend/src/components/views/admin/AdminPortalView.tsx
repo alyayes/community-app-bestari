@@ -99,7 +99,65 @@ interface AdminPortalViewProps {
   onUpdateCmsData?: (data: CmsData) => void;
   onNavigateToPage?: (page: string) => void;
   dashboardStats?: { totalUsers?: number; totalRawMaterialKg?: number };
+  setAppMode?: (mode: 'lite' | 'pro') => void;
 }
+
+const DEFAULT_USERS_LIST = [
+  {
+    id: 'usr_01',
+    name: 'Alya Permata (Admin)',
+    email: 'admin@kwtsorgum.id',
+    role: 'ADMIN',
+    phone: '0812-3456-7890',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_02',
+    name: 'Ibu Hj. Kartini',
+    email: 'kartini@kwtsorgum.id',
+    role: 'Ketua KWT',
+    phone: '0812-7890-4321',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_03',
+    name: 'Ibu Siti Rahma',
+    email: 'siti.rahma@kwtsorgum.id',
+    role: 'Bendahara KWT',
+    phone: '0813-9988-7766',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_04',
+    name: 'Pak Budi Santoso',
+    email: 'budi.santoso@kwtsorgum.id',
+    role: 'Petani Sorgum',
+    phone: '0857-1234-5678',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_05',
+    name: 'Ibu Sri Wahyuni',
+    email: 'sri.wahyuni@kwtsorgum.id',
+    role: 'Anggota KWT',
+    phone: '0821-4455-6677',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&q=80&w=200'
+  },
+  {
+    id: 'usr_06',
+    name: 'Ahmad Fauzi',
+    email: 'ahmad.fauzi@kwtsorgum.id',
+    role: 'Pengolah Hasil Panen',
+    phone: '0819-3322-1100',
+    isActive: true,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200'
+  }
+];
 
 type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'sertifikat' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
 
@@ -136,13 +194,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   cmsData,
   onUpdateCmsData,
   onNavigateToPage,
-  dashboardStats
+  dashboardStats,
+  setAppMode
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     return (sessionStorage.getItem('bestari_admintab') as AdminTab) || 'dashboard';
   });
   const [isSidebarAdminCollapsed, setIsSidebarAdminCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSwitchingMode, setIsSwitchingMode] = useState(false);
+
+  const handleModeSwitch = () => {
+    setIsSwitchingMode(true);
+    setTimeout(() => {
+      if (setAppMode) setAppMode('lite');
+    }, 300);
+  };
 
   const handleTabChange = (tab: AdminTab) => {
     setActiveTab(tab);
@@ -1188,7 +1255,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </button>
 
         {/* Scrollable Internal Container */}
-        <div className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4">
+        <div className="flex flex-col h-full w-full overflow-y-auto overflow-x-hidden p-4 pb-24 md:pb-4">
 
           <div className="space-y-6">
             {/* Admin Portal Brand Header */}
@@ -1242,7 +1309,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <button
                 onClick={() => handleTabChange('sertifikat')}
                 title={isSidebarAdminCollapsed ? 'Kelola Sertifikat' : undefined}
-                className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all hidden md:flex ${activeTab === 'sertifikat'
+                className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all flex ${activeTab === 'sertifikat'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                   } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
@@ -1268,7 +1335,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               {/* <button
                 onClick={() => handleTabChange('pengumuman')}
                 title={isSidebarAdminCollapsed ? 'Kelola Pengumuman' : undefined}
-                className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all hidden md:flex ${activeTab === 'pengumuman'
+                className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all flex ${activeTab === 'pengumuman'
                   ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
                   : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
                   } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
@@ -1331,6 +1398,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
           {/* Bottom Actions */}
           <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
+            {setAppMode && (
+              <button
+                onClick={handleModeSwitch}
+                title={isSidebarAdminCollapsed ? 'Pro Mode' : undefined}
+                className={`w-full flex items-center justify-between py-2 rounded-full border border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#E3EBD3] transition-colors group ${isSidebarAdminCollapsed ? 'px-0 justify-center w-10 h-10 mx-auto' : 'px-3'}`}
+              >
+                {!isSidebarAdminCollapsed && (
+                  <span className="text-xs font-bold text-[#433A30] group-hover:text-[#2C4219]">Pro Mode</span>
+                )}
+                {isSidebarAdminCollapsed ? (
+                  <div className={`w-4 h-4 rounded-full transition-colors duration-300 ${isSwitchingMode ? 'bg-[#D1D5DB]' : 'bg-[#2C4219]'}`} />
+                ) : (
+                  <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-300 ${isSwitchingMode ? 'bg-[#D1D5DB]' : 'bg-[#2C4219]'}`}>
+                    <span className={`pointer-events-none absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-300 ${isSwitchingMode ? 'left-0.5' : 'left-[18px]'}`} />
+                  </div>
+                )}
+              </button>
+            )}
             <button
               onClick={onLogout}
               title={isSidebarAdminCollapsed ? 'Keluar' : undefined}
@@ -2109,58 +2194,56 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-[#2C4219]" />
-                    </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                
+                {/* Card 1: TOTAL INFORMASI */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col items-start hover:border-[#2C4219]/30 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+                    <FileText className="w-5 h-5 text-blue-600" />
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{articles.length}</p>
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                  <p className="text-[9px] font-black text-[#7A7062] uppercase tracking-wider mb-1">TOTAL INFORMASI</p>
+                  <p className="font-title font-black text-2xl text-[#2C4219]">{articles.length}</p>
+                  <p className="text-[9px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published & Siap Baca
-                  </span>
+                  </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-[#2C4219]" />
-                    </div>
+                {/* Card 2: AGENDA BULAN INI */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col items-start hover:border-[#2C4219]/30 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
+                    <Calendar className="w-5 h-5 text-amber-600" />
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{agendaList.length}</p>
-                  <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
+                  <p className="text-[9px] font-black text-[#7A7062] uppercase tracking-wider mb-1">AGENDA BULAN INI</p>
+                  <p className="font-title font-black text-2xl text-[#2C4219]">{agendaList.length}</p>
+                  <p className="text-[9px] text-[#2C4219] font-bold mt-2 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Belum dimulai').length} Belum dimulai
-                  </span>
+                  </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">PENGUMUMAN AKTIF</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <Megaphone className="w-4 h-4 text-[#2C4219]" />
-                    </div>
+                {/* Card 3: PENGUMUMAN AKTIF */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col items-start hover:border-[#2C4219]/30 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-3">
+                    <Megaphone className="w-5 h-5 text-orange-600" />
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{announcements.length}</p>
-                  <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1">
+                  <p className="text-[9px] font-black text-[#7A7062] uppercase tracking-wider mb-1">PENGUMUMAN AKTIF</p>
+                  <p className="font-title font-black text-2xl text-[#2C4219]">{announcements.length}</p>
+                  <p className="text-[9px] text-amber-600 font-bold mt-2 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {pinnedIds.length} Disematkan (Pinned)
-                  </span>
+                  </p>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <Users className="w-4 h-4 text-[#2C4219]" />
-                    </div>
+                {/* Card 4: ANGGOTA KWT */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col items-start hover:border-[#2C4219]/30 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center mb-3">
+                    <Users className="w-5 h-5 text-teal-600" />
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                  <p className="text-[9px] font-black text-[#7A7062] uppercase tracking-wider mb-1">ANGGOTA KWT</p>
+                  <p className="font-title font-black text-2xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
+                  <p className="text-[9px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terverifikasi di Desa
-                  </span>
+                  </p>
                 </div>
+
               </div>
 
               {/* Analytics Charts Section */}
@@ -2571,18 +2654,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                     Kelola Konten
                   </h1>
-                  <p className="text-sm text-[#433A30] font-medium mt-1">
-                    Atur teks &amp; gambar halaman utama, login, dan register secara visual.
-                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSaveCms as any}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-md active:scale-95 shrink-0"
-                >
-                  <Save className="w-4 h-4 text-[#A8B774]" />
-                  Simpan Semua
-                </button>
               </div>
 
               {/* Page Switcher Tabs */}
@@ -3276,6 +3348,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Save Button (Moved to Bottom) */}
+              <div className="flex justify-end pt-6 border-t border-[#E6E1D5]/50">
+                <button
+                  type="button"
+                  onClick={handleSaveCms as any}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm transition-all shadow-md active:scale-95 w-full sm:w-auto"
+                >
+                  <Save className="w-5 h-5 text-[#A8B774]" />
+                  Simpan Semua
+                </button>
+              </div>
             </div>
           )}
 
@@ -3287,7 +3371,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                     Kelola Pengguna
                   </h1>
-                  <p className="text-xs text-[#7A7062] font-semibold mt-1">Mengelola hak akses, ubah data dan ganti kata sandi pengguna.</p>
                 </div>
               </div>
 
@@ -3308,7 +3391,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                {usersList.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
+                {((usersList && usersList.length > 0) ? usersList : DEFAULT_USERS_LIST).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
                   <div key={u.id} className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group flex flex-col relative">
                     {/* Card Header (Avatar & Name & Status) */}
                     <div className="p-6 pb-5 flex items-start gap-4">
@@ -3389,7 +3472,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                 ))}
 
-                {usersList.length === 0 && (
+                {((usersList && usersList.length > 0) ? usersList : DEFAULT_USERS_LIST).length === 0 && (
                   <div className="col-span-full py-16 text-center border-2 border-dashed border-[#E6E1D5] rounded-3xl bg-[#FAF6EE]/50">
                     <div className="w-16 h-16 rounded-full bg-white border border-[#E6E1D5] flex items-center justify-center mx-auto mb-4 text-[#A8B774] shadow-sm">
                       <Users className="w-8 h-8" />

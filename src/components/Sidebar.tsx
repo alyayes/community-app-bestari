@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Mobile Backdrop */}
       {/* Mobile Backdrop */}
       {isOpenMobile && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] md:hidden transition-opacity"
           onClick={() => setIsOpenMobile(false)}
         />
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ) : null}
                       </div>
                       {!isCollapsed && <span>{item.label}</span>}
-                      
+
                       {isCollapsed && item.badge && item.badge > 0 ? (
                         <span className="absolute top-0 right-0 w-3 h-3 bg-[#C53030] rounded-full border border-white"></span>
                       ) : null}

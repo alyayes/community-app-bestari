@@ -35,6 +35,8 @@ interface SidebarProps {
   webName?: string;
   webSubtitle?: string;
   webLogo?: string;
+  appMode?: 'lite' | 'pro';
+  setAppMode?: (mode: 'lite' | 'pro') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,7 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onGoToAdmin,
   webName,
   webSubtitle,
-  webLogo
+  webLogo,
+  appMode,
+  setAppMode
 }) => {
   const navItems: { id: NavItem; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'beranda', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
@@ -73,8 +77,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Backdrop */}
       {/* Mobile Backdrop */}
-      {isOpenMobile && (
-        <div 
+      {isOpenMobile && appMode !== 'lite' && (
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] md:hidden transition-opacity"
           onClick={() => setIsOpenMobile(false)}
         />
@@ -82,8 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside className={`
         fixed top-0 left-0 bottom-0 h-[100dvh] overflow-visible z-[100] bg-white border-r border-[#E6E1D5] flex flex-col p-0 transition-all duration-300 ease-in-out print:hidden
-        ${isOpenMobile ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${isOpenMobile && appMode !== 'lite' ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'md:w-20' : 'md:w-64'}
+        ${appMode === 'lite' ? 'max-md:hidden' : ''}
       `}>
         {/* Toggle Collapse Button (Desktop Only) */}
         {setIsCollapsed && (
@@ -151,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ) : null}
                       </div>
                       {!isCollapsed && <span>{item.label}</span>}
-                      
+
                       {isCollapsed && item.badge && item.badge > 0 ? (
                         <span className="absolute top-0 right-0 w-3 h-3 bg-[#C53030] rounded-full border border-white"></span>
                       ) : null}
@@ -164,6 +169,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Bottom Actions */}
           <div className="mt-auto space-y-2 pt-4 pb-8 md:pb-4 border-t border-[#E6E1D5]">
+
+
             {onGoToAdmin && (currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin')) && (
               <button
                 onClick={onGoToAdmin}

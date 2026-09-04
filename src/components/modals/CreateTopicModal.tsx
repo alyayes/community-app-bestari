@@ -158,8 +158,8 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-5xl rounded-2xl p-6 shadow-xl border border-[#E6E1D5] space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in" style={{ zIndex: 9999 }}>
+      <div className="bg-white w-full max-w-3xl rounded-2xl p-6 shadow-xl border border-[#E6E1D5] space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
           <div className="flex items-center gap-2">

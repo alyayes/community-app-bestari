@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types';
-import { 
-  Camera, 
-  Check, 
-  Edit3, 
-  Save, 
+import {
+  Camera,
+  Check,
+  Edit3,
+  Save,
   X,
   Lock,
   Trash2,
@@ -33,7 +33,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
-  
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Section 1: Personal Info Form States
@@ -129,7 +129,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       alert('Geolocation tidak didukung oleh browser ini.');
       return;
     }
-    
+
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -144,10 +144,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           if (data && data.address) {
             const fetchedCity = data.address.city || data.address.town || data.address.county || 'Sleman, Yogyakarta';
             const fetchedCountry = data.address.country || 'Indonesia';
-            
+
             setCity(fetchedCity);
             setCountry(fetchedCountry);
-            
+
             const updatedProfile = await apiUpdateProfile({ city: fetchedCity, country: fetchedCountry });
             setCurrentUser(updatedProfile);
             triggerToast('Lokasi berhasil disesuaikan dengan device!');
@@ -165,7 +165,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           if (data && data.city && data.country_name) {
             setCity(data.city);
             setCountry(data.country_name);
-            
+
             const updatedProfile = await apiUpdateProfile({ city: data.city, country: data.country_name });
             setCurrentUser(updatedProfile);
             triggerToast('Lokasi disesuaikan menggunakan IP karena GPS tidak tersedia.');
@@ -206,12 +206,12 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             alt={currentUser.name}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border border-[#2C4219]/20 shadow-xs"
           />
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*" 
-            onChange={handleAvatarUpload} 
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleAvatarUpload}
           />
           {/* Hover overlay at bottom */}
           <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none group-hover:pointer-events-auto">
@@ -248,7 +248,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           </p>
           <p className="text-xs text-[#7A7062]/60 font-semibold pt-0.5 flex items-center gap-1.5">
             {city}, {country}
-            <button 
+            <button
               onClick={handleGetLocation}
               disabled={isGettingLocation}
               className="px-2 py-0.5 ml-2 bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#E6E1D5] text-[10px] text-[#433A30] rounded-full font-bold transition-all disabled:opacity-50"
@@ -536,10 +536,12 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           <h3 className="font-title font-bold text-lg text-[#2C4219] mb-4">Pengaturan Tampilan</h3>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold text-[#433A30]">Gunakan Mode Sederhana (Lite Mode)</p>
-              <p className="text-sm text-[#7A7062] mt-1">Tampilan lebih bersih, ikon besar, tanpa fitur rumit.</p>
+              <p className="font-bold text-[#433A30]">Mode Tampilan</p>
+              <p className="text-sm text-[#7A7062] mt-1">
+                {appMode === 'lite' ? 'Lite Mode: Tampilan sederhana dan mudah digunakan' : 'Pro Mode: Tampilan lengkap dan lebih detail'}
+              </p>
             </div>
-            <button 
+            <button
               onClick={() => setAppMode(appMode === 'lite' ? 'pro' : 'lite')}
               className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${appMode === 'lite' ? 'bg-[#2C4219]' : 'bg-[#D1D5DB]'}`}
             >

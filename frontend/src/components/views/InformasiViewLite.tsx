@@ -34,22 +34,22 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
   // Detail View (Tampilan Baca Artikel)
     if (selectedArticle) {
     return (
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl p-6 lg:p-10 shadow-sm border border-[#E6E1D5] animate-in fade-in duration-300">
+      <div className="w-full animate-in fade-in duration-300">
         <button 
           onClick={() => onSelectArticle(null)}
-          className="flex items-center gap-2 text-[#2C4219] font-bold text-xl mb-6 active:scale-95 transition-transform bg-[#FAF6EE] px-5 py-4 rounded-2xl border-2 border-[#E6E1D5] w-fit shadow-sm"
+          className="flex items-center gap-2 text-[#2C4219] font-bold text-sm mb-6 active:scale-95 transition-transform bg-white hover:bg-[#FAF6EE] px-4 py-2 rounded-xl border border-[#E6E1D5] w-fit shadow-sm"
         >
-          <ChevronLeft className="w-8 h-8" />
+          <ChevronLeft className="w-5 h-5" />
           Kembali ke Daftar
         </button>
 
-        <h1 className="text-3xl md:text-4xl font-black text-[#2C4219] mb-6 leading-tight">
+        <h1 className="text-2xl md:text-3xl font-black text-[#2C4219] mb-6 leading-tight">
           {selectedArticle.title}
         </h1>
         
         {selectedArticle.gallery && selectedArticle.gallery.length > 0 ? (
           <div className="relative mb-6 group overflow-hidden rounded-2xl shadow-sm bg-[#E6E1D5]/30">
-            <div className="relative w-full h-64 md:h-80 lg:h-96">
+            <div className="relative w-full h-48 md:h-64 lg:h-[400px]">
               {selectedArticle.gallery.map((imgUrl, idx) => (
                 <img
                   key={idx}
@@ -82,11 +82,11 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           <img 
             src={selectedArticle.image} 
             alt={selectedArticle.title}
-            className="w-full h-64 object-cover rounded-2xl mb-6 shadow-sm"
+            className="w-full h-48 md:h-64 lg:h-[400px] object-cover rounded-2xl mb-6 shadow-sm"
           />
         )}
 
-        <div className="prose prose-xl max-w-none text-[#433A30] leading-relaxed [&>h1]:text-[#2C4219] [&>h2]:text-[#2C4219] text-xl font-medium">
+        <div className="prose max-w-none text-[#433A30] leading-relaxed [&>h1]:text-[#2C4219] [&>h2]:text-[#2C4219]">
           {selectedArticle.content && selectedArticle.content.length > 0 ? (
             <div dangerouslySetInnerHTML={{ __html: selectedArticle.content.join('\n') }} />
           ) : (
@@ -100,37 +100,34 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
   // List View (Daftar Artikel)
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300 w-full">
-      <div className="bg-[#FAF6EE] p-6 lg:p-10 rounded-3xl border-2 border-[#E6E1D5] text-center md:text-left shadow-sm">
-        <h2 className="text-4xl font-black text-[#2C4219] mb-2">Kabar & Tips</h2>
-        <p className="text-xl text-[#433A30] font-medium">Ketuk berita di bawah ini untuk mulai membaca.</p>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {filteredArticles.length > 0 ? (
           filteredArticles.map(art => (
             <div 
               key={art.id}
               onClick={() => onSelectArticle(art)}
-              className="bg-white rounded-3xl p-5 border-2 border-[#E6E1D5] flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer shadow-md hover:border-[#607829]"
+              className="bg-white rounded-2xl p-3 sm:p-4 border border-[#E6E1D5] flex flex-col gap-3 active:scale-95 transition-transform cursor-pointer shadow-sm hover:border-[#607829]"
             >
-              <div className="w-full h-48 md:h-56 rounded-2xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
+              <div className="w-full h-32 md:h-40 rounded-xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
                 {art.image ? (
                   <img src={art.image} alt={art.title} className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon className="w-16 h-16 text-[#2C4219]/30" />
+                  <ImageIcon className="w-10 h-10 text-[#2C4219]/30" />
                 )}
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-black text-2xl text-[#2C4219] leading-tight mb-3">
+                  <h3 className="font-bold text-lg text-[#2C4219] leading-tight mb-1">
                     {art.title}
                   </h3>
-                  <p className="text-lg text-[#433A30]/80 line-clamp-2 font-medium">
+                  <p className="text-sm text-[#433A30]/80 line-clamp-2 font-medium">
                     {art.summary}
                   </p>
                 </div>
-                <div className="mt-5">
-                  <div className="w-full bg-[#2C4219] text-white py-4 rounded-2xl font-bold text-xl text-center hover:bg-[#1E2E11] transition-colors">
+                <div className="mt-3">
+                  <div className="w-full bg-[#2C4219] text-white py-2.5 rounded-xl font-bold text-sm text-center hover:bg-[#1E2E11] transition-colors">
                     Baca Berita Lengkap
                   </div>
                 </div>

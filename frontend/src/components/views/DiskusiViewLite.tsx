@@ -856,95 +856,93 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
 
   // Daftar Diskusi
   return (
-    <div className="w-full h-full bg-[#FAF6EE] sm:bg-transparent px-0 sm:px-5 py-0 sm:py-3">
-      <div className="max-w-4xl mx-auto space-y-4 pb-20 animate-in fade-in duration-300 w-full px-4 lg:px-0">
-        <div className="bg-[#FAF6EE] p-5 lg:p-6 rounded-2xl border border-[#E6E1D5] flex items-center justify-between shadow-sm">
-          <div>
-            <h2 className="text-2xl font-bold text-[#2C4219]">Ruang Diskusi</h2>
-            <p className="text-base text-[#433A30] mt-1">Pilih topik untuk membaca atau ikut mengobrol.</p>
-          </div>
-          <button
-            onClick={onOpenCreateModal}
-            className="bg-[#2C4219] text-white p-3 lg:p-3.5 rounded-xl active:scale-95 flex flex-col items-center shrink-0 ml-4 shadow-sm transition-transform"
-          >
-            <PlusCircle className="w-6 h-6 lg:w-7 lg:h-7 mb-1" />
-            <span className="text-xs font-bold">Buat Topik</span>
-          </button>
-        </div>
-
+    <div className="w-full h-full bg-[#FAF6EE] sm:bg-transparent px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="w-full space-y-4 pb-20 animate-in fade-in duration-300">
         {/* Search & Filter - Lite Style */}
         <div className="space-y-3">
-          <div className="relative">
-            <Search className="w-6 h-6 absolute left-4 top-1/2 -translate-y-1/2 text-[#433A30]/40" />
+          {/* Search Bar Full Width */}
+          <div className="relative w-full">
+            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#433A30]/40" />
             <input
               type="text"
               placeholder="Cari topik obrolan..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-6 py-3 bg-white border border-[#E6E1D5] rounded-xl text-lg font-bold text-[#433A30] placeholder-[#433A30]/40 focus:outline-none focus:border-[#2C4219] shadow-sm"
+              className="w-full pl-11 pr-4 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-sm font-bold text-[#433A30] placeholder-[#433A30]/40 focus:outline-none focus:border-[#2C4219] shadow-sm"
             />
           </div>
 
-          <div className="relative">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-12 pr-12 py-3 bg-white border border-[#E6E1D5] rounded-xl text-lg font-bold text-[#433A30] focus:outline-none focus:border-[#2C4219] shadow-sm appearance-none cursor-pointer"
+          {/* Filter & Add Button Split */}
+          <div className="flex gap-2 w-full">
+            <div className="relative flex-1 min-w-0">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full pl-11 pr-10 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-sm font-bold text-[#433A30] focus:outline-none focus:border-[#2C4219] shadow-sm appearance-none cursor-pointer"
+              >
+                {categoryOptions.map((cat) => (
+                  <option key={cat.name} value={cat.name}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
+                <Filter className="w-5 h-5" />
+              </div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
+                <ChevronDown className="w-5 h-5" />
+              </div>
+            </div>
+            
+            <button
+              onClick={onOpenCreateModal}
+              className="bg-[#2C4219] text-white flex-1 min-w-0 px-2 py-2.5 rounded-xl active:scale-95 flex items-center justify-center gap-1.5 shadow-sm transition-transform hover:bg-[#1E2E11]"
             >
-              {categoryOptions.map((cat) => (
-                <option key={cat.name} value={cat.name}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
-              <Filter className="w-6 h-6" />
-            </div>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
-              <ChevronDown className="w-6 h-6" />
-            </div>
+              <PlusCircle className="w-4 h-4 shrink-0" />
+              <span className="text-xs sm:text-sm font-bold truncate">Buat Topik</span>
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
           {filteredThreads.length > 0 ? filteredThreads.map((thread) => (
             <div
               key={thread.id}
               onClick={() => setSelectedThread(thread)}
-              className="bg-white rounded-2xl p-5 border-2 border-[#E6E1D5] active:scale-95 transition-transform cursor-pointer shadow-sm flex flex-col justify-between"
+              className="bg-white rounded-2xl p-4 border border-[#E6E1D5] active:scale-95 transition-transform cursor-pointer shadow-sm flex flex-col justify-between"
             >
-              <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-3 mb-2.5">
                 {thread.groupAvatar ? (
-                  <img src={thread.groupAvatar} alt={thread.title} className="w-14 h-14 rounded-full object-cover shrink-0 border-2 border-[#FAF6EE]" />
+                  <img src={thread.groupAvatar} alt={thread.title} className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-[#FAF6EE]" />
                 ) : (
-                  <div className="w-14 h-14 bg-[#2C4219] rounded-full flex items-center justify-center text-white font-black text-2xl shrink-0">
+                  <div className="w-10 h-10 bg-[#2C4219] rounded-full flex items-center justify-center text-white font-black text-lg shrink-0">
                     {thread.title.charAt(0)}
                   </div>
                 )}
                 <div>
-                  <h3 className="font-bold text-xl text-[#2C4219] line-clamp-2 leading-tight group-hover:text-[#607829] transition-colors">
+                  <h3 className="font-bold text-base text-[#2C4219] line-clamp-2 leading-tight group-hover:text-[#607829] transition-colors">
                     {thread.title}
                   </h3>
                 </div>
               </div>
               <div>
-                <p className="text-lg text-[#433A30]/80 mt-1 line-clamp-2">
+                <p className="text-sm text-[#433A30]/80 mt-1 line-clamp-2">
                   {thread.content}
                 </p>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-[#FAF6EE] flex items-center justify-between text-[#433A30]/80">
-                <span className="text-sm font-bold">Oleh: {thread.authorName}</span>
-                <div className="flex items-center gap-2">
+              <div className="mt-3 pt-3 border-t border-[#FAF6EE] flex flex-wrap items-center justify-between gap-2 text-[#433A30]/80">
+                <span className="text-xs font-bold truncate flex-1 min-w-[100px]">Oleh: {thread.authorName}</span>
+                <div className="flex items-center gap-2 shrink-0">
                   {!hasJoined(thread) && (
-                    <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md text-xs font-bold">
+                    <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md text-[10px] font-bold shrink-0 whitespace-nowrap">
                       <Lock className="w-3 h-3 text-gray-500" />
                       Terkunci
                     </span>
                   )}
-                  <div className="flex items-center gap-1.5 bg-[#FAF6EE] px-3 py-1.5 rounded-lg">
-                    <MessageSquare className="w-4 h-4 text-[#607829]" />
-                    <span className="text-sm font-bold">{thread.repliesCount} balasan</span>
+                  <div className="flex items-center gap-1 bg-[#FAF6EE] px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#607829]" />
+                    <span className="text-[11px] font-bold">{thread.repliesCount} balasan</span>
                   </div>
                 </div>
               </div>

@@ -28,11 +28,11 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
         {/* Kolom Kiri: Sapaan dan Menu */}
         <div className="space-y-6">
           {/* Sapaan Hangat */}
-          <div className="bg-[#FAF6EE] p-6 lg:p-8 rounded-3xl border-2 border-[#E6E1D5] text-center md:text-left shadow-sm">
-            <h2 className="text-3xl lg:text-4xl font-black text-[#2C4219] mb-3 leading-tight">
+          <div className="bg-[#2C4219] p-6 lg:p-8 rounded-3xl border-2 border-[#1E2E11] text-center md:text-left shadow-sm">
+            <h2 className="text-3xl lg:text-4xl font-black text-white mb-3 leading-tight">
               Selamat Datang, <br/> Ibu {currentUser.name}!
             </h2>
-            <p className="text-xl lg:text-2xl text-[#433A30] font-medium">
+            <p className="text-xl lg:text-2xl text-[#E2E8D5] font-medium">
               Semoga hari ini menyenangkan. Silakan pilih menu di bawah ini:
             </p>
           </div>

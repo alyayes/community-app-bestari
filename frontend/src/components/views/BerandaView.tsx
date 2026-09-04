@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, UserProfile, CmsData } from '../../types';
 import { SERVER_BASE } from '../../api/client';
-import { 
-  ArrowRight, 
-  Calendar, 
-  Megaphone, 
-  BookOpen, 
+import {
+  ArrowRight,
+  Calendar,
+  Megaphone,
+  BookOpen,
   Clock,
   ChevronLeft,
   ChevronRight,
@@ -23,6 +23,7 @@ interface BerandaViewProps {
   onSelectAnnouncement: (announcement: Announcement) => void;
   onOpenMulaiPanen: () => void;
   cmsData?: CmsData | null;
+  setAppMode?: (mode: 'lite' | 'pro') => void;
 }
 
 const BANNER_SLIDES = [
@@ -56,15 +57,16 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
   onSelectAnnouncement,
   onOpenMulaiPanen,
   cmsData,
+  setAppMode,
 }) => {
   const [activeSlide, setActiveSlide] = useState(0);
 
   const activeBannerSlides = cmsData?.landingImages?.length
     ? cmsData.landingImages.map(img => ({
-        url: img.url.startsWith('/uploads/') ? `${SERVER_BASE}${img.url}` : img.url,
-        title: img.title,
-        desc: img.caption
-      }))
+      url: img.url.startsWith('/uploads/') ? `${SERVER_BASE}${img.url}` : img.url,
+      title: img.title,
+      desc: img.caption
+    }))
     : BANNER_SLIDES;
 
   // Auto transition banner slides every 5 seconds
@@ -97,13 +99,22 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
     <div className="space-y-6 pb-12 w-full">
       {/* Dynamic Slider Hero Banner */}
       <div className="relative rounded-2xl overflow-hidden bg-[#2C4219] text-white shadow-md border border-[#2C4219]/10 group min-h-[180px] sm:min-h-[200px] flex items-start pt-6 sm:pt-8 pb-6">
+        {setAppMode && (
+          <div className="absolute top-4 right-4 md:top-6 md:right-8 z-30">
+            <button
+              onClick={() => setAppMode('lite')}
+              className="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold border border-white/40 transition-all active:scale-95 text-xs md:text-sm shadow-sm"
+            >
+              Pindah ke Lite Mode
+            </button>
+          </div>
+        )}
         {/* Background Slide Images with Fade */}
         {activeBannerSlides.map((slide, idx) => (
           <div
             key={idx}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-              idx === activeSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10'
-            }`}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === activeSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10'
+              }`}
           >
             <img
               src={slide.url || undefined}
@@ -240,7 +251,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                       className="p-3.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#572E4A] cursor-pointer transition-all space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span 
+                        <span
                           className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
                           style={{ backgroundColor: ann.badgeColor }}
                         >

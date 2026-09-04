@@ -387,8 +387,8 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-100px)] min-h-[580px] flex flex-col font-sans">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 border border-[#E6E1D5] rounded-2xl bg-white shadow-xs flex-1 overflow-hidden">
+    <div className="w-full h-[calc(100vh-80px)] pb-[60px] md:pb-0 flex flex-col font-sans">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-0 border-t border-[#E6E1D5] bg-white flex-1 overflow-hidden">
 
         {/* ========================================================================= */}
         {/* LEFT SIDEBAR: Group Chats / Topics Navigation                             */}

@@ -185,7 +185,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#FAF6EE] font-sans">
 
       {/* LEFT PANEL: Branding & Photo Background (50% split) */}
-      <div className="w-full md:w-1/2 bg-[#2C4219] p-6 sm:p-10 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden min-h-[280px] md:min-h-screen shrink-0">
+      <div className="w-full md:w-1/2 bg-[#2C4219] p-6 sm:p-10 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden min-h-[220px] md:min-h-screen shrink-0">
         <div className="absolute inset-0 w-full h-full">
           {loginImages.map((url, idx) => (
             <div
@@ -228,7 +228,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         </div>
 
         {/* Left Hero Text */}
-        <div className="relative z-10 my-auto py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
+        <div className="relative z-10 my-auto py-4 md:py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
           <h2 className="font-title font-bold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
             {cmsData?.loginTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.loginTitle.replace('\\n', '<br />') }} />
@@ -251,8 +251,8 @@ export const LoginView: React.FC<LoginViewProps> = ({
       </div>
 
       {/* RIGHT PANEL: Login Form (50% split, centered) */}
-      <div className="w-full md:w-1/2 bg-[#FAF6EE] p-6 sm:p-10 lg:p-16 flex flex-col justify-center items-center min-h-screen">
-        <div className="max-w-sm w-full space-y-7 sm:space-y-8 my-auto">
+      <div className="w-full md:w-1/2 bg-[#FAF6EE] p-6 pt-8 pb-12 sm:p-10 lg:p-16 flex flex-col justify-start md:justify-center items-center flex-1 md:min-h-screen">
+        <div className="max-w-sm w-full space-y-7 sm:space-y-8 mb-auto md:my-auto">
 
           {/* Form Header */}
           <div>
