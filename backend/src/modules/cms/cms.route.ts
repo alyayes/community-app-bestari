@@ -107,6 +107,9 @@ router.put('/', authenticate, async (req: Request, res: Response, next: NextFunc
 
     return successResponse(res, cms, 'Tampilan berhasil diperbarui');
   } catch (err) {
+    console.error('CMS PUT ERROR:', err);
+    const errMsg = err instanceof Error ? (err.stack || err.message) : String(err);
+    require('fs').appendFileSync('cms_error.log', new Date().toISOString() + ' ' + errMsg + '\n');
     next(err);
   }
 });

@@ -136,7 +136,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           ))
         ) : (
           <div className="text-center p-12 bg-white rounded-3xl border-2 border-[#E6E1D5] col-span-full">
-            <p className="text-xl text-[#433A30]/60">Tidak ada informasi yang sesuai.</p>
+            <p className="text-xl text-[#433A30]/60 font-medium">Belum ada berita atau tips untuk saat ini, Bu.</p>
           </div>
         )}
       </div>

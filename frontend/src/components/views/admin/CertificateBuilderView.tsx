@@ -20,19 +20,19 @@ const DEFAULT_CONFIG: CertificateConfig = {
 };
 
 interface CertificateBuilderViewProps {
-  isLiteMode?: boolean;
   agendas: AgendaEvent[];
   onUpdateAgendas?: (agendas: AgendaEvent[]) => void;
   showToast: (msg: string) => void;
   handleCmsUpload: (file: File) => Promise<string>;
+  isLiteMode?: boolean;
 }
 
 export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
-  isLiteMode = false,
   agendas,
   onUpdateAgendas,
   showToast,
-  handleCmsUpload
+  handleCmsUpload,
+  isLiteMode = false
 }) => {
   const [selectedAgendaId, setSelectedAgendaId] = useState<string>('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -199,7 +199,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
         onUpdateAgendas(updated);
       }
 
-      setConfig({ ...DEFAULT_CONFIG }); // Reset to default config
+      setConfig({...DEFAULT_CONFIG}); // Reset to default config
       setSignatureFile(null);
       setLogoFile(null);
       
@@ -222,7 +222,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
   };
 
   return (
-    <div className={isLiteMode ? "w-full min-h-full space-y-6" : "p-4 sm:p-6 lg:p-8 space-y-6 w-full min-h-full"}>
+    <div className={isLiteMode ? "w-full space-y-6" : "p-4 sm:p-6 lg:p-8 space-y-6"}>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -238,93 +238,33 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
 
       {/* Agenda Selector */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between px-1 relative z-50">
+        
+          <div className="flex items-center justify-between px-1">
           <label className="font-bold text-sm text-[#2C4219]">Pilih Agenda Kegiatan</label>
           {selectedAgendaId && (
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="text-[11px] font-bold text-[#D97706] hover:text-[#B45309] transition-colors flex items-center gap-1 bg-[#D97706]/10 px-3 py-1.5 rounded-lg whitespace-nowrap"
-              >
-                {isLiteMode ? 'Ganti Agenda' : (isDropdownOpen ? 'Batal Ganti' : 'Ganti Agenda')}
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Lite mode: inline dropdown */}
-              {isLiteMode && isDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-[#E6E1D5] py-1 animate-in fade-in slide-in-from-top-2 z-50">
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                    {agendas.length === 0 ? (
-                      <div className="px-4 py-3 text-xs text-[#7A7062] text-center">Belum ada agenda</div>
-                    ) : (
-                      agendas.map(ag => (
-                        <button
-                          key={ag.id}
-                          onClick={() => {
-                            setSelectedAgendaId(ag.id);
-                            setIsDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between gap-2 ${
-                            selectedAgendaId === ag.id 
-                              ? 'bg-[#2C4219] text-white' 
-                              : 'hover:bg-[#FAF6EE] text-[#2C4219]'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <p className="font-bold truncate">{ag.title}</p>
-                            <p className={`text-[10px] ${selectedAgendaId === ag.id ? 'text-white/70' : 'text-[#7A7062]'}`}>
-                              {ag.dayNumber} {ag.monthAbbr} {ag.date?.split('-')[0] || ''}
-                            </p>
-                          </div>
-                          {hasCertificate(ag.id) && (
-                            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${selectedAgendaId === ag.id ? 'text-white' : 'text-[#D97706]'}`} />
-                          )}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="text-[11px] font-bold text-[#D97706] hover:text-[#B45309] transition-colors flex items-center gap-1 bg-[#D97706]/10 px-3 py-1.5 rounded-lg"
+            >
+              {isDropdownOpen ? 'Batal Ganti' : 'Ganti Agenda'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
           )}
         </div>
         
-        {/* Grid Selection Mode — Pro mode only, or initial selection (no agenda selected yet) */}
-        {(!selectedAgendaId || (!isLiteMode && isDropdownOpen)) && (
+        {/* Grid Selection Mode (Shown initially or when "Ganti Agenda" is clicked) */}
+        {(!selectedAgendaId || isDropdownOpen) && (
           <div className="bg-white/60 backdrop-blur-sm rounded-3xl border border-[#E6E1D5] p-2 sm:p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
             {agendas.length === 0 ? (
               <div className="text-center p-8 bg-white rounded-2xl border border-dashed border-[#E6E1D5]">
                 <p className="text-sm font-semibold text-[#A19D94]">Belum ada agenda yang dibuat.</p>
               </div>
             ) : (
-              <div className={isLiteMode ? "space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar p-1" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto custom-scrollbar p-1"}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto custom-scrollbar p-1">
                 {agendas.map(ag => {
                   const isSelected = selectedAgendaId === ag.id;
                   const hasCert = hasCertificate(ag.id);
-                  return isLiteMode ? (
-                    /* Lite: simple list item */
-                    <button
-                      key={ag.id}
-                      onClick={() => {
-                        setSelectedAgendaId(ag.id);
-                        setIsDropdownOpen(false);
-                      }}
-                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                        isSelected 
-                          ? 'bg-[#2C4219] border-[#2C4219] text-white' 
-                          : 'bg-white border-[#E6E1D5] hover:border-[#2C4219]/40 hover:bg-[#FAF6EE]'
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className={`font-bold text-sm truncate ${isSelected ? 'text-white' : 'text-[#2C4219]'}`}>{ag.title}</p>
-                        <p className={`text-[11px] ${isSelected ? 'text-white/70' : 'text-[#7A7062]'}`}>
-                          {ag.dayNumber} {ag.monthAbbr} {ag.date?.split('-')[0] || ''}
-                        </p>
-                      </div>
-                      {hasCert && <CheckCircle2 className={`w-4 h-4 shrink-0 ${isSelected ? 'text-[#D97706]' : 'text-[#D97706]'}`} />}
-                    </button>
-                  ) : (
-                    /* Pro: full card */
+                  return (
                     <button
                       key={ag.id}
                       onClick={() => {
@@ -377,41 +317,40 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
           </div>
         )}
 
-        {/* Selected Agenda Banner (Shown when selected and not editing, except in Lite where it stays visible) */}
-        {selectedAgendaId && (!isDropdownOpen || isLiteMode) && selectedAgenda && (
-            <div className="bg-gradient-to-r from-[#2C4219] to-[#3a5621] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden group animate-in zoom-in-95 duration-300">
-              {/* Background Decorations */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-white/20 text-white backdrop-blur-md">
-                      {selectedAgenda.category || 'AGENDA'}
-                    </span>
-                    {hasCertificate(selectedAgenda.id) && (
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 bg-[#D97706] text-white shadow-sm">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Sertifikat Aktif
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="font-title font-bold text-lg sm:text-xl text-white">{selectedAgenda.title}</h4>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 bg-black/20 px-4 py-2.5 rounded-xl backdrop-blur-md border border-white/10">
-                  <Calendar className="w-4 h-4 text-[#A8B774]" />
-                  <span className="text-sm font-bold text-white/90">
-                    {selectedAgenda.dayNumber} {selectedAgenda.monthAbbr} {selectedAgenda.date?.split('-')[0] || ''}
+{/* Selected Agenda Banner (Shown when selected and not editing) */}
+        {selectedAgendaId && !isDropdownOpen && selectedAgenda && (
+          <div className="bg-gradient-to-r from-[#2C4219] to-[#3a5621] rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden group animate-in zoom-in-95 duration-300">
+            {/* Background Decorations */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-white/20 text-white backdrop-blur-md">
+                    {selectedAgenda.category || 'AGENDA'}
                   </span>
+                  {hasCertificate(selectedAgenda.id) && (
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 bg-[#D97706] text-white shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Sertifikat Aktif
+                    </span>
+                  )}
                 </div>
+                <h4 className="font-title font-bold text-lg sm:text-xl text-white">{selectedAgenda.title}</h4>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 bg-black/20 px-4 py-2.5 rounded-xl backdrop-blur-md border border-white/10">
+                <Calendar className="w-4 h-4 text-[#A8B774]" />
+                <span className="text-sm font-bold text-white/90">
+                  {selectedAgenda.dayNumber} {selectedAgenda.monthAbbr} {selectedAgenda.date?.split('-')[0] || ''}
+                </span>
               </div>
             </div>
+          </div>
         )}
       </div>
       
       {/* Builder Content */}
-      {selectedAgendaId && (!isDropdownOpen || isLiteMode) && (
-          /* ===== PRO MODE: Full 2-column layout ===== */
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+      {selectedAgendaId && !isDropdownOpen && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
                         {/* LEFT: Form Builder */}
                         <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-sm p-5 sm:p-6 space-y-5">
                           <div className="flex items-center gap-2 border-b border-[#E6E1D5] pb-3">

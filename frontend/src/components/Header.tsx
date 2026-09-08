@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavItem, UserProfile } from '../types';
+import { getAvatarUrl, handleAvatarError } from '../api/client';
 import { Search, Bell, Menu, Calendar as CalendarIcon, User } from 'lucide-react';
 
 interface HeaderProps {
@@ -237,8 +238,9 @@ export const Header: React.FC<HeaderProps> = ({
             title="Lihat Profil Saya"
           >
             <img
-              src={currentUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'User')}&background=A8B774&color=2C4219`}
+              src={getAvatarUrl(currentUser.avatar, currentUser.name)}
               alt={currentUser.name}
+              onError={(e) => handleAvatarError(e, currentUser.name)}
               className="w-8 h-8 rounded-full object-cover border border-[#2C4219]/20"
             />
             <div className="hidden sm:block text-left">

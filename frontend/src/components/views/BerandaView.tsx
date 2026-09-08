@@ -11,7 +11,7 @@ import {
   ChevronRight,
   Image as ImageIcon
 } from 'lucide-react';
-import { getCategoryColor } from './AgendaView';
+import { getCategoryColor } from '../../utils/agendaUtils';
 
 interface BerandaViewProps {
   currentUser: UserProfile;

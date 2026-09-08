@@ -102,32 +102,32 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
     <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300 w-full">
 
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {filteredArticles.length > 0 ? (
           filteredArticles.map(art => (
             <div 
               key={art.id}
               onClick={() => onSelectArticle(art)}
-              className="bg-white rounded-2xl p-3 sm:p-4 border border-[#E6E1D5] flex flex-col gap-3 active:scale-95 transition-transform cursor-pointer shadow-sm hover:border-[#607829]"
+              className="bg-white rounded-3xl p-5 border-2 border-[#E6E1D5] flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer shadow-md hover:border-[#607829]"
             >
-              <div className="w-full h-32 md:h-40 rounded-xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
+              <div className="w-full h-48 md:h-56 rounded-2xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
                 {art.image ? (
                   <img src={art.image} alt={art.title} className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon className="w-10 h-10 text-[#2C4219]/30" />
+                  <ImageIcon className="w-16 h-16 text-[#2C4219]/30" />
                 )}
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-bold text-lg text-[#2C4219] leading-tight mb-1">
+                  <h3 className="font-black text-2xl text-[#2C4219] leading-tight mb-3">
                     {art.title}
                   </h3>
-                  <p className="text-sm text-[#433A30]/80 line-clamp-2 font-medium">
+                  <p className="text-lg text-[#433A30]/80 line-clamp-2 font-medium">
                     {art.summary}
                   </p>
                 </div>
-                <div className="mt-3">
-                  <div className="w-full bg-[#2C4219] text-white py-2.5 rounded-xl font-bold text-sm text-center hover:bg-[#1E2E11] transition-colors">
+                <div className="mt-5">
+                  <div className="w-full bg-[#2C4219] text-white py-4 rounded-2xl font-bold text-xl text-center hover:bg-[#1E2E11] transition-colors">
                     Baca Berita Lengkap
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           ))
         ) : (
           <div className="text-center p-12 bg-white rounded-3xl border-2 border-[#E6E1D5] col-span-full">
-            <p className="text-xl text-[#433A30]/60">Tidak ada informasi yang sesuai.</p>
+            <p className="text-xl text-[#433A30]/60 font-medium">Belum ada berita atau tips untuk saat ini, Bu.</p>
           </div>
         )}
       </div>

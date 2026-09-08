@@ -145,7 +145,7 @@ export const MulaiPanenModal: React.FC<MulaiPanenModalProps> = ({
               />
             </div>
 
-            <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}

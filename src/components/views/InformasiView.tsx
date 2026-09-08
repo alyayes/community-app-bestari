@@ -468,7 +468,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             </div>
 
             {/* Read More Footer */}
-            <div className="px-5 pb-5 pt-2 border-t border-[#E6E1D5]/50 flex items-center justify-end text-xs font-bold text-[#2C4219]">
+            <div className="px-5 pb-5 pt-2 border-t border-[#E6E1D5]/50 flex flex-wrap items-center justify-end text-xs font-bold text-[#2C4219]">
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>

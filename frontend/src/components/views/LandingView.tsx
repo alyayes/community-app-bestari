@@ -180,7 +180,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </h1>
 
           {/* SUBHEADLINE */}
-          <p className="max-w-3xl mx-auto text-xs sm:text-sm lg:text-base text-gray-100 font-medium leading-relaxed drop-shadow-md">
+          <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-100 font-medium leading-relaxed drop-shadow-md">
             {cmsData?.landingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
           </p>
 

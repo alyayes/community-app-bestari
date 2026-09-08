@@ -12,6 +12,9 @@
 }
 
 @layer base {
+  html {
+    font-size: 14.5px;
+  }
   body {
     font-family: 'Poppins', sans-serif;
     background-color: #FAF6EE;

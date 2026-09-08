@@ -58,7 +58,7 @@ router.get('/lahan', async (_req: Request, res: Response, next: NextFunction) =>
     const response = await fetch(`${EXTERNAL_API_BASE}/land?limit=100`, {
       headers: { 'x-api-key': EXTERNAL_API_KEY }
     });
-    const result = await response.json();
+    const result: any = await response.json();
     if (result.success && result.data) {
       return successResponse(res, result.data.map(toLandPlot));
     }
@@ -74,7 +74,7 @@ router.get('/panen', async (_req: Request, res: Response, next: NextFunction) =>
     const response = await fetch(`${EXTERNAL_API_BASE}/harvest?limit=100`, {
       headers: { 'x-api-key': EXTERNAL_API_KEY }
     });
-    const result = await response.json();
+    const result: any = await response.json();
     if (result.success && result.data) {
       return successResponse(res, result.data.map(toHarvestRecord));
     }
@@ -82,6 +82,81 @@ router.get('/panen', async (_req: Request, res: Response, next: NextFunction) =>
   } catch (err) {
     next(err);
   }
+});
+
+// ── PROXY ENDPOINTS untuk data SCM tambahan ───────────
+
+// Helper: generic proxy fetch from external SCM API
+async function fetchSCM(endpoint: string, limit = 100) {
+  const response = await fetch(`${EXTERNAL_API_BASE}/${endpoint}?limit=${limit}`, {
+    headers: { 'x-api-key': EXTERNAL_API_KEY }
+  });
+  const result: any = await response.json();
+  return (result.success && result.data) ? result.data : [];
+}
+
+// GET /api/dashboard/equipment (Peralatan)
+router.get('/equipment', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('equipment');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/production (Produksi)
+router.get('/production', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('production');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/certificates (Sertifikat)
+router.get('/certificates', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('certificates');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/packaging (Kemasan)
+router.get('/packaging', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('packaging');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/logistics (Logistik)
+router.get('/logistics', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('logistics');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/varieties (Varietas)
+router.get('/varieties', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('varieties');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/plantings (Penanaman)
+router.get('/plantings', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('plantings');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
+});
+
+// GET /api/dashboard/warehouse (Gudang)
+router.get('/warehouse', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await fetchSCM('warehouse');
+    return successResponse(res, data);
+  } catch (err) { next(err); }
 });
 
 // ── POST /api/panen ────────────────────────────────

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../types';
 import {
   Camera,
@@ -8,23 +8,21 @@ import {
   X,
   Lock,
   Trash2,
-  Award,
-  LogOut
+  Award
 } from 'lucide-react';
 
-import { apiUpdateProfile } from '../../api/client';
+import { apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface ProfilViewProps {
   currentUser: UserProfile;
   setCurrentUser: (user: UserProfile) => void;
   appMode?: 'lite' | 'pro';
   setAppMode?: (mode: 'lite' | 'pro') => void;
-  onLogout?: () => void;
 }
 
 
 
-export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode, onLogout }) => {
+export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode }) => {
   // Editing states for sections
   const [isEditPersonal, setIsEditPersonal] = useState(false);
   const [isEditAddress, setIsEditAddress] = useState(false);
@@ -45,7 +43,24 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   const [email, setEmail] = useState(currentUser.email || '');
   const [phone, setPhone] = useState(currentUser.phone || '');
   const [certificateName, setCertificateName] = useState(currentUser.certificateName || '');
-  const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [avatar, setAvatar] = useState(currentUser.avatar || '');
+
+  // Sinkronisasi state form saat currentUser berubah (misal setelah refresh / load / switch role)
+  useEffect(() => {
+    setFirstName(currentUser.firstName || '');
+    setLastName(currentUser.lastName || '');
+    setDob(currentUser.dob || '');
+    setEmail(currentUser.email || '');
+    setPhone(currentUser.phone || '');
+    setCertificateName(currentUser.certificateName || '');
+    setAvatar(currentUser.avatar || '');
+    setCountry(currentUser.country || '');
+    setCity(currentUser.city || '');
+    setPostalCode(currentUser.postalCode || '');
+    setLahanLocation(currentUser.lahanLocation || '');
+    setSorghumType(currentUser.sorghumType || '');
+    setMemberSince(currentUser.memberSince || '');
+  }, [currentUser]);
 
   // Section 2: Address & Lahan Form States
   const [country, setCountry] = useState(currentUser.country || '');
@@ -106,6 +121,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       try {
         const updatedProfile = await apiUpdateProfile({ avatar: base64 });
         setCurrentUser(updatedProfile);
+        setAvatar(updatedProfile.avatar || base64);
         triggerToast('Foto profil berhasil diunggah!');
       } catch (err: any) {
         alert(err.message || 'Gagal menyimpan foto profil');
@@ -204,8 +220,9 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         {/* Avatar Area */}
         <div className="relative shrink-0 group">
           <img
-            src={avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'User')}&background=A8B774&color=2C4219`}
+            src={getAvatarUrl(avatar, currentUser.name)}
             alt={currentUser.name}
+            onError={(e) => handleAvatarError(e, currentUser.name)}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border border-[#2C4219]/20 shadow-xs"
           />
           <input
@@ -538,8 +555,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           <h3 className="font-title font-bold text-lg text-[#2C4219] mb-4">Pengaturan Tampilan</h3>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold text-[#433A30]">Gunakan Mode Sederhana (Lite Mode)</p>
-              <p className="text-sm text-[#7A7062] mt-1">Tampilan lebih bersih, ikon besar, tanpa fitur rumit.</p>
+              <p className="font-bold text-[#433A30]">Mode Tampilan</p>
+              <p className="text-sm text-[#7A7062] mt-1">
+                {appMode === 'lite' ? 'Lite Mode: Tampilan sederhana dan mudah digunakan' : 'Pro Mode: Tampilan lengkap dan lebih detail'}
+              </p>
             </div>
             <button
               onClick={() => setAppMode(appMode === 'lite' ? 'pro' : 'lite')}
@@ -548,19 +567,6 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
               <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${appMode === 'lite' ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Logout Action (Mobile only for normal users) */}
-      {(!currentUser.role.toLowerCase().includes('ketua') && !currentUser.isAdmin) && onLogout && (
-        <div className="md:hidden mt-8 border-t border-[#E6E1D5] pt-6">
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-red-200 text-red-600 rounded-xl font-bold text-sm hover:bg-red-50 active:scale-[0.98] transition-all shadow-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Keluar</span>
-          </button>
         </div>
       )}
     </div>

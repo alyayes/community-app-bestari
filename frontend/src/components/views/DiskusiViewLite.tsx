@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ForumThread, UserProfile, ForumComment } from '../../types';
-import { MessageSquare, ArrowLeft, Send, PlusCircle, Paperclip, Image as ImageIcon, X, Search, Filter, Lock, Trash2, Heart, CornerDownRight, CheckCheck, Edit3, LogOut, Settings, Upload, AlertCircle, ShieldCheck, Users, ChevronDown } from 'lucide-react';
-import { SERVER_BASE, api } from '../../api/client';
+import { MessageSquare, ArrowLeft, Send, PlusCircle, Paperclip, Image as ImageIcon, X, Search, Filter, Lock, Trash2, Heart, CornerDownRight, CheckCheck, Edit3, LogOut, Settings, Upload, AlertCircle, ShieldCheck, Users, ChevronDown, Smile } from 'lucide-react';
+import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
+import { SERVER_BASE, api, getAvatarUrl, handleAvatarError } from '../../api/client';
 
 const CommentBubble = ({
   comment,
   currentUser,
+  members,
   selectedThreadId,
   onToggleLikeComment,
   setQuotedComment,
@@ -17,9 +19,20 @@ const CommentBubble = ({
   setDocumentAttachments,
   onImageClick
 }: any) => {
+  if (comment.authorName === 'Sistem') {
+    return (
+      <div className="flex justify-center my-2 w-full">
+        <div className="bg-[#E6E1D5]/50 px-4 py-2 rounded-full text-xs text-[#433A30]/70 font-semibold text-center max-w-[85%]">
+          {comment.content}
+        </div>
+      </div>
+    );
+  }
+
   const [imgError, setImgError] = useState(false);
 
   const isMe = Boolean(comment.authorName && currentUser.name && comment.authorName.trim().toLowerCase() === currentUser.name.trim().toLowerCase());
+  const cAvatar = comment.authorAvatar || (isMe ? currentUser.avatar : (members?.find((m: any) => m.name && m.name.trim().toLowerCase() === comment.authorName.trim().toLowerCase())?.avatar || ''));
 
   const getInitials = (name: string) => {
     const parts = name?.split(' ').filter(Boolean) || ['A'];
@@ -31,9 +44,9 @@ const CommentBubble = ({
     <div className={`flex gap-2 w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
       {!isMe && (
         <div className="shrink-0 mt-1">
-          {comment.authorAvatar && !imgError && comment.authorAvatar.trim() !== '' ? (
+          {cAvatar && !imgError && cAvatar.trim() !== '' ? (
             <img
-              src={comment.authorAvatar}
+              src={getAvatarUrl(cAvatar, comment.authorName)}
               alt={comment.authorName}
               className="w-8 h-8 rounded-full object-cover shadow-sm border border-[#E6E1D5]"
               onError={() => setImgError(true)}
@@ -88,24 +101,12 @@ const CommentBubble = ({
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-1 mt-1">
+            <div className="flex flex-wrap items-center justify-end gap-1 mt-1">
               {comment.isEdited && <span className="text-[10px] italic text-[#433A30]/50 mr-1">(diedit)</span>}
               {isMe && <CheckCheck className="w-4 h-4 text-[#607829]" />}
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0 mb-1">
-            {(!isMe || comment.likes > 0) && (
-              <div className="flex items-center">
-                <button
-                  onClick={() => !isMe && onToggleLikeComment && onToggleLikeComment(selectedThreadId, comment.id)}
-                  className={`p-2 rounded-full ${!isMe ? 'active:bg-black/5 cursor-pointer hover:bg-black/5' : 'cursor-default opacity-80'} ${comment.userLiked ? 'text-red-500' : 'text-[#433A30]/50'}`}
-                  disabled={isMe}
-                >
-                  <Heart className={`w-5 h-5 ${comment.userLiked ? 'fill-red-500' : ''}`} />
-                </button>
-                {comment.likes > 0 && <span className="text-xs font-bold text-[#433A30]/70 -ml-1 mr-2">{comment.likes}</span>}
-              </div>
-            )}
             {setQuotedComment && (
               <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="px-3 py-1.5 rounded-full active:bg-black/5 text-[#2C4219] font-bold text-xs bg-[#FAF6EE] border border-[#E6E1D5]">
                 Balas
@@ -154,7 +155,7 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
         {!isMe ? (
           thread.authorAvatar && !imgError && thread.authorAvatar.trim() !== '' ? (
             <img
-              src={thread.authorAvatar}
+              src={getAvatarUrl(thread.authorAvatar, thread.authorName)}
               alt={thread.authorName}
               className="w-10 h-10 rounded-full object-cover shadow-sm border border-[#E6E1D5]"
               onError={() => setImgError(true)}
@@ -194,18 +195,21 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
         )}
 
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#E6E1D5]/50 w-full flex-wrap">
-          {(!isMe || thread.likes > 0) && (
+          {(!isMe || thread.likes > 0) && (() => {
+            const isUserLiked = thread.likedBy ? thread.likedBy.some((u: any) => (u.userId || u.id) === currentUser?.id) : thread.userLiked;
+            return (
             <div className="flex items-center">
               <button
                 onClick={() => !isMe && onToggleLikeThread && onToggleLikeThread(thread.id)}
-                className={`p-2 rounded-full ${!isMe ? 'active:bg-black/5 cursor-pointer hover:bg-black/5' : 'cursor-default opacity-80'} ${thread.userLiked ? 'text-red-500' : 'text-[#433A30]/50'}`}
+                className={`p-2 rounded-full ${!isMe ? 'active:bg-black/5 cursor-pointer hover:bg-black/5' : 'cursor-default opacity-80'} ${isUserLiked ? 'text-red-500' : 'text-[#433A30]/50'}`}
                 disabled={isMe}
               >
-                <Heart className={`w-5 h-5 ${thread.userLiked ? 'fill-red-500' : ''}`} />
+                <Heart className={`w-5 h-5 ${isUserLiked ? 'fill-red-500' : ''}`} />
               </button>
               {thread.likes > 0 && <span className="text-sm font-bold text-[#433A30]/70 -ml-1 mr-2">{thread.likes}</span>}
             </div>
-          )}
+            );
+          })()}
           {setQuotedComment && (
             <button onClick={() => setQuotedComment({ id: thread.id, authorName: thread.authorName, text: thread.content })} className="px-4 py-2 rounded-full active:bg-black/5 text-[#2C4219] font-bold text-sm bg-[#FAF6EE] border border-[#E6E1D5]">
               Tanggapi
@@ -229,6 +233,7 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
 interface DiskusiViewLiteProps {
   threads: ForumThread[];
   currentUser: UserProfile;
+  members?: any[];
   onOpenCreateModal: () => void;
   onAddComment: (threadId: string, content: string, imageAttachments?: string[], quotedText?: string, quotedAuthor?: string, documentAttachments?: { url: string; name: string }[]) => void;
   onToggleLikeThread?: (threadId: string) => void;
@@ -242,6 +247,7 @@ interface DiskusiViewLiteProps {
 export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
   threads,
   currentUser,
+  members,
   onOpenCreateModal,
   onAddComment,
   onToggleLikeThread,
@@ -265,6 +271,19 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
   }, [threads]);
 
   const [replyText, setReplyText] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(event.target as Node)) {
+        setShowAttachmentMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const [documentAttachments, setDocumentAttachments] = useState<{ url: string, name: string }[]>([]);
   const [quotedComment, setQuotedComment] = useState<{ id: string; authorName: string; text: string } | null>(null);
@@ -443,6 +462,36 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
     return currentUser.name === thread.authorName;
   };
 
+  const handleKickMember = async (memberName: string) => {
+    if (!selectedThread) return;
+    if (!window.confirm(`Yakin ingin mengeluarkan ${memberName} dari grup ini?`)) return;
+    try {
+      const res = await api<any>(`/thread/${selectedThread.id}/kick`, {
+        method: 'POST',
+        body: { memberName }
+      });
+      const systemComment: ForumComment = {
+        id: `c_sys_${Date.now()}`,
+        authorName: 'Sistem',
+        authorAvatar: '',
+        timeAgo: 'Baru saja',
+        content: `👢 ${memberName} telah dikeluarkan dari grup oleh Admin.`,
+        likes: 0,
+        userLiked: false
+      };
+      const updatedThread: ForumThread = {
+        ...selectedThread,
+        joinedMembers: res.joinedMembers || (selectedThread.joinedMembers || []).filter(m => m !== memberName),
+        comments: [...selectedThread.comments, systemComment]
+      };
+      if (onUpdateThread) onUpdateThread(updatedThread, false);
+      setSelectedThread(updatedThread);
+    } catch (e) {
+      console.error('Failed to kick', e);
+      alert('Gagal mengeluarkan anggota. Pastikan Anda adalah pembuat grup.');
+    }
+  };
+
   const handleSendReply = () => {
     if ((!replyText.trim() && attachmentPreviews.length === 0 && documentAttachments.length === 0) || !selectedThread) return;
 
@@ -503,7 +552,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
   if (selectedThread) {
     return (
       <>
-        <div className="flex flex-col h-[calc(100vh-80px)] md:h-[100dvh] w-full bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative border-x border-[#E6E1D5]">
+        <div className="flex flex-col h-[calc(100vh-80px)] pb-[60px] md:pb-12 w-full bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300 relative border-x border-[#E6E1D5]">
           {/* Header Diskusi */}
           <div className="bg-[#FAF6EE] p-4 border-b border-[#E6E1D5] flex items-center gap-4 shrink-0">
             <button
@@ -514,8 +563,9 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
             </button>
             {selectedThread.groupAvatar ? (
               <img
-                src={selectedThread.groupAvatar}
+                src={getAvatarUrl(selectedThread.groupAvatar, selectedThread.title)}
                 alt={selectedThread.title}
+                onError={(e) => handleAvatarError(e, selectedThread.title)}
                 className="w-9 h-9 rounded-full object-cover border border-[#2C4219]/20 shadow-sm"
               />
             ) : (
@@ -607,6 +657,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                       key={comment.id}
                       comment={comment}
                       currentUser={currentUser}
+                      members={members}
                       selectedThreadId={selectedThread.id}
                       onToggleLikeComment={onToggleLikeComment}
                       setQuotedComment={setQuotedComment}
@@ -622,7 +673,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                 })}
 
                 {selectedThread.comments.length === 0 && (
-                  <p className="text-center text-[#433A30]/60 py-4">Belum ada balasan. Jadilah yang pertama membalas!</p>
+                  <p className="text-center text-[#433A30]/60 py-4 font-medium">Belum ada obrolan, ayo mulai sapa ibu-ibu yang lain!</p>
                 )}
               </div>
 
@@ -701,14 +752,51 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     ))}
                   </div>
                 )}
-                <div className="flex gap-2 items-end">
-                  <button
-                    onClick={() => docInputRef.current?.click()}
-                    className="p-3 bg-[#FAF6EE] text-[#2C4219] rounded-xl active:scale-95 shrink-0 hover:bg-[#E6E1D5] transition-colors border border-[#E6E1D5]"
-                    title="Lampirkan Dokumen"
-                  >
-                    <Paperclip className="w-5 h-5" />
-                  </button>
+                <div className="bg-white border-t border-[#E6E1D5] p-3 sm:p-4 flex items-end gap-2 shrink-0 z-10 relative">
+                  <div className="relative" ref={attachmentMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                      className="p-3 bg-[#FAF6EE] text-[#433A30] rounded-xl active:scale-95 hover:bg-[#E6E1D5] transition-colors border border-[#E6E1D5]"
+                      title="Lampirkan"
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+
+                    {showAttachmentMenu && (
+                      <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-[#E6E1D5] rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+                        <div className="py-2 flex flex-col">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAttachmentMenu(false);
+                              docInputRef.current?.click();
+                            }}
+                            className="px-4 py-2.5 flex items-center gap-3 hover:bg-[#FAF6EE] transition-colors text-left"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </div>
+                            <span className="text-sm font-semibold text-[#433A30]">Dokumen</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAttachmentMenu(false);
+                              fileInputRef.current?.click();
+                            }}
+                            className="px-4 py-2.5 flex items-center gap-3 hover:bg-[#FAF6EE] transition-colors text-left"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <span className="text-sm font-semibold text-[#433A30]">Foto</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <input
                     type="file"
                     ref={docInputRef}
@@ -717,13 +805,6 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     className="hidden"
                     onChange={handleDocChange}
                   />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-3 bg-[#FAF6EE] text-[#2C4219] rounded-xl active:scale-95 shrink-0 hover:bg-[#E6E1D5] transition-colors border border-[#E6E1D5]"
-                    title="Lampirkan Foto"
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -732,6 +813,29 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     className="hidden"
                     onChange={handleFileChange}
                   />
+
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="p-3 bg-[#FAF6EE] text-[#433A30] rounded-xl active:scale-95 shrink-0 hover:bg-[#E6E1D5] transition-colors border border-[#E6E1D5]"
+                    title="Pilih Emoji"
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-full left-4 mb-2 z-50 shadow-lg rounded-xl overflow-hidden border border-[#E6E1D5]">
+                      <EmojiPicker 
+                        onEmojiClick={(emojiObject) => {
+                          setReplyText(prev => prev + emojiObject.emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                        width={280}
+                        height={350}
+                        emojiStyle={EmojiStyle.NATIVE}
+                      />
+                    </div>
+                  )}
+
                   <textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
@@ -739,6 +843,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     className="flex-1 min-h-[46px] max-h-32 rounded-2xl border-2 border-[#E6E1D5] px-4 py-3 text-base focus:outline-none focus:border-[#2C4219] resize-none shadow-sm"
                     rows={1}
                   />
+
                   <button
                     onClick={handleSendReply}
                     disabled={!replyText.trim() && attachmentPreviews.length === 0 && documentAttachments.length === 0}
@@ -822,7 +927,40 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     <input id="editPermLite" type="checkbox" checked={editAllowMemberMessages} onChange={(e) => setEditAllowMemberMessages(e.target.checked)} className="w-6 h-6 accent-[#2C4219]" />
                   </div>
 
-                  <div className="pt-4 flex items-center justify-end gap-3 border-t border-[#E6E1D5]">
+                  {/* Daftar Anggota & Kick */}
+                  {selectedThread && selectedThread.joinedMembers && selectedThread.joinedMembers.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="block font-bold text-[#2C4219] mb-1">Daftar Anggota ({selectedThread.joinedMembers.length})</label>
+                      <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-1">
+                        {selectedThread.joinedMembers.map((member, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5]">
+                            <div className="w-8 h-8 rounded-full bg-[#E3EAD3] text-[#2C4219] flex items-center justify-center font-bold text-xs shrink-0">
+                              {member.charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-[#433A30] truncate flex items-center gap-2">
+                                {member}
+                                {member === currentUser.name && <span className="text-[10px] text-[#2C4219]/70 font-normal">(Anda)</span>}
+                                {member === selectedThread.authorName && <span className="text-[10px] bg-[#2C4219]/10 text-[#2C4219] px-2 py-0.5 rounded-full font-bold border border-[#2C4219]/20">Admin</span>}
+                              </p>
+                            </div>
+                            {selectedThread.authorName === currentUser.name && member !== currentUser.name && (
+                              <button
+                                type="button"
+                                onClick={() => handleKickMember(member)}
+                                className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors shrink-0"
+                                title={`Keluarkan ${member} dari grup`}
+                              >
+                                Keluarkan
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[#E6E1D5]">
                     <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-5 py-3 rounded-xl border-2 border-[#E6E1D5] font-bold text-[#433A30]">Batal</button>
                     <button type="submit" className="px-5 py-3 rounded-xl bg-[#2C4219] text-white font-bold flex items-center gap-2 shadow-sm">
                       <ShieldCheck className="w-5 h-5" /> Simpan Perubahan
@@ -858,10 +996,23 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
   return (
     <div className="w-full h-full bg-[#FAF6EE] sm:bg-transparent px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <div className="w-full space-y-4 pb-20 animate-in fade-in duration-300">
+        <div className="bg-[#FAF6EE] p-4 lg:p-5 rounded-2xl border border-[#E6E1D5] flex items-center justify-between shadow-sm">
+          <div>
+            <h2 className="text-lg lg:text-xl font-bold text-[#2C4219]">Ruang Diskusi</h2>
+            <p className="text-xs lg:text-sm text-[#433A30] mt-1">Pilih topik untuk membaca atau berpartisipasi dalam diskusi.</p>
+          </div>
+          <button
+            onClick={onOpenCreateModal}
+            className="bg-[#2C4219] text-white px-3 py-1.5 rounded-xl active:scale-95 flex items-center gap-1.5 shrink-0 ml-4 shadow-sm transition-transform hover:bg-[#1E2E11]"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span className="text-xs font-bold">Buat Topik Baru</span>
+          </button>
+        </div>
+
         {/* Search & Filter - Lite Style */}
-        <div className="space-y-3">
-          {/* Search Bar Full Width */}
-          <div className="relative w-full">
+        <div className="space-y-2">
+          <div className="relative">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#433A30]/40" />
             <input
               type="text"
@@ -871,36 +1022,20 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
               className="w-full pl-11 pr-4 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-sm font-bold text-[#433A30] placeholder-[#433A30]/40 focus:outline-none focus:border-[#2C4219] shadow-sm"
             />
           </div>
-
-          {/* Filter & Add Button Split */}
-          <div className="flex gap-2 w-full">
-            <div className="relative flex-1 min-w-0">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full pl-11 pr-10 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-sm font-bold text-[#433A30] focus:outline-none focus:border-[#2C4219] shadow-sm appearance-none cursor-pointer"
-              >
-                {categoryOptions.map((cat) => (
-                  <option key={cat.name} value={cat.name}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
-                <Filter className="w-5 h-5" />
-              </div>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#433A30]/40">
-                <ChevronDown className="w-5 h-5" />
-              </div>
-            </div>
-            
-            <button
-              onClick={onOpenCreateModal}
-              className="bg-[#2C4219] text-white flex-1 min-w-0 px-2 py-2.5 rounded-xl active:scale-95 flex items-center justify-center gap-1.5 shadow-sm transition-transform hover:bg-[#1E2E11]"
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full pl-11 pr-10 py-2.5 bg-white border border-[#E6E1D5] rounded-xl text-sm font-bold text-[#433A30] focus:outline-none focus:border-[#2C4219] shadow-sm appearance-none cursor-pointer text-ellipsis"
             >
-              <PlusCircle className="w-4 h-4 shrink-0" />
-              <span className="text-xs sm:text-sm font-bold truncate">Buat Topik</span>
-            </button>
+              {categoryOptions.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <Filter className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#A8B774]" />
+            <ChevronDown className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-[#433A30]/40 pointer-events-none" />
           </div>
         </div>
 
@@ -913,7 +1048,12 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
             >
               <div className="flex items-center gap-3 mb-2.5">
                 {thread.groupAvatar ? (
-                  <img src={thread.groupAvatar} alt={thread.title} className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-[#FAF6EE]" />
+                  <img
+                    src={getAvatarUrl(thread.groupAvatar, thread.title)}
+                    alt={thread.title}
+                    onError={(e) => handleAvatarError(e, thread.title)}
+                    className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-[#FAF6EE]"
+                  />
                 ) : (
                   <div className="w-10 h-10 bg-[#2C4219] rounded-full flex items-center justify-center text-white font-black text-lg shrink-0">
                     {thread.title.charAt(0)}
@@ -950,8 +1090,8 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
           )) : (
             <div className="col-span-full p-12 text-center bg-white rounded-3xl border-2 border-[#E6E1D5]">
               <MessageSquare className="w-12 h-12 text-[#A8B774] mx-auto opacity-70 mb-4" />
-              <p className="font-bold text-xl text-[#2C4219]">Tidak ada topik ditemukan</p>
-              <p className="text-lg text-[#433A30]/60 mt-2">Coba ubah kata kunci atau kategori pencarian.</p>
+              <p className="font-bold text-xl text-[#2C4219]">Belum ada obrolan yang sesuai</p>
+              <p className="text-lg text-[#433A30]/60 mt-2">Ayo mulai obrolan baru bersama ibu-ibu lainnya!</p>
             </div>
           )}
         </div>

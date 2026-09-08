@@ -73,3 +73,42 @@ export async function apiUpdateProfile(payload: any) {
 export async function apiMe() {
   return api<any>('/auth/me');
 }
+
+/**
+ * Mengubah path avatar menjadi URL valid:
+ * - Menambahkan SERVER_BASE jika berupa relative path (/uploads/...)
+ * - Mengembalikan URL utuh jika http / https / data: / blob:
+ * - Mengembalikan default UI-avatars jika null/kosong
+ */
+export function getAvatarUrl(avatar?: string | null, name?: string): string {
+  if (!avatar || typeof avatar !== 'string' || avatar.trim() === '') {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=A8B774&color=2C4219`;
+  }
+  const trimmed = avatar.trim();
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('blob:')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    return `${SERVER_BASE}${trimmed}`;
+  }
+  if (trimmed.startsWith('uploads/')) {
+    return `${SERVER_BASE}/${trimmed}`;
+  }
+  return `${SERVER_BASE}/${trimmed.replace(/^\//, '')}`;
+}
+
+/**
+ * Fallback saat gambar profil gagal dimuat (404/network error)
+ */
+export function handleAvatarError(
+  e: React.SyntheticEvent<HTMLImageElement, Event>,
+  name?: string
+) {
+  e.currentTarget.onerror = null;
+  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=A8B774&color=2C4219`;
+}

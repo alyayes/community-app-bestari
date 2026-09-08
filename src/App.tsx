@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard } from 'lucide-react';
+import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard, ShieldCheck, FileText, MessageCircle, X } from 'lucide-react';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, UserProfile, CmsData } from './types';
 import {
   CURRENT_USER,
@@ -204,9 +204,15 @@ export function App() {
               }
             }
           }
-        } catch {
-          setToken(null);
-          if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
+        } catch (err: any) {
+          // Hanya hapus token jika benar-benar 401 (token tidak valid/expired)
+          // Jangan hapus jika backend sedang restart/gagal koneksi (network error)
+          if (err?.status === 401) {
+            setToken(null);
+            if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
+          } else {
+            console.warn('[Bestari] Backend sedang restart atau tidak terjangkau saat cek auth:', err);
+          }
         }
       } else {
         if (pageMode === 'app' || pageMode === 'admin') setPageMode('landing');
@@ -219,8 +225,8 @@ export function App() {
           api<Announcement[]>('/pengumuman').catch(() => []),
           api<AgendaEvent[]>('/agenda').catch(() => []),
           api<ForumThread[]>('/thread').catch(() => []),
-          api<LandPlot[]>('/scm/lahan').catch(() => []),
-          api<HarvestRecord[]>('/scm/panen').catch(() => []),
+          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+          api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
           api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
           api<CmsData>('/cms').catch(() => null),
           api<any[]>('/dashboard/members').catch(() => [])
@@ -244,16 +250,18 @@ export function App() {
     initApp();
   }, []);
 
+
+
   useEffect(() => {
     // Real-time polling khusus untuk Lahan & Panen (tiap 30 detik)
     const pollSorgumData = async () => {
       try {
         const [lahan, panen] = await Promise.all([
-          api<LandPlot[]>('/scm/lahan').catch(() => []),
-          api<HarvestRecord[]>('/scm/panen').catch(() => [])
+          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+          api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
         ]);
-        if (lahan.length > 0) setLandPlots(lahan);
-        if (panen.length > 0) setHarvestRecords(panen);
+        setLandPlots(lahan);
+        setHarvestRecords(panen);
       } catch (e) {
         console.error('[Bestari] Polling Sorgum Data gagal:', e);
       }
@@ -403,15 +411,36 @@ export function App() {
   };
 
   const handleToggleLikeThread = (threadId: string) => {
+    let prevLikedBy: any[] | undefined;
+    let prevLikes = 0;
+    let prevUserLiked = false;
+
     setThreads(prev => prev.map(t => {
       if (t.id === threadId) {
-        const isLiked = t.userLiked;
-        // Sync ke backend (best effort)
-        api(`/thread/${threadId}/${isLiked ? 'unlike' : 'like'}`, { method: 'POST' }).catch(() => { });
+        const isLiked = t.likedBy ? t.likedBy.some((u: any) => (u.userId || u.id) === currentUser?.id) : t.userLiked;
+        
+        // Simpan state lama untuk rollback
+        prevLikedBy = t.likedBy ? [...t.likedBy] : [];
+        prevLikes = t.likes;
+        prevUserLiked = !!t.userLiked;
+
+        // Sync ke backend (rollback jika gagal)
+        api(`/thread/${threadId}/${isLiked ? 'unlike' : 'like'}`, { method: 'POST' }).catch(() => {
+          setThreads(prev2 => prev2.map(t2 => t2.id === threadId ? { ...t2, userLiked: prevUserLiked, likes: prevLikes, likedBy: prevLikedBy } : t2));
+        });
+        
+        let newLikedBy = t.likedBy ? [...t.likedBy] : [];
+        if (isLiked) {
+          newLikedBy = newLikedBy.filter(u => (u.userId || u.id) !== currentUser?.id);
+        } else if (currentUser) {
+          newLikedBy.push({ userId: currentUser.id, id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar });
+        }
+
         return {
           ...t,
           userLiked: !isLiked,
-          likes: isLiked ? t.likes - 1 : t.likes + 1
+          likes: Math.max(0, t.likes + (isLiked ? -1 : 1)),
+          likedBy: newLikedBy
         };
       }
       return t;
@@ -419,17 +448,50 @@ export function App() {
   };
 
   const handleToggleLikeComment = (threadId: string, commentId: string) => {
+    // Simpan state sebelumnya untuk rollback jika API gagal
+    let prevLikedBy: any[] | undefined;
+    let prevLikes = 0;
+    let prevUserLiked = false;
+
     setThreads(prev => prev.map(t => {
       if (t.id === threadId) {
         return {
           ...t,
           comments: t.comments.map(c => {
             if (c.id === commentId) {
-              const isLiked = c.userLiked;
+              const isLiked = c.likedBy ? c.likedBy.some((u: any) => (u.userId || u.id) === currentUser?.id) : c.userLiked;
+              
+              // Simpan state lama untuk rollback
+              prevLikedBy = c.likedBy ? [...c.likedBy] : [];
+              prevLikes = c.likes;
+              prevUserLiked = !!c.userLiked;
+
+              // Sync ke backend (rollback jika gagal)
+              api(`/thread/${threadId}/comments/${commentId}/${isLiked ? 'unlike' : 'like'}`, { method: 'POST' }).catch(() => {
+                // Rollback ke state sebelumnya
+                setThreads(prev2 => prev2.map(t2 => {
+                  if (t2.id === threadId) {
+                    return {
+                      ...t2,
+                      comments: t2.comments.map(c2 => c2.id === commentId ? { ...c2, userLiked: prevUserLiked, likes: prevLikes, likedBy: prevLikedBy } : c2)
+                    };
+                  }
+                  return t2;
+                }));
+              });
+
+              let newLikedBy = c.likedBy ? [...c.likedBy] : [];
+              if (isLiked) {
+                newLikedBy = newLikedBy.filter(u => (u.userId || u.id) !== currentUser?.id);
+              } else if (currentUser) {
+                newLikedBy.push({ userId: currentUser.id, id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar });
+              }
+
               return {
                 ...c,
                 userLiked: !isLiked,
-                likes: isLiked ? (c.likes - 1) : (c.likes + 1)
+                likes: Math.max(0, c.likes + (isLiked ? -1 : 1)),
+                likedBy: newLikedBy
               };
             }
             return c;
@@ -805,45 +867,6 @@ export function App() {
   }
 
   if (pageMode === 'admin') {
-    if (appMode === 'lite') {
-      return (
-        <AdminPortalViewLite
-          currentUser={currentUser}
-          setCurrentUser={setCurrentUser}
-          setAppMode={setAppMode}
-          articles={articles}
-          announcements={announcements}
-          threads={threads}
-          agendas={events}
-          landPlots={landPlots}
-          harvestRecords={harvestRecords}
-          members={members}
-          cmsData={cmsData}
-          dashboardStats={dashboardStats}
-          onUpdateCmsData={handleUpdateCmsData}
-          onUpdateArticles={(list) => setArticles(list.filter(a => (a as any).status !== 'Draft'))}
-          onUpdateAnnouncements={setAnnouncements}
-          onUpdateThreads={setThreads}
-          onUpdateAgendas={setEvents}
-          onLogout={handleLogout}
-          onNavigateToPage={(page) => {
-            if (page === 'beranda') setPageMode('landing');
-            else if (page === 'login') setPageMode('login');
-            else if (page === 'register') setPageMode('register');
-            else {
-              setPageMode('app');
-              setActiveNav(page as any);
-            }
-          }}
-          onSelectArticle={(art) => {
-            setSelectedArticle(art);
-            setPageMode('app');
-            setActiveNav('informasi');
-          }}
-        />
-      );
-    }
-    
     return (
       <AdminPortalView
         currentUser={currentUser}
@@ -938,13 +961,17 @@ export function App() {
         />
 
         {/* Dynamic Screen Render */}
-        <main className={`flex-1 w-full flex flex-col ${activeNav === 'diskusi' ? 'p-0' : 'px-4 lg:px-8 pt-6 pb-12 md:pb-12 pb-24'}`}>
+        <main className={`flex-1 w-full flex flex-col ${activeNav === 'diskusi' ? 'p-0' : 'px-4 lg:px-8 pt-6 pb-24 md:pb-28'}`}>
           {activeNav === 'beranda' && (
             appMode === 'lite' ? (
               <BerandaViewLite
                 currentUser={currentUser}
                 events={events}
+                articles={articles}
+                announcements={announcements}
                 setActiveNav={setActiveNav}
+                onSelectArticle={handleSelectArticle}
+                onSelectAnnouncement={handleSelectAnnouncement}
               />
             ) : (
               <BerandaView
@@ -963,6 +990,7 @@ export function App() {
 
           {activeNav === 'agenda' && (
             <AgendaView
+              appMode={appMode}
               events={events}
               currentUser={currentUser}
               onAddEvent={handleAddEvent}
@@ -971,7 +999,6 @@ export function App() {
               onRegisterEvent={handleRegisterAgenda}
               onUnregisterEvent={handleUnregisterAgenda}
               searchQuery={searchQuery}
-              appMode={appMode}
             />
           )}
 
@@ -1014,6 +1041,7 @@ export function App() {
               <DiskusiViewLite
                 threads={threads}
                 currentUser={currentUser}
+                members={members}
                 onOpenCreateModal={() => setIsCreateTopicOpen(true)}
                 onAddComment={handleAddComment}
                 onToggleLikeThread={handleToggleLikeThread}
@@ -1027,6 +1055,7 @@ export function App() {
               <DiskusiView
                 threads={threads}
                 currentUser={currentUser}
+                members={members}
                 onOpenCreateModal={() => setIsCreateTopicOpen(true)}
                 onToggleLikeThread={handleToggleLikeThread}
                 onToggleLikeComment={handleToggleLikeComment}
@@ -1114,40 +1143,77 @@ export function App() {
         </div>
 
         {/* Footer User (Hidden on Mobile, shown on md up) */}
-        <footer className="sticky bottom-0 z-40 hidden md:flex flex-wrap mt-auto py-4 px-4 sm:px-6 lg:px-8 items-center justify-center border-t border-[#E6E1D5] bg-white text-[#2C4219] text-[10px] sm:text-xs font-semibold gap-2 sm:gap-4 text-center">
-          <div className="opacity-80">
-            {cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.'}
+        <footer className="fixed bottom-0 left-0 right-0 z-40 hidden md:flex flex-wrap flex-col md:flex-row py-4 px-6 lg:px-12 items-center justify-center md:justify-between border-t border-[#E6E1D5] bg-gradient-to-r from-[#FAF6EE] to-[#F3EEE3] text-[#433A30] text-[11px] font-medium gap-4 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-2.5 shrink-0 text-center md:text-left">
+            <span className="font-bold text-[#2C4219] opacity-90 tracking-wide">
+              {cmsData?.footerCopyright || '© 2026 KWT Melati Sorgum. Seluruh hak cipta dilindungi.'}
+            </span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => setFooterModalInfo('privacy')} className="hover:text-[#5C5246] transition-colors">Kebijakan Privasi</button>
-            <span className="text-[#2C4219]/30">|</span>
-            <button onClick={() => setFooterModalInfo('terms')} className="hover:text-[#5C5246] transition-colors">Syarat & Ketentuan</button>
-            <span className="text-[#2C4219]/30">|</span>
-            <button onClick={() => setFooterModalInfo('help')} className="hover:text-[#5C5246] transition-colors">Panduan Komunitas</button>
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 sm:gap-6 shrink-0">
+            <button onClick={() => setFooterModalInfo('privacy')} className="flex items-center gap-1.5 text-[#5C5246] hover:text-[#2C4219] hover:underline underline-offset-4 transition-all">
+              <ShieldCheck className="w-3.5 h-3.5 opacity-80" /> 
+              <span>Kebijakan Privasi</span>
+            </button>
+            <span className="w-1 h-1 rounded-full bg-[#2C4219]/20"></span>
+            <button onClick={() => setFooterModalInfo('terms')} className="flex items-center gap-1.5 text-[#5C5246] hover:text-[#2C4219] hover:underline underline-offset-4 transition-all">
+              <FileText className="w-3.5 h-3.5 opacity-80" /> 
+              <span>Syarat & Ketentuan</span>
+            </button>
+            <span className="w-1 h-1 rounded-full bg-[#2C4219]/20"></span>
+            <button onClick={() => setFooterModalInfo('help')} className="flex items-center gap-1.5 text-[#5C5246] hover:text-[#2C4219] hover:underline underline-offset-4 transition-all">
+              <MessageCircle className="w-3.5 h-3.5 opacity-80" /> 
+              <span>Panduan Komunitas</span>
+            </button>
           </div>
         </footer>
       </div>
 
       {/* Footer Content Modal */}
       {footerModalInfo && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setFooterModalInfo(null)}>
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-8 flex flex-col max-h-[85vh] border border-[#E6E1D5] shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h2 className="font-title font-bold text-xl text-[#2C4219]">
-                {footerModalInfo === 'privacy' ? 'Kebijakan Privasi' : footerModalInfo === 'terms' ? 'Syarat & Ketentuan' : 'Bantuan'}
-              </h2>
-              <button onClick={() => setFooterModalInfo(null)} className="p-2 hover:bg-[#FAF6EE] rounded-xl text-[#7A7062] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-              </button>
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6" onClick={() => setFooterModalInfo(null)}>
+          <div className="bg-white rounded-[24px] sm:rounded-[32px] max-w-4xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#FAF6EE] border-b border-[#E6E1D5] px-6 sm:px-8 py-5 sm:py-6 flex flex-col gap-2 relative overflow-hidden shrink-0">
+              <div className="absolute -right-8 -top-8 w-32 h-32 bg-[#E3EAD3] rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+              <div className="absolute -left-8 -bottom-8 w-24 h-24 bg-[#E3EAD3] rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+              
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-[#E6E1D5]">
+                    {footerModalInfo === 'privacy' && <ShieldCheck className="w-6 h-6 text-[#2C4219]" />}
+                    {footerModalInfo === 'terms' && <FileText className="w-6 h-6 text-[#2C4219]" />}
+                    {footerModalInfo === 'help' && <MessageCircle className="w-6 h-6 text-[#2C4219]" />}
+                  </div>
+                  <div>
+                    <h2 className="font-title font-extrabold text-xl sm:text-2xl text-[#2C4219]">
+                      {footerModalInfo === 'privacy' ? 'Kebijakan Privasi' : footerModalInfo === 'terms' ? 'Syarat & Ketentuan' : 'Panduan Komunitas'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#7A7062] font-semibold mt-0.5">
+                      KWT Melati Sorgum
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setFooterModalInfo(null)} className="p-2 sm:p-2.5 bg-white hover:bg-[#F3EEE3] rounded-xl text-[#7A7062] transition-colors border border-[#E6E1D5] shadow-sm active:scale-95">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <div className="overflow-y-auto overflow-x-hidden break-words whitespace-normal py-4 text-[#433A30] text-sm leading-relaxed prose prose-sm max-w-none">
-              {footerModalInfo === 'privacy' ? (
-                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerPrivacy || '<p>Belum ada teks kebijakan privasi.</p>' }} />
-              ) : footerModalInfo === 'terms' ? (
-                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerTerms || '<p>Belum ada teks syarat & ketentuan.</p>' }} />
-              ) : (
-                <div dangerouslySetInnerHTML={{ __html: cmsData?.footerHelp || '<p>Belum ada panduan bantuan.</p>' }} />
-              )}
+            
+            <div className="overflow-y-auto p-6 sm:p-8 bg-white flex-1 custom-scrollbar">
+              <div className="prose prose-sm sm:prose-base prose-green max-w-none text-[#433A30] leading-relaxed">
+                {footerModalInfo === 'privacy' ? (
+                  <div dangerouslySetInnerHTML={{ __html: cmsData?.footerPrivacy || '<p className="text-center text-[#7A7062] italic my-8">Belum ada teks kebijakan privasi.</p>' }} />
+                ) : footerModalInfo === 'terms' ? (
+                  <div dangerouslySetInnerHTML={{ __html: cmsData?.footerTerms || '<p className="text-center text-[#7A7062] italic my-8">Belum ada teks syarat & ketentuan.</p>' }} />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: cmsData?.footerHelp || '<p className="text-center text-[#7A7062] italic my-8">Belum ada panduan bantuan.</p>' }} />
+                )}
+              </div>
+            </div>
+            
+            <div className="bg-[#FAF6EE] border-t border-[#E6E1D5] px-6 sm:px-8 py-4 flex justify-end shrink-0">
+              <button onClick={() => setFooterModalInfo(null)} className="px-6 py-2.5 bg-[#2C4219] hover:bg-[#3A5323] text-white font-bold rounded-xl transition-all shadow-md active:scale-95 text-sm">
+                Mengerti
+              </button>
             </div>
           </div>
         </div>

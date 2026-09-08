@@ -111,6 +111,42 @@ router.get('/users', async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
+// ── POST /api/admin/users — Admin tambah pengguna baru ──
+router.post('/users', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, email, role, phone, password } = req.body;
+
+    if (!name || !email || !password) {
+      throw new AppError('Nama, email, dan password wajib diisi', 400);
+    }
+    if (role && !['ADMIN', 'USER'].includes(role)) {
+      throw new AppError('Role tidak valid', 400);
+    }
+    if (await prisma.user.findUnique({ where: { email } })) {
+      throw new AppError('Email sudah terdaftar', 409);
+    }
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        role: role || 'USER',
+        phone: phone || '',
+        password: await bcrypt.hash(password, 12),
+        memberSince: new Date().toISOString().split('T')[0],
+      },
+      select: {
+        id: true, name: true, email: true, role: true, avatar: true,
+        phone: true, memberSince: true, createdAt: true, isActive: true,
+      },
+    });
+
+    return successResponse(res, user, 'Pengguna berhasil ditambahkan', 201);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── PUT /api/admin/users/:id/role ─────────────────
 router.put('/users/:id/role', async (req: Request, res: Response, next: NextFunction) => {
   try {

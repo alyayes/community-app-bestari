@@ -364,7 +364,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
           </div>
 
           {/* 5. Form Footer */}
-          <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
+          <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}

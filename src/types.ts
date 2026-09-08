@@ -121,6 +121,7 @@ export interface ForumComment {
   content: string;
   likes: number;
   userLiked?: boolean;
+  likedBy?: { id: string; name: string; avatar?: string }[];
   replies?: ForumComment[];
   imageAttachments?: string[];
   documentAttachments?: { url: string; name: string }[];
@@ -148,6 +149,7 @@ export interface ForumThread {
   joinedMembers?: string[];
   likes: number;
   userLiked?: boolean;
+  likedBy?: { id: string; name: string; avatar?: string }[];
   repliesCount: number;
   comments: ForumComment[];
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { ForumThread, ForumComment, UserProfile } from '../../types';
-import { api, SERVER_BASE } from '../../api/client';
+import { api, SERVER_BASE, getAvatarUrl, handleAvatarError } from '../../api/client';
 import {
   MessageSquare,
   Plus,
@@ -31,6 +31,7 @@ import { useToast } from '../../contexts/ToastContext';
 interface DiskusiViewProps {
   threads: ForumThread[];
   currentUser: UserProfile;
+  members?: any[];
   onOpenCreateModal: () => void;
   onToggleLikeThread: (threadId: string) => void;
   onToggleLikeComment: (threadId: string, commentId: string) => void;
@@ -44,6 +45,7 @@ interface DiskusiViewProps {
 export const DiskusiView: React.FC<DiskusiViewProps> = ({
   threads,
   currentUser,
+  members,
   onOpenCreateModal,
   onToggleLikeThread,
   onToggleLikeComment,
@@ -53,6 +55,16 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   onDeleteThread,
   onUpdateThread,
 }) => {
+  // Helper mencari avatar pengguna jika tersedia
+  const getAuthorAvatar = (authorName: string, directAvatar?: string) => {
+    if (directAvatar && directAvatar.trim() !== '') return directAvatar;
+    if (currentUser && authorName && currentUser.name.trim().toLowerCase() === authorName.trim().toLowerCase()) {
+      return currentUser.avatar || '';
+    }
+    const member = members?.find(m => m.name && m.name.trim().toLowerCase() === authorName.trim().toLowerCase());
+    return member?.avatar || '';
+  };
+
   // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua Topik');
   
@@ -387,7 +399,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
   };
 
   return (
-    <div className="w-full h-[calc(100vh-80px)] pb-[60px] md:pb-0 flex flex-col font-sans">
+    <div className="w-full h-[calc(100vh-80px)] pb-[60px] md:pb-12 flex flex-col font-sans">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-0 border-t border-[#E6E1D5] bg-white flex-1 overflow-hidden">
 
         {/* ========================================================================= */}
@@ -477,8 +489,9 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                   >
                     {thread.groupAvatar ? (
                       <img
-                        src={thread.groupAvatar}
+                        src={getAvatarUrl(thread.groupAvatar, thread.title)}
                         alt={thread.title}
+                        onError={(e) => handleAvatarError(e, thread.title)}
                         className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-2xs border border-[#E6E1D5]"
                       />
                     ) : (
@@ -554,11 +567,12 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                   >
                     {activeThread.groupAvatar ? (
                       <img
-                      src={activeThread.groupAvatar}
-                      alt={activeThread.title}
-                      className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-2xs border border-[#2C4219]/20"
-                    />
-                  ) : (
+                        src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
+                        alt={activeThread.title}
+                        onError={(e) => handleAvatarError(e, activeThread.title)}
+                        className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-2xs border border-[#2C4219]/20"
+                      />
+                    ) : (
                     <div className="w-9 h-9 rounded-xl bg-[#2C4219] text-white flex items-center justify-center text-base font-bold shrink-0 shadow-2xs">
                       {getCategoryEmoji(activeThread.category)}
                     </div>
@@ -606,8 +620,9 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                   <div className="w-24 h-24 rounded-3xl bg-[#2C4219]/10 text-[#2C4219] flex items-center justify-center shadow-md border border-[#2C4219]/15 shrink-0">
                     {activeThread.groupAvatar ? (
                       <img
-                        src={activeThread.groupAvatar}
+                        src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
                         alt={activeThread.title}
+                        onError={(e) => handleAvatarError(e, activeThread.title)}
                         className="w-full h-full object-cover rounded-3xl shadow-xs"
                       />
                     ) : (
@@ -661,15 +676,28 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                         <div className="flex items-center justify-between gap-3 border-b border-[#E6E1D5]/50 pb-1.5">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#2C4219]/20 flex items-center justify-center">
-                              {activeThread.authorAvatar ? (
-                                <img
-                                  src={(activeThread.authorAvatar.startsWith('http') || activeThread.authorAvatar.startsWith('data:')) ? activeThread.authorAvatar : SERVER_BASE + activeThread.authorAvatar}
-                                  alt={activeThread.authorName}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="font-bold text-[10px] text-[#2C4219]">{activeThread.authorName.charAt(0)}</span>
-                              )}
+                              {(() => {
+                                const stAvatar = getAuthorAvatar(activeThread.authorName, activeThread.authorAvatar);
+                                return stAvatar ? (
+                                  <img
+                                    src={getAvatarUrl(stAvatar, activeThread.authorName)}
+                                    alt={activeThread.authorName}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      if (e.currentTarget.nextElementSibling) {
+                                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                                      }
+                                    }}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : null;
+                              })()}
+                              <span
+                                style={{ display: getAuthorAvatar(activeThread.authorName, activeThread.authorAvatar) ? 'none' : 'flex' }}
+                                className="font-bold text-[10px] text-[#2C4219] items-center justify-center w-full h-full"
+                              >
+                                {activeThread.authorName.charAt(0)}
+                              </span>
                             </div>
                             <div>
                               <p className="font-title font-bold text-xs text-[#2C4219]">{activeThread.authorName}</p>
@@ -836,6 +864,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                             );
                           }
                           const isMe = comment.authorName.trim().toLowerCase() === currentUser.name.trim().toLowerCase();
+                          const isLikedByMe = comment.likedBy ? comment.likedBy.some((u: any) => (u.userId || u.id) === currentUser?.id) : !!comment.userLiked;
                           // Format time
                           let timeString = comment.timeAgo;
                           if (comment.createdAt) {
@@ -860,21 +889,35 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
 
                                 {/* Avatar on left for others */}
                                 {!isMe && (
-                                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5">
-                                    {comment.authorAvatar ? (
-                                      <img src={(comment.authorAvatar.startsWith('http') || comment.authorAvatar.startsWith('data:')) ? comment.authorAvatar : SERVER_BASE + comment.authorAvatar} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="w-full h-full flex items-center justify-center font-bold text-[12px] text-[#2C4219]">{comment.authorName.charAt(0)}</span>
-                                    )}
+                                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E3EAD3] overflow-hidden shrink-0 border border-[#E6E1D5] mt-0.5 flex items-center justify-center">
+                                    {(() => {
+                                      const cAvatar = getAuthorAvatar(comment.authorName, comment.authorAvatar);
+                                      return cAvatar ? (
+                                        <img
+                                          src={getAvatarUrl(cAvatar, comment.authorName)}
+                                          alt={comment.authorName}
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            if (e.currentTarget.nextElementSibling) {
+                                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                                            }
+                                          }}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : null;
+                                    })()}
+                                    <span
+                                      style={{ display: getAuthorAvatar(comment.authorName, comment.authorAvatar) ? 'none' : 'flex' }}
+                                      className="w-full h-full items-center justify-center font-bold text-[12px] text-[#2C4219]"
+                                    >
+                                      {comment.authorName.charAt(0)}
+                                    </span>
                                   </div>
                                 )}
 
                                 {/* Hover Actions (Outside Bubble) */}
                                 {!isMe && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 mr-2 self-center order-last">
-                                    <button onClick={() => onToggleLikeComment(activeThread.id, comment.id)} className={`p-1.5 rounded-full hover:bg-black/5 ${comment.userLiked ? 'text-red-500' : 'text-[#433A30]/50'}`} title="Suka">
-                                      <Heart className={`w-4 h-4 ${comment.userLiked ? 'fill-red-500' : ''}`} />
-                                    </button>
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-2 self-center order-last">
                                     <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Balas">
                                       <CornerDownRight className="w-4 h-4" />
                                     </button>
@@ -882,7 +925,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                 )}
 
                                 {isMe && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5 ml-2 self-center order-first">
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-2 self-center order-first">
                                     <button onClick={() => setQuotedComment({ id: comment.id, authorName: comment.authorName, text: comment.content })} className="p-1.5 rounded-full hover:bg-black/5 text-[#433A30]/50" title="Balas">
                                       <CornerDownRight className="w-4 h-4" />
                                     </button>
@@ -1254,7 +1297,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E6E1D5]">
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#E6E1D5]">
               <button
                 onClick={() => setThreadToDelete(null)}
                 className="px-3.5 py-1.5 rounded-xl border border-[#E6E1D5] hover:bg-[#FAF6EE] text-[#433A30] font-bold text-xs"
@@ -1420,7 +1463,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               </div>
 
               {/* 5. Form Footer */}
-              <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
@@ -1461,7 +1504,12 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               <div className="relative group mb-3">
                 <div className="w-28 h-28 rounded-full bg-[#2C4219] text-white flex items-center justify-center shrink-0 overflow-hidden border-4 border-white shadow-md">
                   {activeThread.groupAvatar ? (
-                    <img src={activeThread.groupAvatar} alt="Group Avatar" className="w-full h-full object-cover" />
+                    <img
+                      src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
+                      alt="Group Avatar"
+                      onError={(e) => handleAvatarError(e, activeThread.title)}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Users className="w-12 h-12 text-[#A8B774]" />
                   )}

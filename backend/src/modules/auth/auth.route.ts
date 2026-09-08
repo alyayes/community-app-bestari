@@ -124,7 +124,27 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
     if (certificateName !== undefined) dataToUpdate.certificateName = certificateName;
     if (email !== undefined) dataToUpdate.email = email;
     if (phone !== undefined) dataToUpdate.phone = phone;
-    if (avatar !== undefined) dataToUpdate.avatar = avatar;
+    if (avatar !== undefined) {
+      if (avatar && avatar.startsWith('data:image/')) {
+        try {
+          const matches = avatar.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const ext = matches[1].includes('png') ? 'png' : 'jpg';
+            const filename = `avatar_${userId.substring(0, 8)}_${Date.now()}.${ext}`;
+            const targetDir = path.join(process.cwd(), 'uploads', 'avatars');
+            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+            fs.writeFileSync(path.join(targetDir, filename), Buffer.from(matches[2], 'base64'));
+            dataToUpdate.avatar = `/uploads/avatars/${filename}`;
+          } else {
+            dataToUpdate.avatar = avatar;
+          }
+        } catch {
+          dataToUpdate.avatar = avatar;
+        }
+      } else {
+        dataToUpdate.avatar = avatar;
+      }
+    }
     if (country !== undefined) dataToUpdate.country = country;
     if (city !== undefined) dataToUpdate.city = city;
     if (postalCode !== undefined) dataToUpdate.postalCode = postalCode;
@@ -141,13 +161,14 @@ router.put('/profile', authenticate, validate(updateProfileSchema), async (req: 
 
     if (oldUser) {
       if (dataToUpdate.name !== undefined || avatar !== undefined) {
+        const cleanAvatar = updatedUser.avatar || '';
         await prisma.threadComment.updateMany({
-          where: { authorName: oldUser.name },
-          data: { authorName: updatedUser.name, authorAvatar: updatedUser.avatar || '' }
+          where: { authorName: { in: [oldUser.name, updatedUser.name] } },
+          data: { authorName: updatedUser.name, authorAvatar: cleanAvatar }
         });
         await prisma.thread.updateMany({
-          where: { authorName: oldUser.name },
-          data: { authorName: updatedUser.name, authorAvatar: updatedUser.avatar || '' }
+          where: { authorName: { in: [oldUser.name, updatedUser.name] } },
+          data: { authorName: updatedUser.name, authorAvatar: cleanAvatar }
         });
       }
     }

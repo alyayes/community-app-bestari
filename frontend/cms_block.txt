@@ -1,0 +1,716 @@
+          {/* ==================== TAB 7: CMS (Kelola Konten) ==================== */}
+          {activeTab === 'cms' && (
+            <div className="space-y-6 w-full max-w-7xl">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
+                    Kelola Konten
+                  </h1>
+                  <p className="text-sm text-[#433A30] font-medium mt-1">
+                    Atur teks &amp; gambar halaman utama, login, dan register secara visual.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveCms as any}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-md active:scale-95 shrink-0"
+                >
+                  <Save className="w-4 h-4 text-[#A8B774]" />
+                  Simpan Semua
+                </button>
+              </div>
+
+              {/* Page Switcher Tabs */}
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {([
+                  { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo & Nama' },
+                  { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
+                  { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
+                  { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' },
+                  { key: 'footer', label: 'Pengaturan Footer', icon: LayoutGrid, desc: 'Teks & Tautan' }
+                ] as const).map(({ key, label, icon: Icon, desc }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setCmsActivePage(key)}
+                    className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98]
+                    ${cmsActivePage === key
+                        ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/20'
+                        : 'bg-white text-[#433A30] border-[#E6E1D5] hover:border-[#2C4219]/40 hover:shadow-md'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors
+                      ${cmsActivePage === key ? 'bg-white/15 text-[#A8B774]' : 'bg-[#FAF6EE] text-[#2C4219] group-hover:bg-[#F0EADF]'}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-title font-bold text-sm leading-tight">{label}</p>
+                        <p className={`text-[11px] mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/80' : 'text-[#433A30]/60'}`}>{desc}</p>
+                      </div>
+                      {cmsActivePage === key && (
+                        <CheckCircle2 className="w-4 h-4 text-[#A8B774] ml-auto shrink-0" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className={`grid grid-cols-1 ${cmsActivePage === 'footer' ? '' : 'lg:grid-cols-2'} gap-6 items-start`}>
+                {/* LEFT: Editor */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-sm space-y-6">
+
+                  {/* ── IDENTITAS WEB EDITOR ── */}
+                  {cmsActivePage === 'identitas' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <Type className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Identitas Website</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Nama Website
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsWebName}
+                          onChange={(e) => setCmsWebName(e.target.value)}
+                          placeholder="Contoh: KWT Sorgum"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsWebSubtitle}
+                          onChange={(e) => setCmsWebSubtitle(e.target.value)}
+                          placeholder="Contoh: KWT MELATI SORGUM"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Logo Website
+                        </label>
+
+                        {cmsWebLogo && (
+                          <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#A8B774]/60 bg-white mb-2">
+                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain p-2" />
+                            <button
+                              type="button"
+                              onClick={() => setCmsWebLogo('')}
+                              title="Hapus gambar"
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        {!cmsWebLogo && (
+                          <input
+                            type="text"
+                            value={cmsWebLogo}
+                            onChange={(e) => setCmsWebLogo(e.target.value)}
+                            placeholder="Atau masukkan URL logo (https://...)"
+                            className="w-full p-2.5 rounded-xl border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50"
+                          />
+                        )}
+
+                        <div className="mt-2">
+                          <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <Upload className="w-4 h-4" />
+                            {cmsUploading ? 'Mengunggah...' : 'Upload Logo Baru'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setCmsUploading(true);
+                                try {
+                                  const url = await handleCmsUpload(file);
+                                  setCmsWebLogo(url);
+                                } catch (err) {
+                                  showToast('Gagal upload logo');
+                                } finally {
+                                  setCmsUploading(false);
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── LANDING EDITOR ── */}
+                  {cmsActivePage === 'landing' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <Home className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Utama</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Utama
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsLandingTitle}
+                          onChange={(e) => setCmsLandingTitle(e.target.value)}
+                          placeholder="Contoh: Bersama Menanam, Bersama Sejahtera"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                        <p className="text-[10px] text-[#7A7062]">Gunakan \n untuk baris baru.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Pendek
+                        </label>
+                        <textarea
+                          value={cmsLandingDesc}
+                          onChange={(e) => setCmsLandingDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Carousel ({cmsLandingImages.length})
+                        </label>
+
+                        {/* Grid foto dinamis */}
+                        {cmsLandingImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsLandingImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsLandingImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsLandingImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 2 Opsi Upload */}
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsLandingImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsLandingImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── LOGIN EDITOR ── */}
+                  {cmsActivePage === 'login' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <LogIn className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Login</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Login
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsLoginTitle}
+                          onChange={(e) => setCmsLoginTitle(e.target.value)}
+                          placeholder="Contoh: Selamat Datang\nKembali Ibu!"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Login
+                        </label>
+                        <textarea
+                          value={cmsLoginDesc}
+                          onChange={(e) => setCmsLoginDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Login ({cmsLoginImages.length})
+                        </label>
+                        {/* Grid foto dinamis */}
+                        {cmsLoginImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsLoginImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsLoginImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsLoginImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsLoginImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsLoginImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── REGISTER EDITOR ── */}
+                  {cmsActivePage === 'register' && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
+                        <UserPlus className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Register</h2>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <Type className="w-3.5 h-3.5" /> Judul Register
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsRegTitle}
+                          onChange={(e) => setCmsRegTitle(e.target.value)}
+                          placeholder="Contoh: Komunitas Sorgum,\nTumbuh & Maju Bersama"
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <FileText className="w-3.5 h-3.5" /> Deskripsi Register
+                        </label>
+                        <textarea
+                          value={cmsRegDesc}
+                          onChange={(e) => setCmsRegDesc(e.target.value)}
+                          rows={3}
+                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
+                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Register ({cmsRegImages.length})
+                        </label>
+                        {/* Grid foto dinamis */}
+                        {cmsRegImages.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {cmsRegImages.map((url, idx) => (
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                                  {url ? (
+                                    <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
+                                      <ImageIcon className="w-6 h-6 mb-1" />
+                                      <span className="text-[10px]">Masukkan URL</span>
+                                    </div>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setCmsRegImages(prev => prev.filter((_, i) => i !== idx))}
+                                    title="Hapus gambar"
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => setCmsRegImages(prev => prev.map((u, i) => i === idx ? e.target.value : u))}
+                                  placeholder="https://..."
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <ImageIcon className="w-5 h-5 mb-0.5" />
+                            {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              disabled={cmsUploading}
+                              onChange={async (e) => {
+                                const files = e.target.files;
+                                if (!files || files.length === 0) return;
+                                setCmsUploading(true);
+                                try {
+                                  const urls = await handleCmsUploadMany(files);
+                                  setCmsRegImages(prev => [...prev, ...urls]);
+                                  showToast(`${urls.length} foto berhasil diupload!`);
+                                } catch (err) {
+                                  showToast('Gagal upload foto.');
+                                } finally {
+                                  setCmsUploading(false);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setCmsRegImages(prev => [...prev, ''])}
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                          >
+                            <Link className="w-5 h-5 mb-0.5" />
+                            Opsi 2: Gunakan URL
+                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {cmsActivePage === 'footer' && (
+                    <div className="space-y-6">
+                      {/* Copyright */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <Type className="w-3.5 h-3.5" /> Teks Copyright
+                        </label>
+                        <input
+                          type="text"
+                          value={cmsFooterCopyright}
+                          onChange={(e) => setCmsFooterCopyright(e.target.value)}
+                          placeholder="© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi."
+                          className="w-full px-4 py-3 bg-white border border-[#E6E1D5] rounded-xl focus:ring-2 focus:ring-[#A8B774] focus:border-[#A8B774] transition-all text-sm font-medium text-[#2C4219] placeholder-[#7A7062]/50"
+                        />
+                      </div>
+                      {/* Privacy */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Kebijakan Privasi
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterPrivacy} onChange={setCmsFooterPrivacy} />
+                        </div>
+                      </div>
+                      {/* Terms */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Syarat & Ketentuan
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterTerms} onChange={setCmsFooterTerms} />
+                        </div>
+                      </div>
+                      {/* Help */}
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5" /> Bantuan
+                        </label>
+                        <div className="bg-white rounded-xl overflow-hidden border border-[#E6E1D5]">
+                          <ReactQuill theme="snow" value={cmsFooterHelp} onChange={setCmsFooterHelp} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT: Live Preview */}
+                {cmsActivePage !== 'footer' && (
+                  <div className="space-y-3 lg:sticky lg:top-6">
+                    <div className={`flex items-center px-1 ${cmsActivePage === 'identitas' ? 'justify-end' : 'justify-between'}`}>
+                      {cmsActivePage !== 'identitas' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (cmsActivePage === 'landing' && onNavigateToPage) {
+                              onNavigateToPage('beranda');
+                            } else if (cmsActivePage === 'login' && onNavigateToPage) {
+                              onNavigateToPage('login');
+                            } else if (cmsActivePage === 'register' && onNavigateToPage) {
+                              onNavigateToPage('register');
+                            }
+                          }}
+                          className="text-[11px] font-bold uppercase tracking-wider text-[#2C4219] flex items-center gap-1.5 hover:underline cursor-pointer transition-colors"
+                          title="Klik untuk membuka halaman aslinya"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Pratinjau Langsung
+                          <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </button>
+                      )}
+                      <span className="text-[10px] font-semibold text-[#A8B774] bg-[#A8B774]/15 px-2 py-0.5 rounded-full">
+                        {cmsActivePage === 'identitas' ? 'Identitas Web' : cmsActivePage === 'landing' ? 'Halaman Utama' : cmsActivePage === 'login' ? 'Halaman Login' : 'Halaman Register'}
+                      </span>
+                    </div>
+
+                    {/* Identitas Preview */}
+                    {cmsActivePage === 'identitas' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white p-8 flex flex-col items-center justify-center text-center h-[300px]">
+                        {cmsWebLogo ? (
+                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
+                        ) : (
+                          <div className="w-20 h-20 rounded-2xl bg-[#FAF6EE] flex items-center justify-center border-2 border-dashed border-[#E6E1D5]">
+                            <ImageIcon className="w-8 h-8 text-[#D1C9B8]" />
+                          </div>
+                        )}
+                        <h3 className="font-title font-bold text-2xl text-[#2C4219] mt-6">
+                          {cmsWebName || 'Nama Website'}
+                        </h3>
+                        <p className="text-sm font-bold text-[#A8B774] tracking-widest uppercase mt-2">
+                          {cmsWebSubtitle || 'TEKS SUBTITLE'}
+                        </p>
+
+                        <div className="mt-8 pt-6 border-t border-[#E6E1D5] w-full flex items-center gap-3 justify-center">
+                          {cmsWebLogo ? (
+                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] shrink-0" />
+                          )}
+                          <div className="flex flex-col items-start min-w-0">
+                            <span className="font-title font-bold text-sm text-[#2C4219] truncate">{cmsWebName || 'Nama Website'}</span>
+                            <span className="text-[10px] font-bold text-[#A8B774] tracking-widest uppercase truncate">{cmsWebSubtitle || 'TEKS SUBTITLE'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Landing Preview */}
+                    {cmsActivePage === 'landing' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsLandingImages[0] && (
+                            <img src={cmsImgUrl(cmsLandingImages[0])} alt="Hero" className="w-full h-full object-cover opacity-60" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] to-transparent" />
+                          <div className="absolute inset-x-6 bottom-6 flex flex-col items-center text-center">
+                            <h3 className="font-title font-bold text-white text-3xl leading-tight drop-shadow-md">
+                              {cmsLandingTitle || 'Judul Utama'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 text-center leading-relaxed line-clamp-3">
+                            {cmsLandingDesc || 'Deskripsi singkat akan tampil di sini.'}
+                          </p>
+                          {cmsLandingImages.length > 0 && (
+                            <div className="flex gap-3 mt-4 overflow-x-auto pb-2 justify-center">
+                              {cmsLandingImages.map((img, i) => (
+                                <div key={i} className="w-16 h-12 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Login Preview */}
+                    {cmsActivePage === 'login' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
+                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
+                              {cmsLoginTitle || 'Judul Login'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                            {cmsLoginDesc || 'Deskripsi login akan tampil di sini.'}
+                          </p>
+                          {cmsLoginImages.length > 0 && (
+                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                              {cmsLoginImages.map((img, i) => (
+                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="space-y-3 pt-4">
+                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                              <span className="text-xs text-[#433A30]/50 font-medium">email@contoh.com</span>
+                            </div>
+                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                              <span className="text-sm font-bold text-white">Masuk</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Register Preview */}
+                    {cmsActivePage === 'register' && (
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
+                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
+                          {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
+                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
+                          <div className="absolute bottom-6 left-6 right-6">
+                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
+                              {cmsRegTitle || 'Judul Register'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="p-6 bg-white shrink-0">
+                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
+                            {cmsRegDesc || 'Deskripsi register akan tampil di sini.'}
+                          </p>
+                          {cmsRegImages.length > 0 && (
+                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                              {cmsRegImages.map((img, i) => (
+                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="space-y-3 pt-4">
+                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
+                              <span className="text-xs text-[#433A30]/50 font-medium">Nama lengkap</span>
+                            </div>
+                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
+                              <span className="text-sm font-bold text-white">Daftar Sekarang</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-[#433A30]/50 px-1 flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" /> Pratinjau menyesuaikan teks &amp; gambar yang kamu ketik.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { LandPlot, HarvestRecord, UserProfile } from '../../types';
-import { Package, Sprout, CheckCircle2, Users, Layers, LayoutList, MapPin } from 'lucide-react';
+import { Package, Sprout, Users, LayoutList, MapPin, ChevronRight, Heart } from 'lucide-react';
+import { getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface DashboardDesaViewLiteProps {
   landPlots: LandPlot[];
@@ -15,214 +16,241 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   members = [],
   onOpenMulaiPanen,
 }) => {
-  const totalPanenKg = harvestRecords.reduce((sum, record) => sum + record.yieldKg, 0);
-  const totalTepungSorgumKg = harvestRecords.reduce((sum, record) => sum + (record.processedFlourKg || 0), 0);
+  const [activeTab, setActiveTab] = useState<'ringkasan' | 'lahan' | 'panen' | 'produksi' | 'anggota'>('ringkasan');
+
+  const totalPanenKg = harvestRecords.reduce((sum, record) => sum + (Number(record.yieldKg) || Number(record.weightKg) || 0), 0);
+  const totalTepungSorgumKg = harvestRecords.reduce((sum, record) => sum + (Number(record.processedFlourKg) || Math.round((Number(record.weightKg)||0) * 0.775)), 0);
+
+  const tabs = [
+    { id: 'ringkasan', label: 'Ringkasan', icon: <Heart className="w-4 h-4" /> },
+    { id: 'lahan', label: 'Data Lahan', icon: <MapPin className="w-4 h-4" /> },
+    { id: 'panen', label: 'Data Panen', icon: <Sprout className="w-4 h-4" /> },
+    { id: 'produksi', label: 'Produksi', icon: <Package className="w-4 h-4" /> },
+    { id: 'anggota', label: 'Komunitas', icon: <Users className="w-4 h-4" /> },
+  ] as const;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300 w-full">
-      <div className="bg-[#FAF6EE] p-6 lg:p-10 rounded-3xl border-2 border-[#E6E1D5] text-center shadow-sm">
-        <h2 className="text-4xl font-black text-[#2C4219]">Catatan Panen</h2>
-        <p className="text-xl text-[#433A30] mt-3 font-medium">Buku laporan hasil panen dan stok tepung kita.</p>
+    <div className="max-w-4xl mx-auto space-y-4 pb-12 animate-in fade-in duration-300 w-full px-2 sm:px-0">
+      {/* Greeting */}
+      <div className="bg-gradient-to-r from-[#2C4219] to-[#607829] rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-2xl font-black mb-1">Data Sorgum</h2>
+        </div>
+        <Sprout className="w-32 h-32 absolute -right-6 -bottom-6 text-white/10 rotate-12" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-        {/* Stok Tepung */}
-        <div className="bg-white p-6 rounded-2xl border-2 border-[#E6E1D5] flex items-center gap-6 shadow-sm">
-          <div className="w-20 h-20 bg-[#F4F8EC] rounded-full flex items-center justify-center shrink-0">
-            <Package className="w-10 h-10 text-[#607829]" />
-          </div>
-          <div>
-            <p className="text-xl font-bold text-[#433A30]">Stok Tepung Sorgum</p>
-            <h3 className="text-5xl font-black text-[#2C4219] mt-2">{totalTepungSorgumKg.toLocaleString('id-ID')} <span className="text-2xl">Kg</span></h3>
-          </div>
-        </div>
-
-        {/* Total Panen Kotor */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-[#E6E1D5] flex items-center gap-6 shadow-md">
-          <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
-            <Sprout className="w-10 h-10 text-orange-600" />
-          </div>
-          <div>
-            <p className="text-xl font-bold text-[#433A30]">Sorgum Mentah</p>
-            <h3 className="text-5xl font-black text-[#D97706] mt-2">{totalPanenKg.toLocaleString('id-ID')} <span className="text-2xl">Kg</span></h3>
-          </div>
-        </div>
+      {/* Interactive Tabs */}
+      <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide snap-x -mx-2 px-2 sm:mx-0 sm:px-0">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`
+              flex items-center gap-2 px-4 py-3 rounded-full whitespace-nowrap text-sm font-bold transition-all shrink-0 snap-start shadow-sm
+              ${activeTab === tab.id 
+                ? 'bg-[#2C4219] text-white border border-[#2C4219]' 
+                : 'bg-white border-2 border-[#E6E1D5] text-[#433A30] hover:bg-[#FAF6EE]'}
+            `}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <button 
-        onClick={onOpenMulaiPanen}
-        className="w-full bg-[#2C4219] hover:bg-[#1E2E11] text-white py-4 lg:py-5 rounded-2xl font-bold text-xl shadow-md active:scale-95 transition-all"
-      >
-        Catat Hasil Panen Baru
-      </button>
-
-      {/* Daftar Lahan */}
-      <div className="bg-white p-6 lg:p-8 rounded-3xl border-2 border-[#E6E1D5] space-y-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <MapPin className="w-6 h-6 text-[#2C4219]" />
-          <h3 className="font-bold text-2xl text-[#2C4219]">Daftar Lahan Sorgum Aktif</h3>
-        </div>
-        <div className="space-y-4">
-          {landPlots.length > 0 ? (
-            landPlots.map(plot => (
-              <div key={plot.id} className="p-5 bg-[#FAF6EE] rounded-2xl border-2 border-[#E6E1D5] space-y-3">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h4 className="font-bold text-xl text-[#2C4219]">{plot.blockName}</h4>
-                    <p className="text-[#433A30] font-medium mt-1">{plot.cropVariety} • {plot.areaSize}</p>
-                  </div>
-                  <div className={`px-3 py-1.5 rounded-xl border text-sm font-bold ${plot.status === 'Siap Panen' ? 'bg-[#A8B774] text-[#2C4219] border-[#A8B774]' : 'bg-white text-[#2C4219] border-[#E6E1D5]'}`}>
-                    {plot.status}
-                  </div>
+      <div className="mt-4 transition-all duration-300">
+        {/* Tab: Ringkasan */}
+        {activeTab === 'ringkasan' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-5 rounded-3xl border-2 border-[#E6E1D5] shadow-sm flex flex-col items-center text-center space-y-2">
+                <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
+                  <Sprout className="w-7 h-7 text-orange-600" />
                 </div>
-                <div className="w-full bg-white rounded-full h-3 border border-[#E6E1D5] overflow-hidden">
-                  <div 
-                    className="bg-[#8CA352] h-full rounded-full transition-all" 
-                    style={{ width: `${plot.growthProgress}%` }}
-                  />
-                </div>
-                <p className="text-sm font-bold text-[#607829] text-right">{plot.growthProgress}% Selesai</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-[#433A30]/60 py-4 text-lg">Belum ada data lahan.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Catatan Panen */}
-      <div className="bg-white p-6 lg:p-8 rounded-3xl border-2 border-[#E6E1D5] space-y-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <LayoutList className="w-6 h-6 text-[#2C4219]" />
-          <h3 className="font-bold text-2xl text-[#2C4219]">Buku Catatan Panen Sorgum</h3>
-        </div>
-        <div className="space-y-4">
-          {harvestRecords.length > 0 ? (
-            harvestRecords.map(record => (
-              <div key={record.id} className="p-5 bg-[#FAF6EE] rounded-2xl border-2 border-[#E6E1D5] space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-bold text-lg text-[#2C4219]">{record.date}</p>
-                    <h4 className="font-bold text-xl text-[#607829] mt-1">{record.blockName}</h4>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-black text-[#2C4219]">{record.weightKg.toLocaleString('id-ID')} <span className="text-base font-bold">Kg</span></p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t-2 border-[#E6E1D5] grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-[#433A30]/70 font-bold uppercase text-[10px]">Varietas</p>
-                    <p className="font-semibold text-[#433A30]">{record.cropVariety}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#433A30]/70 font-bold uppercase text-[10px]">Kualitas</p>
-                    <p className="font-semibold text-[#433A30]">{record.quality}</p>
-                  </div>
-                  <div className="col-span-2 mt-1">
-                    <p className="text-[#433A30]/70 font-bold uppercase text-[10px]">Dicatat Oleh</p>
-                    <p className="font-semibold text-[#433A30]">{record.recordedBy || record.farmerName}</p>
-                  </div>
+                <div>
+                  <p className="text-[11px] font-bold text-[#433A30]/70 uppercase tracking-wide">Total Panen</p>
+                  <h3 className="text-3xl font-black text-[#D97706] mt-1">{totalPanenKg.toLocaleString('id-ID')} <span className="text-sm">Kg</span></h3>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-[#433A30]/60 py-4 text-lg">Belum ada catatan panen.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Anggota Komunitas */}
-      <div className="bg-white p-6 lg:p-8 rounded-3xl border-2 border-[#E6E1D5] space-y-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-[#2C4219]" />
-          <h3 className="font-bold text-2xl text-[#2C4219]">Daftar Anggota Komunitas Terdaftar</h3>
-        </div>
-        <div className="space-y-4">
-          {members && members.length > 0 ? (
-            members.map((member, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-4 bg-[#FAF6EE] rounded-2xl border-2 border-[#E6E1D5]">
-                <img src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`} alt={member.name} className="w-14 h-14 rounded-full border-2 border-[#A8B774] object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-lg text-[#2C4219] truncate">{member.name}</h4>
-                  <p className="text-[#433A30] text-sm">{member.role === 'USER' ? 'Anggota KWT' : member.role}</p>
-                  {member.lahanLocation && (
-                    <p className="text-[#433A30]/70 text-xs mt-1 truncate">Blok: {member.lahanLocation}</p>
-                  )}
+              <div className="bg-white p-5 rounded-3xl border-2 border-[#E6E1D5] shadow-sm flex flex-col items-center text-center space-y-2">
+                <div className="w-14 h-14 bg-[#F4F8EC] rounded-full flex items-center justify-center">
+                  <Package className="w-7 h-7 text-[#607829]" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-[#433A30]/70 uppercase tracking-wide">Total Tepung</p>
+                  <h3 className="text-3xl font-black text-[#2C4219] mt-1">{totalTepungSorgumKg.toLocaleString('id-ID')} <span className="text-sm">Kg</span></h3>
                 </div>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-[#433A30]/60 py-4 text-lg">Belum ada anggota terdaftar.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Data Produksi */}
-      <div className="bg-white p-6 lg:p-8 rounded-3xl border-2 border-[#E6E1D5] space-y-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Layers className="w-8 h-8 text-[#2C4219]" />
-          <h3 className="font-black text-2xl text-[#2C4219]">Laporan Pengolahan Tepung</h3>
-        </div>
-        
-        {/* Ringkasan Produksi */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-[#FAF6EE] rounded-2xl p-4 text-center border-2 border-[#E6E1D5]">
-            <p className="text-sm text-[#433A30] font-bold uppercase mb-1">Jumlah Catatan</p>
-            <p className="text-4xl font-black text-[#2C4219]">{harvestRecords.length}</p>
+            </div>
           </div>
-          <div className="bg-[#FAF6EE] rounded-2xl p-4 text-center border-2 border-[#E6E1D5]">
-            <p className="text-sm text-[#433A30] font-bold uppercase mb-1">Rata-rata Hasil Jadi</p>
-            <p className="text-4xl font-black text-[#607829]">77.5%</p>
-          </div>
-        </div>
+        )}
 
-        <div className="space-y-4">
-          {harvestRecords.map((rec, idx) => {
-            const inputKg = rec.weightKg;
-            const outputKg = Math.round(inputKg * 0.775);
-            const types = ['Tepung Halus Premium', 'Premix Bebas Gluten', 'Tepung Kasar (Grade B)'];
-            const statuses = [
-              { label: 'Terdistribusi', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-              { label: 'Stok Gudang', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-              { label: 'Dalam Proses', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-            ];
-            const status = statuses[idx % statuses.length];
-            
-            return (
-              <div key={idx} className="p-5 bg-[#FAF6EE] rounded-2xl border-2 border-[#E6E1D5] space-y-4">
-                <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-[#A8B774]">PRD-2026-{String(idx + 1).padStart(3, '0')}</span>
-                    <h4 className="font-bold text-lg text-[#2C4219]">{rec.blockName}</h4>
-                    <p className="text-sm text-[#433A30] mt-0.5">{rec.date}</p>
+        {/* Tab: Lahan */}
+        {activeTab === 'lahan' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="font-black text-xl text-[#2C4219] px-2">🌱 Lahan Kita</h3>
+            <div className="space-y-3">
+              {landPlots.length > 0 ? landPlots.map(plot => (
+                <div key={plot.id} className="bg-white p-5 rounded-3xl border-2 border-[#E6E1D5] shadow-sm relative overflow-hidden group hover:border-[#A8B774] transition-colors">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-black text-lg text-[#2C4219]">{plot.blockName}</h4>
+                      <p className="text-[#433A30] text-xs font-bold mt-1.5 bg-[#FAF6EE] px-2.5 py-1 rounded-lg inline-block border border-[#E6E1D5]">PIC Lahan: {plot.leaderName}</p>
+                    </div>
+                    <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${plot.status === 'Siap Panen' ? 'bg-[#A8B774] text-[#2C4219]' : 'bg-[#FAF6EE] text-[#433A30] border border-[#E6E1D5]'}`}>
+                      {plot.status}
+                    </div>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 ${status.color}`}>
-                    {status.label}
-                  </span>
+                  <p className="text-sm text-[#433A30]/80 font-medium mb-4 flex items-center gap-2">
+                    <span>🌾 {plot.cropVariety}</span>
+                    <span className="w-1 h-1 rounded-full bg-[#E6E1D5]"></span>
+                    <span>📍 {plot.areaSize}</span>
+                  </p>
+                  
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-bold text-[#433A30] uppercase">
+                      <span>Progres</span>
+                      <span className="text-[#607829]">{plot.growthProgress}%</span>
+                    </div>
+                    <div className="w-full bg-[#FAF6EE] rounded-full h-3 overflow-hidden border border-[#E6E1D5]">
+                      <div 
+                        className="bg-gradient-to-r from-[#8CA352] to-[#607829] h-full rounded-full transition-all duration-1000 ease-out" 
+                        style={{ width: `${plot.growthProgress}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
+              )) : (
+                <p className="text-center text-[#433A30]/60 py-8 bg-white rounded-3xl border-2 border-[#E6E1D5]">Belum ada data.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Panen */}
+        {activeTab === 'panen' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="font-black text-xl text-[#2C4219] px-2">📒 Riwayat Panen</h3>
+            <div className="space-y-3">
+              {harvestRecords.length > 0 ? harvestRecords.map(record => (
+                <div key={record.id} className="bg-[#FAF6EE] p-5 rounded-3xl border-2 border-[#E6E1D5] relative overflow-hidden shadow-sm">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-white rounded-bl-full flex items-start justify-end p-3 shadow-sm border-b border-l border-[#E6E1D5]">
+                    <LayoutList className="w-5 h-5 text-[#A8B774]" />
+                  </div>
+                  
+                  <p className="font-bold text-[#2C4219]/60 text-sm mb-1">{record.date}</p>
+                  <h4 className="font-black text-2xl text-[#607829]">{record.blockName}</h4>
+                  
+                  <div className="my-4 py-4 border-y border-[#E6E1D5]/70 flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase text-[#433A30]/60">Hasil Biji</p>
+                      <p className="text-3xl font-black text-[#2C4219]">{record.weightKg.toLocaleString('id-ID')} <span className="text-base">Kg</span></p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-bold uppercase text-[#433A30]/60">Mutu</p>
+                      <p className="text-lg font-black text-[#433A30]">{record.quality}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-[#E6E1D5]">
+                      <Users className="w-5 h-5 text-[#433A30]/60" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-[#433A30]/60">PIC Panen</p>
+                      <p className="text-sm font-black text-[#433A30]">{record.recordedBy || record.farmerName}</p>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-center text-[#433A30]/60 py-8 bg-white rounded-3xl border-2 border-[#E6E1D5]">Belum ada data.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Produksi */}
+        {activeTab === 'produksi' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="font-black text-xl text-[#2C4219] px-2">🥣 Data Produksi</h3>
+            <div className="space-y-4">
+              {harvestRecords.length > 0 ? harvestRecords.map((rec, idx) => {
+                const inputKg = Number(rec.weightKg) || 0;
+                const outputKg = Math.round(inputKg * 0.775);
                 
-                <div className="flex items-center gap-3 pt-3 border-t-2 border-[#E6E1D5]">
-                  <div className="flex-1">
-                    <p className="text-[12px] uppercase font-bold text-[#433A30]">Sorgum Mentah</p>
-                    <p className="font-bold text-xl text-[#2C4219]">{inputKg.toLocaleString('id-ID')} <span className="text-xs">kg</span></p>
+                return (
+                  <div key={idx} className="bg-white p-5 rounded-3xl border-2 border-[#E6E1D5] shadow-sm">
+                    <div className="flex justify-between items-center mb-4 pb-4 border-b border-[#E6E1D5]">
+                      <div>
+                        <p className="text-[10px] font-bold text-[#433A30]/60 uppercase">Asal Bahan</p>
+                        <h4 className="font-black text-lg text-[#2C4219]">{rec.blockName}</h4>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-[#433A30]/60 uppercase">Tanggal</p>
+                        <p className="text-xs font-bold text-[#433A30] bg-[#FAF6EE] px-2 py-1 rounded-md inline-block mt-0.5">{rec.date}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-[#FAF6EE] rounded-2xl p-4 flex items-center justify-between border border-[#E6E1D5]">
+                      <div className="text-center flex-1">
+                        <p className="text-[11px] font-bold uppercase text-[#433A30]/60 mb-1">Biji Sorgum</p>
+                        <p className="font-black text-[#D97706] text-xl">{inputKg} <span className="text-xs">kg</span></p>
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0 border border-[#E6E1D5] z-10">
+                        <ChevronRight className="w-5 h-5 text-[#2C4219]" />
+                      </div>
+                      <div className="text-center flex-1">
+                        <p className="text-[11px] font-bold uppercase text-[#433A30]/60 mb-1">Jadi Tepung</p>
+                        <p className="font-black text-[#2C4219] text-2xl">{outputKg} <span className="text-xs">kg</span></p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-between bg-[#F4F8EC] p-3 rounded-xl border border-[#A8B774]/30">
+                      <p className="text-sm font-bold text-[#2C4219]">Tepung Halus Premium ✨</p>
+                      <span className="px-3 py-1 rounded-full bg-white text-[#2C4219] text-[10px] font-black shadow-sm">Siap Jual</span>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-[#A8B774] flex items-center justify-center shrink-0">
-                    <span className="text-xl font-bold text-[#2C4219]">→</span>
+                )
+              }) : (
+                <p className="text-center text-[#433A30]/60 py-8 bg-white rounded-3xl border-2 border-[#E6E1D5]">Belum ada data.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Anggota */}
+        {activeTab === 'anggota' && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="font-black text-xl text-[#2C4219] px-2">👩‍🌾 Anggota Komunitas</h3>
+            <div className="bg-white rounded-3xl border-2 border-[#E6E1D5] shadow-sm overflow-hidden">
+              <div className="divide-y divide-[#E6E1D5]">
+                {members.length > 0 ? members.map((member, idx) => (
+                  <div key={idx} className="p-4 sm:p-5 flex items-center gap-4 hover:bg-[#FAF6EE] transition-colors">
+                    <img
+                      src={getAvatarUrl(member.avatar, member.name)}
+                      alt={member.name}
+                      onError={(e) => handleAvatarError(e, member.name)}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-[#A8B774] shadow-sm"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-black text-base text-[#2C4219]">{member.name}</h4>
+                      <p className="text-xs font-medium text-[#433A30] mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {member.lahanLocation || 'Belum ada blok'}
+                      </p>
+                    </div>
+                    <div className="bg-[#F4F8EC] border border-[#A8B774]/30 px-3 py-2 rounded-xl text-center shadow-sm">
+                      <p className="text-[10px] font-bold text-[#607829] uppercase mb-0.5">Peran</p>
+                      <p className="text-xs font-black text-[#2C4219]">{member.role === 'USER' ? 'Anggota' : member.role}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-[12px] uppercase font-bold text-[#433A30]">Jadi Tepung</p>
-                    <p className="font-black text-xl text-[#607829]">{outputKg.toLocaleString('id-ID')} <span className="text-xs">kg</span></p>
-                  </div>
-                </div>
-                
-                <div className="pt-2">
-                  <p className="text-[10px] uppercase font-bold text-[#433A30]/60">Jenis Produk</p>
-                  <p className="font-semibold text-[#433A30] text-sm">{types[idx % types.length]}</p>
-                </div>
+                )) : (
+                  <p className="text-center text-[#433A30]/60 py-8">Belum ada data.</p>
+                )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

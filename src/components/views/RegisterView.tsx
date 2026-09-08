@@ -121,8 +121,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#FAF6EE] font-sans text-[#2C4219]">
 
-      {/* LEFT PANEL: Visual Banner & Branding (50% split) */}
-      <div className="w-full md:w-1/2 bg-[#2C4219] p-6 sm:p-10 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden min-h-[280px] md:min-h-screen shrink-0">
+      {/* LEFT PANEL: Visual Banner & Branding (Banner on mobile, 50% split on desktop) */}
+      <div className="w-full md:w-1/2 bg-[#2C4219] p-6 sm:p-10 lg:p-14 text-white flex flex-col justify-between relative overflow-hidden min-h-[35vh] md:min-h-screen shrink-0 pb-16 md:pb-14">
         <div className="absolute inset-0 w-full h-full">
           {registerImages.map((url, idx) => (
             <div
@@ -147,17 +147,17 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             className="flex items-center gap-3 cursor-pointer group text-left"
           >
             {cmsData?.webLogo ? (
-              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0" />
+              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-10 h-10 md:w-11 md:h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0" />
             ) : (
-              <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0">
-                <Sprout className="w-6 h-6" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0">
+                <Sprout className="w-5 h-5 md:w-6 md:h-6" />
               </div>
             )}
             <div className="text-left">
-              <span className="font-title font-bold text-lg tracking-tight block leading-tight text-white line-clamp-1">
+              <span className="font-title font-bold text-base md:text-lg tracking-tight block leading-tight text-white line-clamp-1">
                 {cmsData?.webName || 'Community App'}
               </span>
-              <span className="text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5 line-clamp-1">
+              <span className="text-[10px] md:text-[11px] text-[#A8B774] font-bold tracking-widest uppercase block mt-0.5 line-clamp-1">
                 {cmsData?.webSubtitle || 'KWT MELATI SORGUM'}
               </span>
             </div>
@@ -165,37 +165,35 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
         </div>
 
         {/* Left Content Header */}
-        <div className="relative z-10 my-auto py-8 space-y-4 max-w-lg mx-auto md:mx-0 w-full">
+        <div className="relative z-10 my-auto py-2 md:py-8 space-y-2 md:space-y-4 max-w-lg mx-auto md:mx-0 w-full mt-6 md:mt-auto">
           <h2 className="font-title font-bold text-xl sm:text-2xl lg:text-3xl text-white leading-tight drop-shadow-md">
             {cmsData?.registerTitle ? (
               <span dangerouslySetInnerHTML={{ __html: cmsData.registerTitle.replace('\\n', '<br />') }} />
             ) : (
               <>
-                Komunitas Sorgum, <br />
+                Komunitas Sorgum, <br className="block md:block" />
                 <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-6">
                   Tumbuh & Maju Bersama
                 </span>
               </>
             )}
           </h2>
-          <p className="text-sm sm:text-base text-gray-200 font-medium leading-relaxed">
+          <p className="block text-sm sm:text-base md:text-lg text-gray-200 font-medium leading-relaxed">
             {cmsData?.registerDesc || 'Daftar sebagai anggota komunitas untuk terhubung dalam aplikasi KWT, ikuti diskusi kelompok, panduan budidaya, agenda kegiatan gotong royong, dan info pasar olahan.'}
           </p>
         </div>
 
-        {/* Footer Credit */}
-        <div className="relative z-10 pt-4 border-t border-white/20 text-xs text-gray-300 font-medium">
-          © KWT Melati Sorgum
-        </div>
+
       </div>
 
       {/* RIGHT PANEL: Complete Registration Form (50% split, centered) */}
-      <div className="w-full md:w-1/2 bg-[#FAF6EE] p-6 sm:p-10 lg:p-14 xl:p-16 flex flex-col justify-center items-center min-h-screen">
-        <div className="max-w-sm w-full space-y-6 sm:space-y-8 my-auto">
+      <div className="w-full md:w-1/2 bg-transparent md:bg-[#FAF6EE] flex flex-col justify-start md:justify-center items-center flex-1 relative z-20 -mt-10 md:mt-0">
+        <div className="bg-[#FAF6EE] md:bg-transparent w-full rounded-t-[2rem] md:rounded-none px-6 pt-10 pb-12 sm:p-10 lg:p-14 xl:p-16 max-w-full shadow-[0_-15px_40px_rgba(0,0,0,0.2)] md:shadow-none flex-1 md:flex-none flex flex-col items-center">
+          <div className="max-w-sm w-full space-y-6 sm:space-y-8">
 
           {/* Header */}
-          <div>
-            <h1 className="font-title font-bold text-lg sm:text-xl lg:text-2xl text-[#2C4219]">
+          <div className="text-center md:text-left">
+            <h1 className="font-title font-bold text-xl lg:text-2xl text-[#2C4219]">
               Buat Akun Baru
             </h1>
           </div>
@@ -208,11 +206,11 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
           )}
 
           {/* FORM REGISTRASI */}
-          <form onSubmit={handleSubmit} className="space-y-5 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-5 text-sm">
 
             {/* 1. NAMA LENGKAP */}
             <div className="space-y-1.5">
-              <label className="block font-bold text-[#2C4219] text-[11px] sm:text-xs">
+              <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
                 Nama Lengkap
               </label>
               <div className="relative">
@@ -222,7 +220,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                   placeholder="Sesuai KTP (misal: Ibu Suryani)"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
+                  className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-sm focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                 />
                 <User className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
               </div>
@@ -232,7 +230,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Kolom Email */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-[11px] sm:text-xs">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
                   Email
                 </label>
                 <div className="relative">
@@ -241,7 +239,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     placeholder="nama@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
+                    className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-sm focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Mail className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
@@ -249,7 +247,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
               {/* Kolom WhatsApp */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-[11px] sm:text-xs">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
                   No. Handphone (WhatsApp)
                 </label>
                 <div className="relative">
@@ -258,7 +256,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     placeholder="081234567890"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
+                    className="w-full p-2.5 pl-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-sm focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Phone className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
@@ -269,7 +267,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Kata Sandi */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-[11px] sm:text-xs">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
                   Kata Sandi
                 </label>
                 <div className="relative">
@@ -279,7 +277,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     placeholder="Minimal 6 karakter"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2.5 pl-9 pr-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
+                    className="w-full p-2.5 pl-9 pr-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-sm focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Lock className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
                   <button
@@ -295,7 +293,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
               {/* Konfirmasi Kata Sandi */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-[11px] sm:text-xs">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
                   Konfirmasi Kata Sandi
                 </label>
                 <div className="relative">
@@ -305,7 +303,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                     placeholder="Ulangi kata sandi"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full p-2.5 pl-9 pr-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-xs focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
+                    className="w-full p-2.5 pl-9 pr-9 rounded-xl border-2 border-[#E6E1D5] bg-white text-[#2C4219] font-semibold text-sm focus:outline-none focus:border-[#2C4219] transition-all placeholder:text-[#433A30]/50 placeholder:font-normal"
                   />
                   <Lock className="w-4 h-4 text-[#433A30]/70 absolute left-3 top-1/2 -translate-y-1/2" />
                 </div>
@@ -314,11 +312,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
 
 
-            {/* 6. TOMBOL DAFTAR */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm flex items-center justify-center gap-2 shadow-xl hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-70 border-2 border-[#A8B774] mt-2"
+              className="w-full py-3 rounded-full bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl hover:scale-[1.01] active:scale-95 transition-all duration-300 disabled:opacity-70 border-2 border-[#A8B774] mt-2"
             >
               {isLoading ? (
                 <span>Mendaftarkan Akun...</span>
@@ -332,8 +329,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
           </form>
 
           {/* Bottom Redirect Option */}
-          <div className="text-center text-xs sm:text-sm text-[#433A30] font-medium pt-2 border-t border-[#E6E1D5]">
-            Sudah memiliki akun KWT Sorgum?{' '}
+          <div className="flex flex-row items-center justify-center gap-1.5 pt-4 text-center text-sm sm:text-base text-[#433A30] font-medium border-t border-[#E6E1D5] whitespace-nowrap">
+            <span>Sudah punya akun?</span>
             <button
               type="button"
               onClick={onGoToLogin}
@@ -343,6 +340,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             </button>
           </div>
 
+        </div>
         </div>
       </div>
 

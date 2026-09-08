@@ -60,7 +60,8 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 // Start
-app.listen(config.port, () => {
+const port = Number(config.port) || 8000;
+app.listen(port, '0.0.0.0', () => {
   console.log(`
   ╔══════════════════════════════════════════╗
   ║   🌾 BESTARI - KWT Sorgum API           ║

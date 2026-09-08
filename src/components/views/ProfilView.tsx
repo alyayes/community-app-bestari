@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../types';
 import {
   Camera,
@@ -11,7 +11,7 @@ import {
   Award
 } from 'lucide-react';
 
-import { apiUpdateProfile } from '../../api/client';
+import { apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface ProfilViewProps {
   currentUser: UserProfile;
@@ -43,7 +43,24 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   const [email, setEmail] = useState(currentUser.email || '');
   const [phone, setPhone] = useState(currentUser.phone || '');
   const [certificateName, setCertificateName] = useState(currentUser.certificateName || '');
-  const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [avatar, setAvatar] = useState(currentUser.avatar || '');
+
+  // Sinkronisasi state form saat currentUser berubah (misal setelah refresh / load / switch role)
+  useEffect(() => {
+    setFirstName(currentUser.firstName || '');
+    setLastName(currentUser.lastName || '');
+    setDob(currentUser.dob || '');
+    setEmail(currentUser.email || '');
+    setPhone(currentUser.phone || '');
+    setCertificateName(currentUser.certificateName || '');
+    setAvatar(currentUser.avatar || '');
+    setCountry(currentUser.country || '');
+    setCity(currentUser.city || '');
+    setPostalCode(currentUser.postalCode || '');
+    setLahanLocation(currentUser.lahanLocation || '');
+    setSorghumType(currentUser.sorghumType || '');
+    setMemberSince(currentUser.memberSince || '');
+  }, [currentUser]);
 
   // Section 2: Address & Lahan Form States
   const [country, setCountry] = useState(currentUser.country || '');
@@ -104,6 +121,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       try {
         const updatedProfile = await apiUpdateProfile({ avatar: base64 });
         setCurrentUser(updatedProfile);
+        setAvatar(updatedProfile.avatar || base64);
         triggerToast('Foto profil berhasil diunggah!');
       } catch (err: any) {
         alert(err.message || 'Gagal menyimpan foto profil');
@@ -202,8 +220,9 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         {/* Avatar Area */}
         <div className="relative shrink-0 group">
           <img
-            src={avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.name || 'User')}&background=A8B774&color=2C4219`}
+            src={getAvatarUrl(avatar, currentUser.name)}
             alt={currentUser.name}
+            onError={(e) => handleAvatarError(e, currentUser.name)}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border border-[#2C4219]/20 shadow-xs"
           />
           <input

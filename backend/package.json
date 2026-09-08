@@ -4,9 +4,9 @@
   "description": "Backend untuk Community App Bestari - KWT Sorgum",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --max-old-space-size=1024 node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node --max-old-space-size=1024 dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",

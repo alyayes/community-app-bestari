@@ -64,7 +64,7 @@ router.post('/lahan', async (req: Request, res: Response, next: NextFunction) =>
 
 router.put('/lahan/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { blockName, cropVariety, areaSize, plantingDate, expectedHarvestDate, growthProgress, status, leaderName, estimatedYieldKg } = req.body;
     
     const lahan = await prisma.lahan.update({
@@ -89,7 +89,7 @@ router.put('/lahan/:id', async (req: Request, res: Response, next: NextFunction)
 
 router.delete('/lahan/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     await prisma.lahan.delete({ where: { id } });
     return successResponse(res, null, 'Lahan berhasil dihapus');
   } catch (err) {
@@ -122,7 +122,7 @@ router.post('/panen', async (req: Request, res: Response, next: NextFunction) =>
 
 router.put('/panen/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { date, blockName, cropVariety, weightKg, quality, recordedBy, notes } = req.body;
     
     const panen = await prisma.panen.update({
@@ -145,7 +145,7 @@ router.put('/panen/:id', async (req: Request, res: Response, next: NextFunction)
 
 router.delete('/panen/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     await prisma.panen.delete({ where: { id } });
     return successResponse(res, null, 'Panen berhasil dihapus');
   } catch (err) {

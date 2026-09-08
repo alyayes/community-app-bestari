@@ -1,24 +1,26 @@
 import React from 'react';
-import { NavItem, AgendaEvent, UserProfile, InfoArticle } from '../../types';
-import { Calendar, BookOpen, MessageSquare, BarChart3, ShieldCheck, ArrowRight, ImageIcon } from 'lucide-react';
-import { getCategoryColor } from './AgendaView';
+import { NavItem, AgendaEvent, UserProfile, InfoArticle, Announcement } from '../../types';
+import { Calendar, BookOpen, Megaphone, ChevronRight } from 'lucide-react';
+import { getCategoryColor } from '../../utils/agendaUtils';
 
 interface BerandaViewLiteProps {
   currentUser: UserProfile;
   events: AgendaEvent[];
-  articles?: InfoArticle[];
+  articles: InfoArticle[];
+  announcements: Announcement[];
   setActiveNav: (nav: NavItem) => void;
-  onSelectArticle?: (article: InfoArticle) => void;
-  setAppMode?: (mode: 'lite' | 'pro') => void;
+  onSelectArticle: (article: InfoArticle) => void;
+  onSelectAnnouncement: (announcement: Announcement) => void;
 }
 
 export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
   currentUser,
   events,
-  articles = [],
+  articles,
+  announcements,
   setActiveNav,
   onSelectArticle,
-  setAppMode,
+  onSelectAnnouncement
 }) => {
   const upcomingEvents = [...events]
     .filter(e => {
@@ -28,112 +30,141 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3); // Cuma nampilin 3 paling dekat
 
+  const activeAnnouncements = announcements.filter(a => a.isActive);
+
   return (
     <div className="space-y-6 pb-12 w-full animate-in fade-in duration-300 max-w-5xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Kolom Kiri: Sapaan dan Menu */}
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* Kolom Kiri: Sapaan dan Informasi */}
+        <div className="space-y-8 lg:col-span-2">
           {/* Sapaan Hangat */}
-          <div className="bg-[#2C4219] p-5 lg:p-6 rounded-2xl border-2 border-[#1E2E11] text-center md:text-left shadow-sm">
-            <h2 className="text-2xl lg:text-3xl font-black text-white mb-2 leading-tight">
-              Selamat Datang, <br /> Ibu {currentUser.name}!
+          <div className="bg-[#2C4219] p-6 lg:p-8 rounded-3xl border-2 border-[#1E2E11] text-center md:text-left shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#3A5721] rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-50"></div>
+            <h2 className="text-3xl lg:text-4xl font-black text-white mb-3 leading-tight relative z-10">
+              Halo Ibu {currentUser.name},<br/>Selamat Datang!
             </h2>
-            <p className="text-base lg:text-lg text-[#E2E8D5] font-medium mb-5">
-              Semoga hari ini menyenangkan. Tetap semangat berkarya!
+            <p className="text-xl text-[#E2E8D5] font-medium relative z-10">
+              Berikut informasi terbaru untuk Anda hari ini:
             </p>
           </div>
 
-          {/* Section: Kabar & Tips Terbaru */}
-          <div className="bg-white p-5 rounded-2xl border-2 border-[#E6E1D5] shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#2C4219]" />
-                <h3 className="font-title font-bold text-lg text-[#2C4219]">Kabar & Tips Terbaru</h3>
+          {/* Pengumuman Penting */}
+          {activeAnnouncements.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600">
+                  <Megaphone className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-2xl text-[#2C4219]">Pengumuman Penting</h3>
               </div>
-              <button
-                onClick={() => setActiveNav('informasi')}
-                className="text-xs font-semibold text-[#2C4219] hover:text-[#1E2E11] flex items-center gap-1"
-              >
-                <span>Lihat Semua</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {articles.slice(0, 2).map((art) => (
-                <div
-                  key={art.id}
-                  onClick={() => onSelectArticle && onSelectArticle(art)}
-                  className="group cursor-pointer bg-[#FAF6EE]/60 hover:bg-[#FAF6EE] rounded-xl p-3 border border-[#E6E1D5] transition-all duration-200 flex items-start gap-3"
-                >
-                  <div className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                    {art.image ? (
-                      <img
-                        src={art.image}
-                        alt={art.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#433A30]/30 bg-[#E6E1D5]/30">
-                        <ImageIcon className="w-6 h-6 opacity-50" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">
-                    <div>
-                      <span className="text-[10px] text-[#433A30]/70 font-medium">{art.timeAgo}</span>
-                      <h4 className="font-title font-bold text-sm text-[#2C4219] group-hover:text-[#A8B774] transition-colors line-clamp-2 leading-tight">
-                        {art.title}
-                      </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeAnnouncements.slice(0, 2).map(ann => (
+                  <div
+                    key={ann.id}
+                    onClick={() => onSelectAnnouncement(ann)}
+                    className="bg-white p-5 rounded-2xl border-2 border-rose-100 shadow-sm cursor-pointer hover:border-rose-300 hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-2">Penting</span>
+                    <h4 className="font-bold text-[#2C4219] text-lg leading-snug mb-2 line-clamp-2">{ann.title}</h4>
+                    <p className="text-sm text-[#433A30]/70 line-clamp-2 mb-4 flex-1">{ann.content}</p>
+                    <div className="flex items-center text-rose-600 font-bold text-sm mt-auto">
+                      <span>Baca Selengkapnya</span>
+                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
-                </div>
-              ))}
-              {articles.length === 0 && (
-                <p className="text-sm text-center text-[#433A30]/60 py-4">Belum ada informasi terbaru.</p>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Informasi */}
+          {articles.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-blue-100 rounded-xl text-blue-600">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-bold text-2xl text-[#2C4219]">Informasi</h3>
+                </div>
+                <button 
+                  onClick={() => setActiveNav('informasi')}
+                  className="text-sm font-bold text-[#607829] hover:text-[#2C4219] bg-[#F4F8EC] px-4 py-2 rounded-xl transition-colors"
+                >
+                  Lihat Semua
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {articles.slice(0, 4).map(article => (
+                  <div
+                    key={article.id}
+                    onClick={() => onSelectArticle(article)}
+                    className="bg-white p-4 rounded-2xl border-2 border-[#E6E1D5] shadow-sm cursor-pointer hover:border-[#607829] hover:shadow-md transition-all flex items-center gap-4 group"
+                  >
+                    {article.image ? (
+                      <img src={article.image} alt={article.title} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl bg-[#FAF6EE] flex items-center justify-center text-[#A19D94] shrink-0 border border-[#E6E1D5]">
+                        <BookOpen className="w-8 h-8" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-[#607829] uppercase tracking-wider mb-1 block bg-[#F4F8EC] inline-block px-2 py-0.5 rounded-md">{article.category}</span>
+                      <h4 className="font-bold text-[#2C4219] text-base leading-snug line-clamp-2 group-hover:text-[#607829] transition-colors">{article.title}</h4>
+                      <p className="text-[11px] text-[#433A30]/60 mt-1 font-medium">{article.timeAgo}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Kolom Kanan: Agenda */}
-        <div className="bg-white p-5 lg:p-6 rounded-2xl border-2 border-[#E6E1D5] space-y-5 shadow-sm flex flex-col h-full">
-          <div className="flex items-center gap-3 border-b-2 border-[#FAF6EE] pb-3">
-            <div className="p-2.5 bg-[#F4F8EC] rounded-xl text-[#2C4219]">
-              <Calendar className="w-6 h-6" />
+        <div className="lg:col-span-1">
+          <div className="bg-white p-6 lg:p-7 rounded-3xl border-2 border-[#E6E1D5] space-y-6 shadow-sm flex flex-col h-full sticky top-24">
+            <div className="flex items-center gap-3 border-b-2 border-[#FAF6EE] pb-4">
+              <div className="p-3 bg-[#F4F8EC] rounded-xl text-[#2C4219]">
+                <Calendar className="w-7 h-7" />
+              </div>
+              <h3 className="font-bold text-xl text-[#2C4219]">Kegiatan Terdekat</h3>
             </div>
-            <h3 className="font-bold text-xl text-[#2C4219]">Kegiatan Terdekat</h3>
-          </div>
 
-          <div className="space-y-3">
-            {upcomingEvents.length > 0 ? (
-              upcomingEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  onClick={() => setActiveNav('agenda')}
-                  className="bg-[#FAF6EE] p-4 rounded-xl border-2 border-[#E6E1D5] flex items-center gap-4 cursor-pointer hover:bg-white hover:border-[#2C4219]/30 active:scale-95 transition-all group"
-                >
-                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${getCategoryColor(ev.category)} shadow-sm group-hover:scale-105 transition-transform`}>
-                    <span className="text-xs font-bold leading-none opacity-90">{ev.monthAbbr}</span>
-                    <span className="font-black text-xl leading-none mt-1">{ev.dayNumber}</span>
+            <div className="space-y-4">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    onClick={() => setActiveNav('agenda')}
+                    className="bg-[#FAF6EE] p-4 rounded-2xl border-2 border-[#E6E1D5] flex items-center gap-4 cursor-pointer hover:bg-white hover:border-[#2C4219]/30 active:scale-95 transition-all group"
+                  >
+                    <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center shrink-0 ${getCategoryColor(ev.category)} shadow-sm group-hover:scale-105 transition-transform`}>
+                      <span className="text-xs font-bold leading-none opacity-90">{ev.monthAbbr}</span>
+                      <span className="font-black text-xl leading-none mt-1">{ev.dayNumber}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-base text-[#2C4219] line-clamp-2 leading-tight group-hover:text-[#607829] transition-colors">{ev.title}</h4>
+                      <p className="text-sm text-[#433A30]/80 mt-1 font-medium flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {ev.time}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-base text-[#2C4219] line-clamp-2 leading-tight group-hover:text-[#607829] transition-colors">{ev.title}</h4>
-                    <p className="text-sm text-[#433A30]/80 mt-1 font-medium">{ev.time}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-sm text-[#433A30]/60 py-4">Belum ada kegiatan dalam waktu dekat.</p>
-            )}
+                ))
+              ) : (
+                <p className="text-center text-sm text-[#433A30]/60 py-4 font-medium">Belum ada jadwal kegiatan terdekat saat ini, Bu.</p>
+              )}
+            </div>
+            
+            <button 
+              onClick={() => setActiveNav('agenda')}
+              className="w-full mt-auto bg-[#2C4219] hover:bg-[#1E2E11] text-white py-3.5 rounded-xl font-bold text-base transition-colors active:scale-95 flex items-center justify-center gap-2"
+            >
+              Lihat Semua Jadwal
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setActiveNav('agenda')}
-            className="w-full mt-auto bg-[#2C4219] hover:bg-[#1E2E11] text-white py-3 rounded-xl font-bold text-base transition-colors active:scale-95"
-          >
-            Lihat Semua Agenda
-          </button>
         </div>
       </div>
     </div>

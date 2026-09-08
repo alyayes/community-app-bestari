@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { BASE_URL } from '../../api/client';
 import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
+import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor } from '../../utils/agendaUtils';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   MapPin,
   Clock,
   User,
@@ -29,7 +31,8 @@ import {
   Sparkles,
   X,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react';
 
 interface AgendaViewProps {
@@ -45,35 +48,7 @@ interface AgendaViewProps {
   searchQuery?: string;
 }
 
-export const getCategoryColor = (category: string) => {
-  const cat = (category || '').toUpperCase();
-  if (cat.includes('KREATIF')) return 'bg-[#e5a300] text-white'; // Citrus Yellow
-  if (cat.includes('WORKSHOP')) return 'bg-[#293379] text-white'; // Blue Crate
-  if (cat.includes('PANEN')) return 'bg-[#ee7302] text-white'; // Orange
-  if (cat.includes('UMKM')) return 'bg-[#a6af32] text-white'; // Lettuce Green (changed text to white)
-  if (cat.includes('RAPAT')) return 'bg-[#b81817] text-white'; // Tomatoe Red
-  return 'bg-[#607829] text-white'; // Green Beans
-};
 
-const getCategoryBorderColor = (category: string) => {
-  const cat = (category || '').toUpperCase();
-  if (cat.includes('KREATIF')) return 'border-[#e5a300]'; 
-  if (cat.includes('WORKSHOP')) return 'border-[#293379]'; 
-  if (cat.includes('PANEN')) return 'border-[#ee7302]'; 
-  if (cat.includes('UMKM')) return 'border-[#a6af32]'; 
-  if (cat.includes('RAPAT')) return 'border-[#b81817]'; 
-  return 'border-[#607829]'; 
-};
-
-const getCategoryHoverBorderColor = (category: string) => {
-  const cat = (category || '').toUpperCase();
-  if (cat.includes('KREATIF')) return 'hover:border-[#e5a300]'; 
-  if (cat.includes('WORKSHOP')) return 'hover:border-[#293379]'; 
-  if (cat.includes('PANEN')) return 'hover:border-[#ee7302]'; 
-  if (cat.includes('UMKM')) return 'hover:border-[#a6af32]'; 
-  if (cat.includes('RAPAT')) return 'hover:border-[#b81817]'; 
-  return 'hover:border-[#607829]'; 
-};
 
 export const AgendaView: React.FC<AgendaViewProps> = ({ 
   appMode,
@@ -111,7 +86,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   };
 
   const isUserRegistered = (e: AgendaEvent) => {
-    return e.peserta?.some(p => p.userId === currentUser?.id) || false;
+    if (e.isRegistered) return true;
+    return e.peserta?.some(p => p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) || false;
   };
 
   const events = rawEvents;
@@ -355,23 +331,26 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     if (statusFilter === 'Riwayat' && !isPast) return false;
     if (statusFilter === 'Sudah Daftar' && !isUserRegistered(e)) return false;
 
-    const matchesSearch = e.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
-      (e.location && e.location.toLowerCase().includes(activeSearch.toLowerCase())) ||
-      (e.organizer && e.organizer.toLowerCase().includes(activeSearch.toLowerCase()));
-    const matchesCat = selectedCategory === 'Semua' || e.category?.toUpperCase() === selectedCategory.toUpperCase();
+    const title = e.title || '';
+    const loc = e.location || '';
+    const org = e.organizer || '';
+    const matchesSearch = title.toLowerCase().includes(activeSearch.toLowerCase()) ||
+      loc.toLowerCase().includes(activeSearch.toLowerCase()) ||
+      org.toLowerCase().includes(activeSearch.toLowerCase());
+    const matchesCat = selectedCategory === 'Semua' || (e.category && e.category.toUpperCase() === selectedCategory.toUpperCase());
     return matchesSearch && matchesCat;
   }).sort((a, b) => {
     const todayObj = new Date();
     const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-    const aPast = a.status === 'Selesai' || a.date < todayStr;
-    const bPast = b.status === 'Selesai' || b.date < todayStr;
+    const aPast = a.status === 'Selesai' || Boolean(a.date && a.date < todayStr);
+    const bPast = b.status === 'Selesai' || Boolean(b.date && b.date < todayStr);
     
     // If "Semua", put past events at the bottom
     if (aPast && !bPast) return 1;
     if (!aPast && bPast) return -1;
     
     // Otherwise sort by date ascending
-    return a.date.localeCompare(b.date);
+    return (a.date || '').localeCompare(b.date || '');
   });
 
   const toggleReminder = (eventId: string) => {
@@ -416,7 +395,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     setNewLocation('Balai Desa Sukamaju');
     setNewCategory('WORKSHOP KREATIF');
     setNewDesc('');
-    setNewOrganizer(currentUser.name || 'Tim KWT Sorgum');
+    setNewOrganizer(currentUser?.name || 'Tim KWT Sorgum');
     setNewTargetParticipants('');
     setNewContactName('');
     setNewContactPhone('');
@@ -435,7 +414,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     setNewLocation(ev.location);
     setNewCategory(ev.category || 'WORKSHOP KREATIF');
     setNewDesc(ev.description || '');
-    setNewOrganizer(ev.organizer || currentUser.name || 'Tim KWT Sorgum');
+    setNewOrganizer(ev.organizer || currentUser?.name || 'Tim KWT Sorgum');
     setNewTargetParticipants(ev.targetParticipants || '');
     setNewContactName(ev.contactPerson?.name || '');
     setNewContactPhone(ev.contactPerson?.phone || '');
@@ -508,8 +487,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         statusType: computedStatusType as any,
         category: newCategory,
         description: newDesc || 'Kegiatan kelompok tani KWT Sorgum.',
-        organizer: newOrganizer || currentUser.name || 'Pengurus KWT Sorgum',
-        creatorId: currentUser.id,
+        organizer: newOrganizer || currentUser?.name || 'Pengurus KWT Sorgum',
+        creatorId: currentUser?.id,
         targetParticipants: newTargetParticipants,
         contactPerson: contactObj,
         requirements: reqList.length > 0 ? reqList : undefined,
@@ -800,7 +779,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
                   const isAdmin = currentUser?.name?.toLowerCase().includes('admin');
                   const dayEvents = events.filter(e => {
-                    const isDateMatch = e.dayNumber === formattedDay && (e.monthAbbr === dMonthStr || e.date.startsWith(`${dYearStr}-${dMonthNumStr}-`));
+                    const isDateMatch = (e.dayNumber === formattedDay && e.monthAbbr === dMonthStr) || 
+                      (Boolean(e.date) && e.date.startsWith(`${dYearStr}-${dMonthNumStr}-`));
                     if (!isDateMatch) return false;
                     if (isEventPast(e)) return false;
                     if (isAdmin) return true;
@@ -910,9 +890,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
                   <div className="flex items-center gap-3">
                     <span className="text-[#7A7062] font-semibold text-sm">
-                      {`${selectedEvent.dayNumber} ${selectedEvent.monthAbbr} ${selectedEvent.date?.split('-')[0] || '2026'}`}
+                      {`${selectedEvent.dayNumber || ''} ${selectedEvent.monthAbbr || ''} ${selectedEvent.date?.split('-')[0] || '2026'}`.trim()}
                     </span>
-                    {selectedEvent.creatorId === currentUser.id && (
+                    {Boolean(selectedEvent.creatorId && currentUser?.id && selectedEvent.creatorId === currentUser.id) && (
                       <div className="flex items-center gap-1.5">
                         <button onClick={() => openEditModal(selectedEvent)} className="p-1.5 rounded-lg border border-[#E6E1D5] bg-white text-[#433A30]/70 hover:bg-[#FAF6EE] hover:text-[#2C4219] transition-colors shadow-xs" title="Edit Agenda">
                           <Edit2 className="w-4 h-4" />
@@ -1058,43 +1038,81 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         /* DAFTAR VIEW MODE (LIST VIEW WITH FULL DETAILS & FILTERING) */
         <div className="space-y-4">
           {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1">
-              {categoriesList.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`
-                    px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border
-                    ${selectedCategory === cat
-                      ? (cat === 'Semua' 
-                          ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-md scale-105' 
-                          : `${getCategoryColor(cat)} border-transparent shadow-md scale-105`)
-                      : 'bg-white text-[#433A30] border-[#E6E1D5] hover:bg-[#FAF6EE] hover:scale-105'}
-                  `}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            
-            {/* Status Filter Dropdown */}
-            <div className="relative shrink-0">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="appearance-none bg-white border border-[#E6E1D5] text-[#2C4219] font-bold text-xs py-2 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#E5A300] focus:ring-1 focus:ring-[#E5A300] cursor-pointer hover:bg-[#FAF6EE] transition-colors min-w-[140px]"
-              >
-                {statusFilters.map((st) => (
-                  <option key={st} value={st}>{st === 'Semua' ? 'Semua Waktu' : st}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#A19D94]">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          {appMode === 'lite' ? (
+            <div className="flex flex-col gap-3 pb-2">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Category Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full appearance-none bg-white border-2 border-[#E6E1D5] text-[#2C4219] font-bold text-xs py-3 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#607829] transition-colors cursor-pointer"
+                  >
+                    {categoriesList.map(cat => (
+                      <option key={cat} value={cat}>{cat === 'Semua' ? 'Semua Kategori' : cat}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#2C4219]">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+                
+                {/* Status/Waktu Dropdown */}
+                <div className="relative">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    className="w-full appearance-none bg-white border-2 border-[#E6E1D5] text-[#2C4219] font-bold text-xs py-3 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#607829] transition-colors cursor-pointer"
+                  >
+                    {statusFilters.map((st) => (
+                      <option key={st} value={st}>{st === 'Semua' ? 'Semua Waktu' : st}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#2C4219]">
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar flex-1">
+                {categoriesList.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`
+                      px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border
+                      ${selectedCategory === cat
+                        ? (cat === 'Semua' 
+                            ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-md scale-105' 
+                            : `${getCategoryColor(cat)} border-transparent shadow-md scale-105`)
+                        : 'bg-white text-[#433A30] border-[#E6E1D5] hover:bg-[#FAF6EE] hover:scale-105'}
+                    `}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Status Filter Dropdown */}
+              <div className="relative shrink-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="appearance-none bg-white border border-[#E6E1D5] text-[#2C4219] font-bold text-xs py-2 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#E5A300] focus:ring-1 focus:ring-[#E5A300] cursor-pointer hover:bg-[#FAF6EE] transition-colors min-w-[140px]"
+                >
+                  {statusFilters.map((st) => (
+                    <option key={st} value={st}>{st === 'Semua' ? 'Semua Waktu' : st}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#A19D94]">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Agenda Event Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1109,7 +1127,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                       {ev.category}
                     </span>
                     <span className="text-xs text-[#433A30]/70 font-semibold">
-                      {ev.dayNumber} {ev.monthAbbr} {ev.date?.split('-')[0] || '2026'}
+                      {`${ev.dayNumber || ''} ${ev.monthAbbr || ''} ${ev.date?.split('-')[0] || '2026'}`.trim()}
                     </span>
                   </div>
 
@@ -1216,146 +1234,175 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             </div>
 
             {/* Materi & Dokumentasi */}
-            {(isUserRegistered(selectedEvent) || isEventPast(selectedEvent)) && (
-              <div className="space-y-4 pt-2">
-                {selectedEvent.materiUrls && selectedEvent.materiUrls.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-[#E5A300]/20 flex items-center justify-center text-[#E5A300]">
-                        <FileText className="w-3.5 h-3.5" />
-                      </div>
-                      Unduh Materi Kegiatan
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {selectedEvent.materiUrls.map((url, idx) => {
-                        const isImage = url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
+            {(() => {
+              const isAdmin = currentUser?.role?.toLowerCase().includes('admin') || currentUser?.isAdmin;
+              const isRegistered = isUserRegistered(selectedEvent);
+              const isPast = isEventPast(selectedEvent);
+              const isAttended = selectedEvent.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended);
+              // User boleh melihat jika: Admin, atau jika belum lewat sudah daftar, atau jika sudah lewat sudah daftar dan hadir/mengikuti
+              const canAccessMateri = isAdmin || (isPast ? (isRegistered && isAttended) : isRegistered);
 
-                        if (isImage) {
+              if (!canAccessMateri) {
+                return (
+                  <div className="pt-2">
+                    <div className="bg-[#FAF6EE] p-5 rounded-2xl border border-[#E6E1D5] flex items-start gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-[#A8B774]/20 flex items-center justify-center text-[#2C4219] shrink-0 mt-0.5">
+                        <Lock className="w-5 h-5 text-[#2C4219]" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-title font-bold text-sm text-[#2C4219]">Materi Khusus Peserta</h4>
+                        <p className="text-xs text-[#5C5246] leading-relaxed">
+                          {isPast
+                            ? 'Materi kegiatan dan sertifikat hanya dapat diakses oleh peserta yang telah terdaftar dan mengikuti agenda ini.'
+                            : 'Materi, berkas, dan tautan kegiatan hanya dapat diakses setelah Anda mendaftar dan mengikuti kegiatan ini.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4 pt-2">
+                  {selectedEvent.materiUrls && selectedEvent.materiUrls.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-[#E5A300]/20 flex items-center justify-center text-[#E5A300]">
+                          <FileText className="w-3.5 h-3.5" />
+                        </div>
+                        Unduh Materi Kegiatan
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedEvent.materiUrls.map((url, idx) => {
+                          const isImage = url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
+
+                          if (isImage) {
+                            return (
+                              <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
+                                <img src={url} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+                                  <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    Lihat Gambar
+                                  </span>
+                                </div>
+                              </a>
+                            );
+                          }
+
                           return (
-                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
-                              <img src={url} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
-                                <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                  Lihat Gambar
-                                </span>
+                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
+                              <div className="w-10 h-10 rounded-xl bg-[#E5A300]/10 text-[#E5A300] flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[13px]">Materi Berkas {idx + 1}</span>
+                                <span className="text-[10px] text-[#A19D94] font-medium mt-0.5">Ketuk untuk mengunduh</span>
                               </div>
                             </a>
                           );
-                        }
-
-                        return (
-                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
-                            <div className="w-10 h-10 rounded-xl bg-[#E5A300]/10 text-[#E5A300] flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <FileText className="w-5 h-5" />
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedEvent.dokumentasiUrls && selectedEvent.dokumentasiUrls.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-[#A8B774]/30 flex items-center justify-center text-[#2C4219]">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        Galeri Dokumentasi
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {selectedEvent.dokumentasiUrls.map((url, idx) => (
+                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
+                              <img src={url} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+                                <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                  Lihat Penuh
+                                </span>
+                              </div>
+                            </a>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {selectedEvent.linkUrls && selectedEvent.linkUrls.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-[#293379]/20 flex items-center justify-center text-[#293379]">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        </div>
+                        Tautan Tambahan
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {selectedEvent.linkUrls.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#F8FAFC] p-3 rounded-2xl border border-[#E2E8F0] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#293379] flex items-center gap-3 text-xs font-bold text-[#1E293B] transition-all duration-300">
+                            <div className="w-10 h-10 rounded-xl bg-[#293379]/10 text-[#293379] flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-[13px]">Materi Berkas {idx + 1}</span>
-                              <span className="text-[10px] text-[#A19D94] font-medium mt-0.5">Ketuk untuk mengunduh</span>
+                            <div className="flex flex-col flex-1 overflow-hidden">
+                              <span className="text-[13px] truncate">Tautan {idx + 1}</span>
+                              <span className="text-[10px] text-[#64748B] font-medium mt-0.5 truncate">{url}</span>
                             </div>
                           </a>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                
-                {selectedEvent.dokumentasiUrls && selectedEvent.dokumentasiUrls.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-[#A8B774]/30 flex items-center justify-center text-[#2C4219]">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        ))}
                       </div>
-                      Galeri Dokumentasi
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {selectedEvent.dokumentasiUrls.map((url, idx) => (
-                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
-                            <img src={url} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
-                              <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                Lihat Penuh
-                              </span>
+                    </div>
+                  )}
+                  
+                  {/* Sertifikat Kehadiran */}
+                  {isEventPast(selectedEvent) && isUserRegistered(selectedEvent) && 
+                   selectedEvent.certificateTemplate && 
+                   selectedEvent.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended) && (
+                    <div className="space-y-3 pt-2">
+                      <h3 className="font-title font-bold text-sm text-[#D97706] flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-[#D97706]/20 flex items-center justify-center text-[#D97706]">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        Sertifikat Penghargaan
+                      </h3>
+                      
+                      {isCertificateActive(selectedEvent.certificateTemplate) ? (
+                        <button
+                          onClick={() => handleDownloadCertificate(selectedEvent.certificateTemplate!, selectedEvent)}
+                          className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
+                        >
+                          <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                          Unduh Sertifikat Kehadiran Anda
+                        </button>
+                      ) : (
+                        <div className="relative overflow-hidden bg-gradient-to-br from-[#FEF2F2] to-[#FFF7ED] border border-[#FECACA] rounded-2xl p-4 sm:p-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                          <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                            <div className="w-10 h-10 rounded-full bg-red-100/80 flex items-center justify-center shrink-0 border border-red-200">
+                              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                              </svg>
                             </div>
-                          </a>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-                {selectedEvent.linkUrls && selectedEvent.linkUrls.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-[#293379]/20 flex items-center justify-center text-[#293379]">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                      </div>
-                      Tautan Tambahan
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {selectedEvent.linkUrls.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#F8FAFC] p-3 rounded-2xl border border-[#E2E8F0] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#293379] flex items-center gap-3 text-xs font-bold text-[#1E293B] transition-all duration-300">
-                          <div className="w-10 h-10 rounded-xl bg-[#293379]/10 text-[#293379] flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                          </div>
-                          <div className="flex flex-col flex-1 overflow-hidden">
-                            <span className="text-[13px] truncate">Tautan {idx + 1}</span>
-                            <span className="text-[10px] text-[#64748B] font-medium mt-0.5 truncate">{url}</span>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Sertifikat Kehadiran */}
-                {isEventPast(selectedEvent) && isUserRegistered(selectedEvent) && 
-                 selectedEvent.certificateTemplate && 
-                 selectedEvent.peserta?.find(p => p.userId === currentUser?.id)?.attended && (
-                  <div className="space-y-3 pt-2">
-                    <h3 className="font-title font-bold text-sm text-[#D97706] flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-md bg-[#D97706]/20 flex items-center justify-center text-[#D97706]">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                      </div>
-                      Sertifikat Penghargaan
-                    </h3>
-                    
-                    {isCertificateActive(selectedEvent.certificateTemplate) ? (
-                      <button
-                        onClick={() => handleDownloadCertificate(selectedEvent.certificateTemplate!, selectedEvent)}
-                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
-                      >
-                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Unduh Sertifikat Kehadiran Anda
-                      </button>
-                    ) : (
-                      <div className="relative overflow-hidden bg-gradient-to-br from-[#FEF2F2] to-[#FFF7ED] border border-[#FECACA] rounded-2xl p-4 sm:p-5 shadow-sm animate-in fade-in zoom-in-95 duration-300">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-                        <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                          <div className="w-10 h-10 rounded-full bg-red-100/80 flex items-center justify-center shrink-0 border border-red-200">
-                            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                            </svg>
-                          </div>
-                          <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-red-700">Sertifikat Dinonaktifkan</h4>
-                            <p className="text-[11px] sm:text-xs text-red-600/80 font-medium leading-relaxed">
-                              Sertifikat untuk agenda ini sedang tidak tersedia atau dinonaktifkan sementara. Silakan hubungi <strong>admin</strong> untuk informasi lebih lanjut atau bantuan pencetakan manual.
-                            </p>
+                            <div className="space-y-1">
+                              <h4 className="font-bold text-sm text-red-700">Sertifikat Dinonaktifkan</h4>
+                              <p className="text-[11px] sm:text-xs text-red-600/80 font-medium leading-relaxed">
+                                Sertifikat untuk agenda ini sedang tidak tersedia atau dinonaktifkan sementara. Silakan hubungi <strong>admin</strong> untuk informasi lebih lanjut atau bantuan pencetakan manual.
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {(!selectedEvent.materiUrls?.length && !selectedEvent.dokumentasiUrls?.length && !selectedEvent.linkUrls?.length && !isCertificateActive(selectedEvent.certificateTemplate)) && (
-                  <div className="bg-[#FAF6EE]/50 p-4 rounded-2xl border border-[#E6E1D5]/50 text-center">
-                    <p className="text-[11px] text-[#A19D94] font-medium italic">Belum ada berkas materi, dokumentasi, atau tautan yang diunggah.</p>
-                  </div>
-                )}
-              </div>
-            )}
+                      )}
+                    </div>
+                  )}
+                  
+                  {(!selectedEvent.materiUrls?.length && !selectedEvent.dokumentasiUrls?.length && !selectedEvent.linkUrls?.length && !isCertificateActive(selectedEvent.certificateTemplate)) && (
+                    <div className="bg-[#FAF6EE]/50 p-4 rounded-2xl border border-[#E6E1D5]/50 text-center">
+                      <p className="text-[11px] text-[#A19D94] font-medium italic">Belum ada berkas materi, dokumentasi, atau tautan yang diunggah.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             
 
             {/* Modal Footer Actions */}
@@ -1574,7 +1621,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 />
               </div>
 
-              <div className="pt-3 border-t border-[#E6E1D5] flex items-center justify-end gap-3">
+              <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
