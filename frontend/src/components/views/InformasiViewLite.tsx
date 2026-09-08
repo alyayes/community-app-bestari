@@ -32,24 +32,24 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
   }, [selectedArticle]);
 
   // Detail View (Tampilan Baca Artikel)
-    if (selectedArticle) {
+  if (selectedArticle) {
     return (
       <div className="w-full animate-in fade-in duration-300">
         <button 
           onClick={() => onSelectArticle(null)}
-          className="flex items-center gap-2 text-[#2C4219] font-bold text-sm mb-6 active:scale-95 transition-transform bg-white hover:bg-[#FAF6EE] px-4 py-2 rounded-xl border border-[#E6E1D5] w-fit shadow-sm"
+          className="flex items-center gap-1.5 text-[#2C4219] font-bold text-xs sm:text-sm mb-4 active:scale-95 transition-transform bg-white hover:bg-[#FAF6EE] px-3.5 py-2 rounded-xl border border-[#E6E1D5] w-fit shadow-xs"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
           Kembali ke Daftar
         </button>
 
-        <h1 className="text-2xl md:text-3xl font-black text-[#2C4219] mb-6 leading-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#2C4219] mb-4 leading-snug">
           {selectedArticle.title}
         </h1>
         
         {selectedArticle.gallery && selectedArticle.gallery.length > 0 ? (
-          <div className="relative mb-6 group overflow-hidden rounded-2xl shadow-sm bg-[#E6E1D5]/30">
-            <div className="relative w-full h-48 md:h-64 lg:h-[400px]">
+          <div className="relative mb-5 group overflow-hidden rounded-2xl shadow-xs bg-[#E6E1D5]/30">
+            <div className="relative w-full h-44 sm:h-60 md:h-80">
               {selectedArticle.gallery.map((imgUrl, idx) => (
                 <img
                   key={idx}
@@ -63,15 +63,15 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
             </div>
             {/* Indicators */}
             {selectedArticle.gallery.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
                 {selectedArticle.gallery.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIdx(idx)}
                     className={`transition-all rounded-full ${
                       idx === activeImageIdx 
-                        ? 'w-6 h-2 bg-[#A8B774]' 
-                        : 'w-2 h-2 bg-white/80 hover:bg-white'
+                        ? 'w-5 h-1.5 bg-[#A8B774]' 
+                        : 'w-1.5 h-1.5 bg-white/80 hover:bg-white'
                     }`}
                   />
                 ))}
@@ -82,11 +82,11 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           <img 
             src={selectedArticle.image} 
             alt={selectedArticle.title}
-            className="w-full h-48 md:h-64 lg:h-[400px] object-cover rounded-2xl mb-6 shadow-sm"
+            className="w-full h-44 sm:h-60 md:h-80 object-cover rounded-2xl mb-5 shadow-xs"
           />
         )}
 
-        <div className="prose max-w-none text-[#433A30] leading-relaxed [&>h1]:text-[#2C4219] [&>h2]:text-[#2C4219]">
+        <div className="prose max-w-none text-sm sm:text-base text-[#433A30] leading-relaxed [&>h1]:text-[#2C4219] [&>h2]:text-[#2C4219]">
           {selectedArticle.content && selectedArticle.content.length > 0 ? (
             <div dangerouslySetInnerHTML={{ __html: selectedArticle.content.join('\n') }} />
           ) : (
@@ -99,35 +99,33 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
 
   // List View (Daftar Artikel)
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-in fade-in duration-300 w-full">
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+    <div className="max-w-6xl mx-auto space-y-5 pb-12 animate-in fade-in duration-300 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredArticles.length > 0 ? (
           filteredArticles.map(art => (
             <div 
               key={art.id}
               onClick={() => onSelectArticle(art)}
-              className="bg-white rounded-3xl p-5 border-2 border-[#E6E1D5] flex flex-col gap-4 active:scale-95 transition-transform cursor-pointer shadow-md hover:border-[#607829]"
+              className="bg-white rounded-2xl p-4 border border-[#E6E1D5] flex flex-col justify-between gap-3 active:scale-[0.98] transition-all cursor-pointer shadow-xs hover:shadow-md hover:border-[#607829] group"
             >
-              <div className="w-full h-48 md:h-56 rounded-2xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
+              <div className="w-full h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
                 {art.image ? (
-                  <img src={art.image} alt={art.title} className="w-full h-full object-cover" />
+                  <img src={art.image} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
-                  <ImageIcon className="w-16 h-16 text-[#2C4219]/30" />
+                  <ImageIcon className="w-10 h-10 text-[#2C4219]/30" />
                 )}
               </div>
               <div className="flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-black text-2xl text-[#2C4219] leading-tight mb-3">
+                  <h3 className="font-bold text-base text-[#2C4219] leading-snug line-clamp-2 mb-1.5 group-hover:text-[#607829] transition-colors">
                     {art.title}
                   </h3>
-                  <p className="text-lg text-[#433A30]/80 line-clamp-2 font-medium">
+                  <p className="text-xs sm:text-sm text-[#433A30]/80 line-clamp-2 font-normal leading-relaxed">
                     {art.summary}
                   </p>
                 </div>
-                <div className="mt-5">
-                  <div className="w-full bg-[#2C4219] text-white py-4 rounded-2xl font-bold text-xl text-center hover:bg-[#1E2E11] transition-colors">
+                <div className="mt-3.5 pt-3 border-t border-[#E6E1D5]/60">
+                  <div className="w-full bg-[#2C4219] text-white py-2.5 rounded-xl font-bold text-xs sm:text-sm text-center group-hover:bg-[#1E2E11] transition-colors">
                     Baca Berita Lengkap
                   </div>
                 </div>
@@ -135,8 +133,8 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
             </div>
           ))
         ) : (
-          <div className="text-center p-12 bg-white rounded-3xl border-2 border-[#E6E1D5] col-span-full">
-            <p className="text-xl text-[#433A30]/60 font-medium">Belum ada berita atau tips untuk saat ini, Bu.</p>
+          <div className="text-center p-8 bg-white rounded-2xl border border-[#E6E1D5] col-span-full">
+            <p className="text-sm sm:text-base text-[#433A30]/60 font-medium">Belum ada berita atau tips untuk saat ini, Bu.</p>
           </div>
         )}
       </div>

@@ -585,10 +585,19 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     cmsData?.registerImages?.length ? cmsData.registerImages.map(i => i.url) : (cmsData?.registerImage ? [cmsData.registerImage] : [])
   );
 
-  const [cmsFooterCopyright, setCmsFooterCopyright] = useState(cmsData?.footerCopyright || '© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi.');
+  const [cmsFooterCopyright, setCmsFooterCopyright] = useState(cmsData?.footerCopyright ?? '');
   const [cmsFooterPrivacy, setCmsFooterPrivacy] = useState(cmsData?.footerPrivacy || '');
   const [cmsFooterTerms, setCmsFooterTerms] = useState(cmsData?.footerTerms || '');
   const [cmsFooterHelp, setCmsFooterHelp] = useState(cmsData?.footerHelp || '');
+
+  useEffect(() => {
+    if (cmsData) {
+      setCmsFooterCopyright(cmsData.footerCopyright ?? '');
+      setCmsFooterPrivacy(cmsData.footerPrivacy || '');
+      setCmsFooterTerms(cmsData.footerTerms || '');
+      setCmsFooterHelp(cmsData.footerHelp || '');
+    }
+  }, [cmsData]);
 
   // CMS: halaman yang sedang diedit (identitas | landing | login | register | footer)
   const [cmsActivePage, setCmsActivePage] = useState<'identitas' | 'landing' | 'login' | 'register' | 'footer'>('identitas');
@@ -2546,7 +2555,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                   <div className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between text-[11px] text-[#A8B774] font-bold relative z-10">
                     <span>Versi Admin: 2.4.0</span>
-                    <span>KWT Sorgum © 2026</span>
                   </div>
                 </div>
 
@@ -3134,19 +3142,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                   {cmsActivePage === 'footer' && (
                     <div className="space-y-6">
-                      {/* Copyright */}
-                      <div>
-                        <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">
-                          <Type className="w-3.5 h-3.5" /> Teks Copyright
-                        </label>
-                        <input
-                          type="text"
-                          value={cmsFooterCopyright}
-                          onChange={(e) => setCmsFooterCopyright(e.target.value)}
-                          placeholder="© Community App KWT Melati Sorgum 2026. Seluruh hak cipta dilindungi."
-                          className="w-full px-4 py-3 bg-white border border-[#E6E1D5] rounded-xl focus:ring-2 focus:ring-[#A8B774] focus:border-[#A8B774] transition-all text-sm font-medium text-[#2C4219] placeholder-[#7A7062]/50"
-                        />
-                      </div>
                       {/* Privacy */}
                       <div>
                         <label className="block text-xs font-bold text-[#7A7062] uppercase tracking-wider mb-2 flex items-center gap-2">

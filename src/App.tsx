@@ -1143,13 +1143,8 @@ export function App() {
         </div>
 
         {/* Footer User (Hidden on Mobile, shown on md up) */}
-        <footer className={`fixed bottom-0 ${isSidebarCollapsed ? 'md:left-20' : 'md:left-64'} left-0 right-0 z-40 hidden md:flex flex-wrap flex-col md:flex-row py-4 px-6 lg:px-12 items-center justify-center md:justify-between border-t border-[#E6E1D5] bg-gradient-to-r from-[#FAF6EE] to-[#F3EEE3] text-[#433A30] text-[11px] font-medium gap-4 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] transition-all duration-300`}>
-          <div className="flex items-center gap-2.5 shrink-0 text-center md:text-left">
-            <span className="font-bold text-[#2C4219] opacity-90 tracking-wide">
-              {cmsData?.footerCopyright || '© 2026 KWT Melati Sorgum. Seluruh hak cipta dilindungi.'}
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 sm:gap-6 shrink-0">
+        <footer className={`fixed bottom-0 ${isSidebarCollapsed ? 'md:left-20' : 'md:left-64'} left-0 right-0 z-40 hidden md:flex flex-wrap items-center justify-center py-4 px-6 lg:px-12 border-t border-[#E6E1D5] bg-gradient-to-r from-[#FAF6EE] to-[#F3EEE3] text-[#433A30] text-[11px] font-medium gap-4 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] transition-all duration-300`}>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 shrink-0">
             <button onClick={() => setFooterModalInfo('privacy')} className="flex items-center gap-1.5 text-[#5C5246] hover:text-[#2C4219] hover:underline underline-offset-4 transition-all">
               <ShieldCheck className="w-3.5 h-3.5 opacity-80" /> 
               <span>Kebijakan Privasi</span>
