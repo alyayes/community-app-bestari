@@ -24,7 +24,7 @@ interface SidebarProps {
   currentUser: UserProfile;
   onOpenMulaiPanen: () => void;
   onOpenBantuan: () => void;
-  unreadAnnouncementsCount: number;
+  unreadAnnouncementsCount?: number;
   isOpenMobile: boolean;
   setIsOpenMobile: (isOpen: boolean) => void;
   isCollapsed?: boolean;

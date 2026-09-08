@@ -1,4 +1,4 @@
-export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'pengumuman' | 'diskusi' | 'dashboard' | 'profil';
+export type NavItem = 'beranda' | 'agenda' | 'informasi' | 'diskusi' | 'dashboard' | 'profil';
 
 export interface CmsData {
   webName?: string;

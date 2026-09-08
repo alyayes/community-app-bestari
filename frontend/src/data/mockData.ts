@@ -228,15 +228,15 @@ const currentMonthAbbr = monthNamesList[d.getMonth()];
 export const INITIAL_EVENTS: AgendaEvent[] = [
   {
     id: 'ev_10',
-    title: 'Workshop Pengolahan Tepung Sorgum',
+    title: 'Pengolahan & Penepungan Sorgum Bebas Gluten',
     date: `${currentYear}-${currentMonthNum}-10`,
     dayNumber: '10',
     monthAbbr: currentMonthAbbr,
-    time: '09:00 - 12:00 WIB',
+    time: '09:00 - 11:30 WIB (Pagi)',
     location: 'Balai Desa Sukamaju',
     status: 'Belum dimulai',
     statusType: 'success',
-    category: 'WORKSHOP KREATIF',
+    category: 'Pengolahan Sorgum',
     description: 'Pelatihan praktis pembuatan tepung sorgum halus dan pengolahan menjadi produk kue kering bernilai jual tinggi untuk anggota kelompok.',
     organizer: 'Instruktur: KWT Sari (Dian Permata)',
     targetParticipants: 'Anggota KWT & Pelaku UMKM Olahan Pangan Desa',
@@ -261,32 +261,32 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
   },
   {
     id: 'ev_6',
-    title: 'Workshop Olah Sorgum',
+    title: 'Budidaya & Pembibitan Bibit Unggul Sorgum',
     date: `${currentYear}-${currentMonthNum}-06`,
     dayNumber: '06',
     monthAbbr: currentMonthAbbr,
-    time: '08:30 - 11:30 WIB',
-    location: 'Dapur Komunitas KWT',
+    time: '08:00 - 10:30 WIB (Pagi)',
+    location: 'Lahan Percobaan Utama',
     status: 'Belum dimulai',
     statusType: 'success',
-    category: 'WORKSHOP',
-    description: 'Bimbingan teknik perendaman dan penggilingan bulir sorgum bebas tanin untuk kebutuhan bahan baku usaha olahan desa.',
-    organizer: 'Tim Pengolahan KWT',
-    targetParticipants: 'Tim Pengolah Tepung & Anggota Kelompok Tani',
+    category: 'Budidaya Sorgum',
+    description: 'Bimbingan teknik persemaian benih, pemupukan organik dasar, dan pemeliharaan awal tunas bibit sorgum bioguma.',
+    organizer: 'Tim Budidaya KWT',
+    targetParticipants: 'Anggota Petani & Pemilik Lahan Tani',
     quota: { registered: 18, max: 25 },
     contactPerson: { name: 'Ibu Siti Aminah', phone: '0857-1122-3344' },
     requirements: [
-      'Membawa kain saring / ayakan beras 80 mesh',
-      'Memakai sarung tangan plastik bersih'
+      'Membawa cangkul kecil / sekop tangan',
+      'Memakai sarung tangan kebun'
     ],
     benefits: [
-      'Bahan baku bulir sorgum 2kg untuk latihan',
-      'Akses mesin penepung mesin disk mill desa'
+      'Bibit sorgum varietas Bioguma 1 (1 kantong)',
+      'Modul SOP budidaya ramah lingkungan'
     ],
     rundown: [
-      { time: '08:30 - 09:00 WIB', activity: 'Pengenalan kadar air ideal bulir panen' },
-      { time: '09:00 - 10:30 WIB', activity: 'Proses sosoh & penggilingan halus' },
-      { time: '10:30 - 11:30 WIB', activity: 'Penyaringan & pengemasan vakum' }
+      { time: '08:30 - 09:00 WIB', activity: 'Pemilihan benih bersertifikat' },
+      { time: '09:00 - 10:30 WIB', activity: 'Praktek perlakuan benih & penanaman' },
+      { time: '10:30 - 11:30 WIB', activity: 'Teknik penyiraman & monitoring gulma' }
     ]
   },
   {
@@ -295,11 +295,11 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
     date: `${currentYear}-${currentMonthNum}-14`,
     dayNumber: '14',
     monthAbbr: currentMonthAbbr,
-    time: '07:00 WIB - Selesai',
+    time: '06:30 - 09:30 WIB (Pagi)',
     location: 'Lahan Percobaan Utama',
     status: 'Belum dimulai',
     statusType: 'warning',
-    category: 'PANEN BERSAMA',
+    category: 'Panen & Pascapanen',
     description: 'Gotong royong pemetikan dan penimbangan sorgum varietas Bioguma 1 bersama seluruh anggota kelompok tani.',
     organizer: 'Koordinator Lahan Blok A',
     targetParticipants: 'Seluruh Anggota KWT & Pemilik Lahan Tani',
@@ -323,56 +323,79 @@ export const INITIAL_EVENTS: AgendaEvent[] = [
   },
   {
     id: 'ev_22',
-    title: 'Pelatihan Kemasan & Branding',
+    title: 'Pemasaran & Digital Branding Olahan Sorgum',
     date: `${currentYear}-${currentMonthNum}-22`,
     dayNumber: '22',
     monthAbbr: currentMonthAbbr,
-    time: '09:00 - 12:00 WIB',
-    location: 'Balai Pertemuan',
+    time: '13:00 - 15:00 WIB (Siang)',
+    location: 'Balai Pertemuan Desa',
     status: 'Belum dimulai',
     statusType: 'success',
-    category: 'PELATIHAN UMKM',
-    description: 'Studi kasus branding produk olahan lokal, sertifikasi halal, dan pembuatan label pouch makanan kekinian.',
+    category: 'Pemasaran',
+    description: 'Studi kasus branding produk olahan lokal, strategi penetapan harga, penjualan online, dan pembuatan label pouch makanan kekinian.',
     organizer: 'Pendamping UMKM Desa',
     targetParticipants: 'Anggota KWT & Pengusaha Kuliner Desa',
     quota: { registered: 15, max: 30 },
     contactPerson: { name: 'Ibu Ratna Suwandi', phone: '0819-7766-5544' },
     requirements: [
-      'Membawa contoh produk olahan yang ingin dikemas',
+      'Membawa contoh produk olahan yang ingin dipasarkan',
       'Membawa smartphone ber-kamera'
     ],
     benefits: [
-      'Template stiker logo & kemasan gratis',
-      'Panduan pendaftaran PIRT & sertifikasi Halal'
+      'Template stiker kemasan & panduan marketplace',
+      'Akses ke jaringan reseller komunitas Bestari'
     ],
     rundown: [
-      { time: '09:00 - 10:00 WIB', activity: 'Materi standar kemasan food-grade' },
-      { time: '10:00 - 11:30 WIB', activity: 'Praktek desain label & foto produk' },
-      { time: '11:30 - 12:00 WIB', activity: 'Klinik konsultasi legalitas usaha' }
+      { time: '09:00 - 10:00 WIB', activity: 'Materi standar kemasan food-grade & harga jual' },
+      { time: '10:00 - 11:30 WIB', activity: 'Praktek foto produk & unggah ke etalase online' },
+      { time: '11:30 - 12:00 WIB', activity: 'Klinik konsultasi pemasaran langsung' }
+    ]
+  },
+  {
+    id: 'ev_pelatihan',
+    title: 'Pelatihan Keamanan Pangan & Sanitasi',
+    date: `${currentYear}-${currentMonthNum}-25`,
+    dayNumber: '25',
+    monthAbbr: currentMonthAbbr,
+    time: '15:30 - 17:30 WIB (Sore)',
+    location: 'Balai Desa Sukamaju',
+    status: 'Belum dimulai',
+    statusType: 'success',
+    category: 'Pelatihan',
+    description: 'Pelatihan sertifikasi hygiene sanitasi bagi pengolah makanan, syarat perizinan P-IRT dan pemenuhan standar mutu pangan nasional.',
+    organizer: 'Dinas Ketahanan Pangan & KWT',
+    targetParticipants: 'Tim Pengolah Tepung & Anggota KWT',
+    quota: { registered: 20, max: 35 },
+    contactPerson: { name: 'Ibu Ratna', phone: '0812-9988-7766' },
+    requirements: ['Membawa buku catatan & pasfoto 3x4'],
+    benefits: ['Sertifikat kelulusan pelatihan hygiene', 'Buku panduan sanitasi dapur produksi'],
+    rundown: [
+      { time: '13:00 - 14:30 WIB', activity: 'Materi baku mutu & sanitasi ruangan' },
+      { time: '14:30 - 16:00 WIB', activity: 'Simulasi audit kebersihan & penutupan' }
     ]
   },
   {
     id: 'ev_nov4',
-    title: 'Rapat Evaluasi Triwulan',
-    date: '2026-11-04',
-    dayNumber: '04',
-    monthAbbr: 'NOV',
-    time: '19:30 WIB',
-    location: 'Kantor KWT Central',
-    status: 'Selesai',
+    title: 'Kegiatan Lapangan & Inspeksi Tanaman',
+    date: `${currentYear}-${currentMonthNum}-28`,
+    dayNumber: '28',
+    monthAbbr: currentMonthAbbr,
+    time: '19:30 - 21:00 WIB (Malam)',
+    location: 'Lahan Percobaan Blok B & C',
+    status: 'Belum dimulai',
     statusType: 'neutral',
-    category: 'RAPAT RUTIN',
-    description: 'Evaluasi kinerja panen, pembacaan pembukuan kas bulanan, dan perencanaan alokasi pupuk organik musim tanam depan.',
-    organizer: 'Pengurus Inti KWT',
-    targetParticipants: 'Seluruh Anggota Pengurus & Anggota Aktif KWT',
+    category: 'Kegiatan Lapangan',
+    description: 'Inspeksi berkala hama penyakit tanaman sorgum, pengecekan saluran irigasi tetes, dan kalibrasi sensor kelembaban tanah.',
+    organizer: 'Pengurus Inti & Koordinator Lapangan',
+    targetParticipants: 'Seluruh Anggota Pengurus & Petani Lapangan',
     quota: { registered: 35, max: 40 },
     contactPerson: { name: 'Sekretariat KWT', phone: '0812-9988-7766' },
-    requirements: ['Membawa kartu iuran bulanan'],
-    benefits: ['Laporan keuangan transparan & pembagian dividen'],
+    requirements: ['Membawa caping, sarung tangan kebun, dan alat tulis'],
+    benefits: ['Bimbingan identifikasi OPT langsung di lapangan'],
     rundown: [
-      { time: '19:30 - 20:00 WIB', activity: 'Pembacaan Laporan Keuangan' },
-      { time: '20:00 - 21:00 WIB', activity: 'Diskusi Alokasi Pupuk & Rencana Tanam' },
-      { time: '21:00 - Selesai', activity: 'Pengesahan Keputusan & Ramah Tamah' }
+      { time: '07:30 - 08:00 WIB', activity: 'Briefing rute pengecekan petak lahan' },
+      { time: '08:00 - 10:00 WIB', activity: 'Pengambilan sampel dan pengamatan OPT' },
+      { time: '10:00 - 11:00 WIB', activity: 'Pencatatan temuan & rekomendasi penanganan' }
     ]
   }
 ];

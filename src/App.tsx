@@ -17,10 +17,9 @@ import { Header } from './components/Header';
 import { BerandaView } from './components/views/BerandaView';
 import { BerandaViewLite } from './components/views/BerandaViewLite';
 import { AgendaView } from './components/views/AgendaView';
+import { AgendaViewLite } from './components/views/AgendaViewLite';
 import { InformasiView } from './components/views/InformasiView';
 import { InformasiViewLite } from './components/views/InformasiViewLite';
-import { PengumumanView } from './components/views/PengumumanView';
-import { AnnouncementDetailView } from './components/views/AnnouncementDetailView';
 import { DiskusiView } from './components/views/DiskusiView';
 import { DiskusiViewLite } from './components/views/DiskusiViewLite';
 import { DashboardDesaView } from './components/views/DashboardDesaView';
@@ -71,7 +70,7 @@ export function App() {
   // Data collections
   const [articles, setArticles] = useState<InfoArticle[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [events, setEvents] = useState<AgendaEvent[]>([]);
+  const [events, setEvents] = useState<AgendaEvent[]>(INITIAL_EVENTS);
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
@@ -93,19 +92,6 @@ export function App() {
       sessionStorage.removeItem('bestari_selectedarticle');
     }
   }, [selectedArticle]);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(() => {
-    const saved = sessionStorage.getItem('bestari_selectedannouncement');
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  useEffect(() => {
-    if (selectedAnnouncement) {
-      sessionStorage.setItem('bestari_selectedannouncement', JSON.stringify(selectedAnnouncement));
-    } else {
-      sessionStorage.removeItem('bestari_selectedannouncement');
-    }
-  }, [selectedAnnouncement]);
-
   // Modals & Drawers
   const [isCreateTopicOpen, setIsCreateTopicOpen] = useState(false);
   const [isMulaiPanenOpen, setIsMulaiPanenOpen] = useState(false);
@@ -115,8 +101,8 @@ export function App() {
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
   const [footerModalInfo, setFooterModalInfo] = useState<'privacy' | 'terms' | 'help' | null>(null);
 
-  // Read state for announcements
-  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>([]);
+  // Read state for notifications
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
 
   // Deleted notification state
   const [deletedNotificationIds, setDeletedNotificationIds] = useState<string[]>([]);
@@ -124,34 +110,19 @@ export function App() {
   useEffect(() => {
     if (currentUser && currentUser.id) {
       try {
-        const storedRead = localStorage.getItem(`read_announcements_${currentUser.id}`);
-        setReadAnnouncementIds(storedRead ? JSON.parse(storedRead) : []);
+        const storedRead = localStorage.getItem(`read_notifications_${currentUser.id}`);
+        setReadNotificationIds(storedRead ? JSON.parse(storedRead) : []);
         const storedDeleted = localStorage.getItem(`deleted_notifications_${currentUser.id}`);
         setDeletedNotificationIds(storedDeleted ? JSON.parse(storedDeleted) : []);
       } catch {
-        setReadAnnouncementIds([]);
+        setReadNotificationIds([]);
         setDeletedNotificationIds([]);
       }
     } else {
-      setReadAnnouncementIds([]);
+      setReadNotificationIds([]);
       setDeletedNotificationIds([]);
     }
   }, [currentUser?.id]);
-
-  // Visible announcements for notifications
-  const visibleAnnouncements = announcements.filter(a => !deletedNotificationIds.includes(a.id));
-
-  // Tandai semua pengumuman sebagai "dibaca" saat user masuk halaman Pengumuman
-  useEffect(() => {
-    if (activeNav === 'pengumuman' && currentUser && announcements.length > 0) {
-      const allIds = announcements.map(a => a.id);
-      const newIds = [...new Set([...readAnnouncementIds, ...allIds])];
-      if (newIds.length !== readAnnouncementIds.length) {
-        setReadAnnouncementIds(newIds);
-        localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(newIds));
-      }
-    }
-  }, [activeNav, currentUser?.id, announcements.length]);
 
   // Generate Agenda Reminders (1 day before)
   const todayObj = new Date();
@@ -165,26 +136,17 @@ export function App() {
       id: `agenda_reminder_${ev.id}`,
       title: 'Pengingat: Acara Besok',
       summary: `Jangan lupa, Anda telah terdaftar pada kegiatan "${ev.title}" yang akan dilaksanakan besok pada pukul ${ev.time}.`,
-      isRead: readAnnouncementIds.includes(`agenda_reminder_${ev.id}`),
+      isRead: readNotificationIds.includes(`agenda_reminder_${ev.id}`),
       postedTime: 'Sistem',
       category: 'PENGINGAT'
     }));
 
   const combinedNotifications = [
-    ...agendaReminders,
-    ...visibleAnnouncements.map(a => ({
-      id: a.id,
-      title: a.title,
-      summary: a.summary,
-      isRead: readAnnouncementIds.includes(a.id),
-      postedTime: a.postedTime,
-      category: a.category
-    }))
+    ...agendaReminders
   ].filter(n => !deletedNotificationIds.includes(n.id));
 
   // Unread counts
   const unreadNotificationsCount = combinedNotifications.filter(n => !n.isRead).length;
-  const unreadPengumumanOnlyCount = visibleAnnouncements.filter(a => !readAnnouncementIds.includes(a.id)).length;
 
   // ── LOAD DATA REAL DARI BACKEND SAAT APP DIBUKA ──
   useEffect(() => {
@@ -233,7 +195,7 @@ export function App() {
         ]);
         setArticles(arts.length ? arts : []);
         setAnnouncements(anns.length ? anns : []);
-        setEvents(ags.length ? ags : []);
+        setEvents(ags.length ? ags : INITIAL_EVENTS);
         setThreads(thrs.length ? thrs : []);
         setLandPlots(lahan.length ? lahan : []);
         setHarvestRecords(panen.length ? panen : []);
@@ -296,7 +258,7 @@ export function App() {
   };
 
   const handleEnterApp = (targetTab?: string) => {
-    if (targetTab && ['beranda', 'agenda', 'informasi', 'pengumuman', 'diskusi', 'dashboard'].includes(targetTab)) {
+    if (targetTab && ['beranda', 'agenda', 'informasi', 'diskusi', 'dashboard'].includes(targetTab)) {
       setActiveNav(targetTab as NavItem);
     }
     setPageMode('app');
@@ -342,42 +304,16 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSelectAnnouncement = (announcement: Announcement) => {
-    setSelectedAnnouncement(announcement);
-
-    // Mark as read
-    if (!readAnnouncementIds.includes(announcement.id)) {
-      const newReadIds = [...readAnnouncementIds, announcement.id];
-      setReadAnnouncementIds(newReadIds);
-      if (currentUser?.id) {
-        localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(newReadIds));
-      }
-    }
-
-    if (pageMode !== 'app') setPageMode('app');
-    setActiveNav('pengumuman');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleBackFromAnnouncement = () => {
-    setSelectedAnnouncement(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleSetActiveNav = (nav: NavItem) => {
-    // Reset announcement detail when switching away from pengumuman tab
-    if (nav !== 'pengumuman') {
-      setSelectedAnnouncement(null);
-    }
     setActiveNav(nav);
   };
 
   const handleMarkNotificationRead = (id: string) => {
-    if (!readAnnouncementIds.includes(id)) {
-      const newReadIds = [...readAnnouncementIds, id];
-      setReadAnnouncementIds(newReadIds);
+    if (!readNotificationIds.includes(id)) {
+      const newReadIds = [...readNotificationIds, id];
+      setReadNotificationIds(newReadIds);
       if (currentUser?.id) {
-        localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(newReadIds));
+        localStorage.setItem(`read_notifications_${currentUser.id}`, JSON.stringify(newReadIds));
       }
     }
   };
@@ -393,8 +329,7 @@ export function App() {
   };
 
   const handleClearAllNotifications = () => {
-    const agendaReminderIds = events.filter(ev => ev.isRegistered).map(ev => `agenda_reminder_${ev.id}`);
-    const allIds = [...agendaReminderIds, ...visibleAnnouncements.map(a => a.id)];
+    const allIds = combinedNotifications.map(n => n.id);
     setDeletedNotificationIds(allIds);
     if (currentUser?.id) {
       localStorage.setItem(`deleted_notifications_${currentUser.id}`, JSON.stringify(allIds));
@@ -402,11 +337,10 @@ export function App() {
   };
 
   const handleMarkAllNotificationsRead = () => {
-    const agendaReminderIds = events.filter(ev => ev.isRegistered).map(ev => `agenda_reminder_${ev.id}`);
-    const allIds = [...agendaReminderIds, ...visibleAnnouncements.map(a => a.id)];
-    setReadAnnouncementIds(allIds);
+    const allIds = combinedNotifications.map(n => n.id);
+    setReadNotificationIds(allIds);
     if (currentUser?.id) {
-      localStorage.setItem(`read_announcements_${currentUser.id}`, JSON.stringify(allIds));
+      localStorage.setItem(`read_notifications_${currentUser.id}`, JSON.stringify(allIds));
     }
   };
 
@@ -919,7 +853,6 @@ export function App() {
         onLogout={handleLogout}
         onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
         onOpenBantuan={() => setIsBantuanOpen(true)}
-        unreadAnnouncementsCount={unreadPengumumanOnlyCount}
         isOpenMobile={isOpenMobileMenu}
         setIsOpenMobile={setIsOpenMobileMenu}
         isCollapsed={isSidebarCollapsed}
@@ -949,11 +882,6 @@ export function App() {
             handleMarkNotificationRead(id);
             if (id.startsWith('agenda_reminder_')) {
               setActiveNav('agenda');
-            } else {
-              const ann = announcements.find(a => a.id === id);
-              if (ann) {
-                handleSelectAnnouncement(ann);
-              }
             }
           }}
           onOpenNotifications={() => setIsNotificationsModalOpen(true)}
@@ -968,20 +896,16 @@ export function App() {
                 currentUser={currentUser}
                 events={events}
                 articles={articles}
-                announcements={announcements}
                 setActiveNav={setActiveNav}
                 onSelectArticle={handleSelectArticle}
-                onSelectAnnouncement={handleSelectAnnouncement}
               />
             ) : (
               <BerandaView
                 currentUser={currentUser}
                 articles={articles}
-                announcements={announcements}
                 events={events}
                 setActiveNav={setActiveNav}
                 onSelectArticle={handleSelectArticle}
-                onSelectAnnouncement={handleSelectAnnouncement}
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
                 cmsData={cmsData}
               />
@@ -989,17 +913,26 @@ export function App() {
           )}
 
           {activeNav === 'agenda' && (
-            <AgendaView
-              appMode={appMode}
-              events={events}
-              currentUser={currentUser}
-              onAddEvent={handleAddEvent}
-              onEditEvent={handleEditEvent}
-              onDeleteEvent={handleDeleteEvent}
-              onRegisterEvent={handleRegisterAgenda}
-              onUnregisterEvent={handleUnregisterAgenda}
-              searchQuery={searchQuery}
-            />
+            appMode === 'lite' ? (
+              <AgendaViewLite
+                events={events && events.length > 0 ? events : INITIAL_EVENTS}
+                currentUser={currentUser}
+                onRegisterEvent={handleRegisterAgenda}
+                onUnregisterEvent={handleUnregisterAgenda}
+              />
+            ) : (
+              <AgendaView
+                appMode={appMode}
+                events={events && events.length > 0 ? events : INITIAL_EVENTS}
+                currentUser={currentUser}
+                onAddEvent={handleAddEvent}
+                onEditEvent={handleEditEvent}
+                onDeleteEvent={handleDeleteEvent}
+                onRegisterEvent={handleRegisterAgenda}
+                onUnregisterEvent={handleUnregisterAgenda}
+                searchQuery={searchQuery}
+              />
+            )
           )}
 
           {activeNav === 'informasi' && (
@@ -1015,22 +948,6 @@ export function App() {
                 articles={articles}
                 selectedArticle={selectedArticle}
                 onSelectArticle={handleSelectArticle}
-                searchQuery={searchQuery}
-              />
-            )
-          )}
-
-          {activeNav === 'pengumuman' && (
-            selectedAnnouncement ? (
-              <AnnouncementDetailView
-                announcement={selectedAnnouncement}
-                onBack={handleBackFromAnnouncement}
-              />
-            ) : (
-              <PengumumanView
-                announcements={announcements}
-                selectedAnnouncement={selectedAnnouncement}
-                onSelectAnnouncement={handleSelectAnnouncement}
                 searchQuery={searchQuery}
               />
             )
@@ -1246,11 +1163,7 @@ export function App() {
             handleMarkNotificationRead(id);
             if (id.startsWith('agenda_reminder_')) {
               setActiveNav('agenda');
-            } else {
-              const ann = announcements.find(a => a.id === id);
-              if (ann) {
-                handleSelectAnnouncement(ann);
-              }
+              setIsNotificationsModalOpen(false);
             }
           }}
         />

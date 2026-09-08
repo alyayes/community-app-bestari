@@ -43,11 +43,120 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [bgRemoved, setBgRemoved] = useState(false);
+  const [isRemovingLogoBg, setIsRemovingLogoBg] = useState(false);
+  const [logoBgRemoved, setLogoBgRemoved] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>('');
+
+  /**
+   * Hapus background dari gambar menggunakan flood-fill dari sudut gambar.
+   * Mendeteksi warna background secara otomatis dari ke-4 pojok gambar,
+   * lalu menghapus semua piksel yang mirip dengan warna tersebut secara iteratif
+   * dari tepi ke dalam (seperti magic wand Photoshop).
+   * Bekerja untuk background warna apapun — putih, abu, biru, dsb.
+   */
+  const removeImageBackground = useCallback((file: File): Promise<{ dataUrl: string; file: File }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const W = img.width;
+        const H = img.height;
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, W, H);
+        const data = imageData.data;
+
+        // ─── Helpers ───────────────────────────────────────────────
+        const idx = (x: number, y: number) => (y * W + x) * 4;
+
+        // Jarak warna Euclidean di ruang RGB
+        const colorDist = (i: number, r2: number, g2: number, b2: number) => {
+          const dr = data[i] - r2;
+          const dg = data[i + 1] - g2;
+          const db = data[i + 2] - b2;
+          return Math.sqrt(dr * dr + dg * dg + db * db);
+        };
+
+        // ─── Sampel warna background dari ke-4 sudut ───────────────
+        const corners = [
+          idx(0, 0), idx(W - 1, 0), idx(0, H - 1), idx(W - 1, H - 1)
+        ];
+        let bgR = 0, bgG = 0, bgB = 0;
+        for (const c of corners) {
+          bgR += data[c]; bgG += data[c + 1]; bgB += data[c + 2];
+        }
+        bgR = Math.round(bgR / 4);
+        bgG = Math.round(bgG / 4);
+        bgB = Math.round(bgB / 4);
+
+        // ─── Flood-fill BFS dari keempat tepi ─────────────────────
+        // Toleransi: seberapa mirip warna boleh dianggap "background"
+        const TOLERANCE = 35;
+        const visited = new Uint8Array(W * H); // 0 = belum, 1 = sudah
+        const queue: number[] = [];            // list indeks piksel (bukan byte)
+
+        // Seed dari seluruh piksel di tepi (border) gambar
+        for (let x = 0; x < W; x++) {
+          queue.push(0 * W + x);       // baris atas
+          queue.push((H - 1) * W + x); // baris bawah
+        }
+        for (let y = 1; y < H - 1; y++) {
+          queue.push(y * W + 0);       // kolom kiri
+          queue.push(y * W + (W - 1)); // kolom kanan
+        }
+
+        // BFS iteratif
+        let head = 0;
+        while (head < queue.length) {
+          const pixelIdx = queue[head++];
+          if (visited[pixelIdx]) continue;
+          const byteIdx = pixelIdx * 4;
+
+          // Hanya hapus jika warnanya mirip background
+          if (colorDist(byteIdx, bgR, bgG, bgB) > TOLERANCE) continue;
+
+          visited[pixelIdx] = 1;
+
+          // Fade alpha secara proporsional dengan seberapa mirip warnanya
+          const dist = colorDist(byteIdx, bgR, bgG, bgB);
+          const alpha = Math.round((dist / TOLERANCE) * 255 * 0.5); // 0 = bening, halus di tepi
+          data[byteIdx + 3] = Math.min(data[byteIdx + 3], alpha);
+
+          // Tambah 4 tetangga (atas, bawah, kiri, kanan)
+          const x = pixelIdx % W;
+          const y = Math.floor(pixelIdx / W);
+          if (x > 0)     queue.push(pixelIdx - 1);
+          if (x < W - 1) queue.push(pixelIdx + 1);
+          if (y > 0)     queue.push(pixelIdx - W);
+          if (y < H - 1) queue.push(pixelIdx + W);
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        URL.revokeObjectURL(url);
+
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error('Blob failed')); return; }
+          const newFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '_nobg.png', { type: 'image/png' });
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve({ dataUrl, file: newFile });
+        }, 'image/png');
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Load failed')); };
+      img.src = url;
+    });
+  }, []);
+
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -467,104 +576,208 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
                           </div>
 
                           {/* Uploads: Signature & Logo */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-[#2C4219] flex items-center gap-1">
-                                <Upload className="w-3 h-3" />
-                                Tanda Tangan
-                              </label>
-                              <div className="relative">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* === TANDA TANGAN === */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <Upload className="w-3.5 h-3.5 text-[#D97706]" />
+                                <span className="text-xs font-bold text-[#2C4219]">Tanda Tangan</span>
+                                {bgRemoved && (
+                                  <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+                                    <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                                    BG Dihapus
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="relative group">
                                 <input
                                   type="file"
                                   accept=".png,.jpg,.jpeg"
-                                  onChange={(e) => {
+                                  disabled={isRemovingBg}
+                                  onChange={async (e) => {
                                     const f = e.target.files?.[0];
-                                    if (f) {
+                                    if (!f) return;
+                                    setIsRemovingBg(true);
+                                    setBgRemoved(false);
+                                    try {
+                                      const { dataUrl, file: processed } = await removeImageBackground(f);
+                                      setSignatureFile(processed);
+                                      updateConfig('signatureUrl', dataUrl);
+                                      setBgRemoved(true);
+                                    } catch {
                                       setSignatureFile(f);
-                                      const localUrl = URL.createObjectURL(f);
-                                      updateConfig('signatureUrl', localUrl);
+                                      updateConfig('signatureUrl', URL.createObjectURL(f));
+                                      setBgRemoved(false);
+                                    } finally {
+                                      setIsRemovingBg(false);
                                     }
                                   }}
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                                 />
-                                <div className={`p-3 rounded-xl border-2 border-dashed text-center transition-all ${
-                                  config.signatureUrl ? 'border-[#D97706] bg-[#D97706]/5' : 'border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F3EFE6]'
+                                <div className={`rounded-2xl border-2 border-dashed transition-all duration-300 overflow-hidden ${
+                                  isRemovingBg
+                                    ? 'border-[#D97706] bg-amber-50'
+                                    : config.signatureUrl
+                                      ? 'border-[#D97706] bg-gradient-to-b from-amber-50/60 to-white group-hover:shadow-md'
+                                      : 'border-[#E6E1D5] bg-[#FAF6EE] group-hover:border-[#D97706]/50 group-hover:bg-amber-50/30'
                                 }`}>
-                                  {config.signatureUrl ? (
-                                    <div className="flex flex-col items-center gap-1">
-                                      <img src={config.signatureUrl} alt="TTD" className="h-10 object-contain" />
-                                      <span className="text-[10px] font-bold text-[#D97706]">Klik untuk ganti TTD</span>
+                                  {isRemovingBg ? (
+                                    <div className="flex flex-col items-center justify-center gap-2 py-6 px-3">
+                                      <div className="relative w-10 h-10">
+                                        <div className="absolute inset-0 rounded-full border-3 border-amber-200"></div>
+                                        <div className="w-10 h-10 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin" />
+                                        <svg className="absolute inset-0 m-auto w-4 h-4 text-[#D97706]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-xs font-bold text-[#D97706]">Menghapus background…</p>
+                                        <p className="text-[9px] text-amber-600/70 mt-0.5">Harap tunggu sebentar</p>
+                                      </div>
+                                    </div>
+                                  ) : config.signatureUrl ? (
+                                    <div className="flex flex-col items-center gap-2 p-4">
+                                      {/* Checkerboard preview - menunjukkan transparansi */}
+                                      <div
+                                        className="w-full h-20 rounded-xl flex items-center justify-center overflow-hidden"
+                                        style={{ background: 'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px' }}
+                                      >
+                                        <img src={config.signatureUrl} alt="TTD" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <Upload className="w-3 h-3 text-[#D97706]" />
+                                        <span className="text-[10px] font-bold text-[#D97706]">Klik untuk ganti TTD</span>
+                                      </div>
                                     </div>
                                   ) : (
-                                    <span className="text-[10px] font-bold text-[#7A7062]">Pilih gambar TTD</span>
+                                    <div className="flex flex-col items-center justify-center gap-2 py-6 px-3">
+                                      <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center">
+                                        <Upload className="w-5 h-5 text-[#D97706]" />
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-[11px] font-bold text-[#433A30]">Upload Tanda Tangan</p>
+                                        <p className="text-[9px] text-[#A19D94] mt-0.5">Background otomatis dihapus ✨</p>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               </div>
-                              {config.signatureUrl && (
-                                <div className="flex justify-center mt-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setSignatureFile(null);
-                                      updateConfig('signatureUrl', '');
-                                    }}
-                                    className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                                  >
-                                    <X className="w-3 h-3" /> Hapus Gambar
-                                  </button>
-                                </div>
+
+                              {config.signatureUrl && !isRemovingBg && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setSignatureFile(null);
+                                    setBgRemoved(false);
+                                    updateConfig('signatureUrl', '');
+                                  }}
+                                  className="w-full text-[10px] font-bold text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1"
+                                >
+                                  <X className="w-3 h-3" /> Hapus TTD
+                                </button>
                               )}
                             </div>
-                            <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-[#2C4219] flex items-center gap-1">
-                                <ImageIcon className="w-3 h-3" />
-                                Logo Organisasi
-                              </label>
-                              <div className="relative">
+
+                            {/* === LOGO ORGANISASI === */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <ImageIcon className="w-3.5 h-3.5 text-[#293379]" />
+                                <span className="text-xs font-bold text-[#2C4219]">Logo Organisasi</span>
+                                {logoBgRemoved && (
+                                  <span className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full shadow-sm">
+                                    <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                                    BG Dihapus
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="relative group">
                                 <input
                                   type="file"
                                   accept=".png,.jpg,.jpeg"
-                                  onChange={(e) => {
+                                  disabled={isRemovingLogoBg}
+                                  onChange={async (e) => {
                                     const f = e.target.files?.[0];
-                                    if (f) {
+                                    if (!f) return;
+                                    setIsRemovingLogoBg(true);
+                                    setLogoBgRemoved(false);
+                                    try {
+                                      const { dataUrl, file: processed } = await removeImageBackground(f);
+                                      setLogoFile(processed);
+                                      updateConfig('logoUrl', dataUrl);
+                                      setLogoBgRemoved(true);
+                                    } catch {
                                       setLogoFile(f);
-                                      const localUrl = URL.createObjectURL(f);
-                                      updateConfig('logoUrl', localUrl);
+                                      updateConfig('logoUrl', URL.createObjectURL(f));
+                                      setLogoBgRemoved(false);
+                                    } finally {
+                                      setIsRemovingLogoBg(false);
                                     }
                                   }}
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
                                 />
-                                <div className={`p-3 rounded-xl border-2 border-dashed text-center transition-all ${
-                                  config.logoUrl ? 'border-[#293379] bg-[#293379]/5' : 'border-[#E6E1D5] bg-[#FAF6EE] hover:bg-[#F3EFE6]'
+                                <div className={`rounded-2xl border-2 border-dashed transition-all duration-300 overflow-hidden ${
+                                  isRemovingLogoBg
+                                    ? 'border-[#293379] bg-blue-50'
+                                    : config.logoUrl
+                                      ? 'border-[#293379] bg-gradient-to-b from-blue-50/60 to-white group-hover:shadow-md'
+                                      : 'border-[#E6E1D5] bg-[#FAF6EE] group-hover:border-[#293379]/50 group-hover:bg-blue-50/30'
                                 }`}>
-                                  {config.logoUrl ? (
-                                    <div className="flex flex-col items-center gap-1">
-                                      <img src={config.logoUrl} alt="Logo" className="h-10 object-contain" />
-                                      <span className="text-[10px] font-bold text-[#293379]">Klik untuk ganti Logo</span>
+                                  {isRemovingLogoBg ? (
+                                    <div className="flex flex-col items-center justify-center gap-2 py-6 px-3">
+                                      <div className="relative w-10 h-10">
+                                        <div className="w-10 h-10 border-2 border-[#293379] border-t-transparent rounded-full animate-spin" />
+                                        <ImageIcon className="absolute inset-0 m-auto w-4 h-4 text-[#293379]" />
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-xs font-bold text-[#293379]">Menghapus background…</p>
+                                        <p className="text-[9px] text-blue-600/70 mt-0.5">Harap tunggu sebentar</p>
+                                      </div>
+                                    </div>
+                                  ) : config.logoUrl ? (
+                                    <div className="flex flex-col items-center gap-2 p-4">
+                                      <div
+                                        className="w-full h-20 rounded-xl flex items-center justify-center overflow-hidden"
+                                        style={{ background: 'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px' }}
+                                      >
+                                        <img src={config.logoUrl} alt="Logo" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        <Upload className="w-3 h-3 text-[#293379]" />
+                                        <span className="text-[10px] font-bold text-[#293379]">Klik untuk ganti Logo</span>
+                                      </div>
                                     </div>
                                   ) : (
-                                    <span className="text-[10px] font-bold text-[#7A7062]">Pilih logo</span>
+                                    <div className="flex flex-col items-center justify-center gap-2 py-6 px-3">
+                                      <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center">
+                                        <ImageIcon className="w-5 h-5 text-[#293379]" />
+                                      </div>
+                                      <div className="text-center">
+                                        <p className="text-[11px] font-bold text-[#433A30]">Upload Logo</p>
+                                        <p className="text-[9px] text-[#A19D94] mt-0.5">Background otomatis dihapus ✨</p>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               </div>
-                              {config.logoUrl && (
-                                <div className="flex justify-center mt-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setLogoFile(null);
-                                      updateConfig('logoUrl', '');
-                                    }}
-                                    className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                                  >
-                                    <X className="w-3 h-3" /> Hapus Gambar
-                                  </button>
-                                </div>
+
+                              {config.logoUrl && !isRemovingLogoBg && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setLogoFile(null);
+                                    setLogoBgRemoved(false);
+                                    updateConfig('logoUrl', '');
+                                  }}
+                                  className="w-full text-[10px] font-bold text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 py-1.5 rounded-xl transition-all flex items-center justify-center gap-1"
+                                >
+                                  <X className="w-3 h-3" /> Hapus Logo
+                                </button>
                               )}
                             </div>
                           </div>
+
 
                           {/* Certificate Number Format */}
                           <div className="space-y-1.5">

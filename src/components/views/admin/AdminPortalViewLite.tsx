@@ -75,7 +75,11 @@ import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandP
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError } from '../../../api/client';
+import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
+import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
+
+
 
 const Font = Quill.import('formats/font') as any;
 const customFonts = ['sans-serif', 'serif', 'monospace', 'arial', 'courier-new', 'georgia', 'trebuchet', 'verdana', 'poppins'];
@@ -162,7 +166,7 @@ const DEFAULT_USERS_LIST = [
   }
 ];
 
-type AdminTab = 'dashboard' | 'informasi' | 'pengumuman' | 'agenda' | 'sertifikat' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
+type AdminTab = 'dashboard' | 'informasi' | 'agenda' | 'sertifikat' | 'moderation' | 'datasorgum' | 'settings' | 'cms' | 'users';
 
 const getInitials = (name: string) => {
   if (!name) return 'U';
@@ -171,11 +175,13 @@ const getInitials = (name: string) => {
 
 const getCategoryColor = (category: string) => {
   const cat = (category || '').toUpperCase();
-  if (cat.includes('KREATIF')) return 'bg-[#e5a300] text-white'; // Citrus Yellow
-  if (cat.includes('WORKSHOP')) return 'bg-[#293379] text-white'; // Blue Crate
+  if (cat.includes('BUDIDAYA')) return 'bg-[#2C4219] text-white'; // Forest Green
   if (cat.includes('PANEN')) return 'bg-[#ee7302] text-white'; // Orange
-  if (cat.includes('UMKM')) return 'bg-[#a6af32] text-[#2C4219]'; // Lettuce Green (needs dark text for contrast)
-  if (cat.includes('RAPAT')) return 'bg-[#b81817] text-white'; // Tomatoe Red
+  if (cat.includes('PENGOLAHAN')) return 'bg-[#572E4A] text-white'; // Plum / Wine
+  if (cat.includes('LAPANGAN') || cat.includes('INSPEKSI') || cat.includes('RAPAT')) return 'bg-[#b81817] text-white'; // Tomato Red
+  if (cat.includes('PELATIHAN') || cat.includes('WORKSHOP')) return 'bg-[#293379] text-white'; // Blue Crate
+  if (cat.includes('PEMASARAN') || cat.includes('UMKM')) return 'bg-[#e5a300] text-white'; // Citrus Yellow
+  if (cat.includes('KREATIF')) return 'bg-[#572E4A] text-white';
   return 'bg-[#607829] text-white'; // Green Beans
 };
 
@@ -272,49 +278,91 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     return () => { cancelled = true; };
   }, []);
 
-  // Agenda items initial mock matching screenshot
+  // Agenda items initial mock matching categories
   const DEFAULT_AGENDAS: AgendaEvent[] = [
     {
       id: 'ag_1',
-      title: 'Workshop Pengolahan Tepung Sorgum',
-      category: 'WORKSHOP',
-      date: '10 Okt 2026',
-      dayNumber: '10',
+      title: 'Budidaya & Pembibitan Bibit Unggul Sorgum',
+      category: 'Budidaya Sorgum',
+      date: '06 Okt 2026',
+      dayNumber: '06',
       monthAbbr: 'OKT',
-      time: '09:00 - 12:00',
-      location: 'Balai Desa Sukamaju',
-      organizer: 'KWT Sari',
+      time: '08:00 - 10:30 WIB (Pagi)',
+      location: 'Lahan Percobaan Utama',
+      organizer: 'Tim Budidaya KWT',
       status: 'Belum dimulai' as any,
       statusType: 'success',
-      description: 'Pelatihan teknis olahan tepung sorgum bebas gluten untuk produk UMKM.'
+      description: 'Bimbingan teknik persemaian benih, pemupukan organik dasar, dan pemeliharaan awal tunas bibit sorgum bioguma.'
     },
     {
       id: 'ag_2',
-      title: 'Panen Bersama Lahan Blok A',
-      category: 'PANEN BERSAMA',
-      date: '14 Okt 2026',
-      dayNumber: '14',
+      title: 'Pengolahan & Penepungan Sorgum Bebas Gluten',
+      category: 'Pengolahan Sorgum',
+      date: '10 Okt 2026',
+      dayNumber: '10',
       monthAbbr: 'OKT',
-      time: '07:00 - 11:00',
-      location: 'Lahan Percobaan Utama',
-      organizer: 'Pak Slamet',
+      time: '09:00 - 11:30 WIB (Pagi)',
+      location: 'Balai Desa Sukamaju',
+      organizer: 'KWT Sari (Dian Permata)',
       status: 'Belum dimulai' as any,
       statusType: 'success',
-      description: 'Kegiatan pemetikan biji sorgum varietas Bioguma secara bergotong royong.'
+      description: 'Pelatihan praktis pembuatan tepung sorgum halus dan pengolahan menjadi produk kue kering bernilai jual tinggi untuk anggota kelompok.'
     },
     {
       id: 'ag_3',
-      title: 'Rapat Koordinasi Mingguan',
-      category: 'RAPAT',
-      date: '21 Okt 2026',
-      dayNumber: '21',
+      title: 'Panen Bersama Lahan Blok A',
+      category: 'Panen & Pascapanen',
+      date: '14 Okt 2026',
+      dayNumber: '14',
       monthAbbr: 'OKT',
-      time: '13:00 - 15:00',
-      location: 'Belum Ditentukan',
-      organizer: 'Admin KWT',
+      time: '06:30 - 09:30 WIB (Pagi)',
+      location: 'Lahan Percobaan Utama',
+      organizer: 'Pak Budi Santoso',
+      status: 'Belum dimulai' as any,
+      statusType: 'warning',
+      description: 'Gotong royong pemetikan dan penimbangan sorgum varietas Bioguma 1 bersama seluruh anggota kelompok tani.'
+    },
+    {
+      id: 'ag_4',
+      title: 'Pemasaran & Digital Branding Olahan Sorgum',
+      category: 'Pemasaran',
+      date: '22 Okt 2026',
+      dayNumber: '22',
+      monthAbbr: 'OKT',
+      time: '13:00 - 15:00 WIB (Siang)',
+      location: 'Balai Pertemuan Desa',
+      organizer: 'Pendamping UMKM Desa',
+      status: 'Belum dimulai' as any,
+      statusType: 'success',
+      description: 'Studi kasus branding produk olahan lokal, strategi penetapan harga, penjualan online, dan pembuatan label pouch makanan kekinian.'
+    },
+    {
+      id: 'ag_5',
+      title: 'Pelatihan Keamanan Pangan & Sanitasi',
+      category: 'Pelatihan',
+      date: '25 Okt 2026',
+      dayNumber: '25',
+      monthAbbr: 'OKT',
+      time: '15:30 - 17:30 WIB (Sore)',
+      location: 'Balai Desa Sukamaju',
+      organizer: 'Dinas Ketahanan Pangan',
+      status: 'Belum dimulai' as any,
+      statusType: 'success',
+      description: 'Pelatihan sertifikasi hygiene sanitasi bagi pengolah makanan, syarat perizinan P-IRT dan pemenuhan standar mutu pangan nasional.'
+    },
+    {
+      id: 'ag_6',
+      title: 'Kegiatan Lapangan & Inspeksi Tanaman',
+      category: 'Kegiatan Lapangan',
+      date: '28 Okt 2026',
+      dayNumber: '28',
+      monthAbbr: 'OKT',
+      time: '19:30 - 21:00 WIB (Malam)',
+      location: 'Lahan Percobaan Blok B & C',
+      organizer: 'Pengurus Inti & Koordinator Lapangan',
       status: 'Belum dimulai' as any,
       statusType: 'neutral',
-      description: 'Pertemuan evaluasi rutin pengurus dan koordinator kelompok tani.'
+      description: 'Inspeksi berkala hama penyakit tanaman sorgum, pengecekan saluran irigasi tetes, dan kalibrasi sensor kelembaban tanah.'
     }
   ];
 
@@ -337,12 +385,14 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
   // Form fields for Agenda
   const [agTitle, setAgTitle] = useState('');
-  const [agCategory, setAgCategory] = useState('WORKSHOP');
+  const [agCategory, setAgCategory] = useState('Budidaya Sorgum');
   const [agDate, setAgDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
-  const [agTime, setAgTime] = useState('09:00 - 12:00');
+  const [agTime, setAgTime] = useState('09:00 - 12:00 WIB');
+  const [agStartTime, setAgStartTime] = useState('09:00');
+  const [agEndTime, setAgEndTime] = useState('12:00');
   const [agLocation, setAgLocation] = useState('Balai Desa Sukamaju');
   const [agOrganizer, setAgOrganizer] = useState(currentUser?.name || 'Admin');
   const [agStatus, setAgStatus] = useState('Belum dimulai');
@@ -396,7 +446,9 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           { key: 'category', match: /(?:kategori)\s*/i },
           { key: 'date', match: /(?:tanggal)\s*/i },
           { key: 'time', match: /(?:waktu|jam)\s*/i },
-          { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
+          { key: 'desc', match: /(?:deskripsi|isi|kegiatan)\s*/i },
+          { key: 'requirements', match: /(?:perlengkapan|alat|bawa|syarat)\s*/i },
+          { key: 'benefits', match: /(?:benefit|keuntungan|manfaat|fasilitas)\s*/i }
         ];
 
         let foundPositions: { key: string; index: number; length: number }[] = [];
@@ -423,14 +475,16 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             if (!val) continue;
 
             if (curr.key === 'title') {
-              setAgTitle(val);
+              setAgTitle(autoCapitalizeFirst(val));
             } else if (curr.key === 'category') {
               const upper = val.toUpperCase();
-              if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setAgCategory('WORKSHOP');
-              else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setAgCategory('PANEN BERSAMA');
-              else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setAgCategory('RAPAT');
-              else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setAgCategory('PELATIHAN');
-              else setAgCategory('INSPEKSI');
+              if (upper.includes('BUDIDAYA')) setAgCategory('Budidaya Sorgum');
+              else if (upper.includes('PANEN')) setAgCategory('Panen & Pascapanen');
+              else if (upper.includes('PENGOLAHAN') || upper.includes('KREATIF')) setAgCategory('Pengolahan Sorgum');
+              else if (upper.includes('LAPANGAN') || upper.includes('RAPAT') || upper.includes('INSPEKSI')) setAgCategory('Kegiatan Lapangan');
+              else if (upper.includes('PELATIHAN') || upper.includes('WORKSHOP')) setAgCategory('Pelatihan');
+              else if (upper.includes('PEMASARAN') || upper.includes('UMKM')) setAgCategory('Pemasaran');
+              else setAgCategory('Budidaya Sorgum');
             } else if (curr.key === 'date') {
               // Fix STT numeric spacing issues for dates
               let dateVal = val.toLowerCase();
@@ -484,9 +538,24 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                 }
               }
             } else if (curr.key === 'time') {
-              setAgTime(val);
+              const times = val.match(/(\d{1,2})(?::(\d{2}))?/g);
+              if (times && times.length >= 2) {
+                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                const e = times[1].includes(':') ? times[1] : `${times[1].padStart(2, '0')}:00`;
+                setAgStartTime(s.padStart(5, '0'));
+                setAgEndTime(e.padStart(5, '0'));
+                setAgTime(`${s.padStart(5, '0')} - ${e.padStart(5, '0')} WIB`);
+              } else if (times && times.length === 1) {
+                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                setAgStartTime(s.padStart(5, '0'));
+                setAgTime(`${s.padStart(5, '0')} WIB`);
+              }
             } else if (curr.key === 'desc') {
               setAgDescription(val);
+            } else if (curr.key === 'requirements') {
+              setAgRequirements(val);
+            } else if (curr.key === 'benefits') {
+              setAgBenefits(val);
             }
           }
         }
@@ -552,7 +621,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   // Modal States
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<InfoArticle | null>(null);
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'pengumuman' | 'agenda' | 'pengguna' } | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ id: string; title: string; type: 'artikel' | 'agenda' | 'pengguna' } | null>(null);
   const [previewArticle, setPreviewArticle] = useState<InfoArticle | null>(null);
 
   // New Article Form
@@ -693,10 +762,12 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   const handleOpenAddAgenda = () => {
     setEditingAgenda(null);
     setAgTitle('');
-    setAgCategory('WORKSHOP');
+    setAgCategory('Budidaya Sorgum');
     const d = new Date();
     setAgDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    setAgTime('09:00 - 12:00');
+    setAgTime('09:00 - 12:00 WIB');
+    setAgStartTime('09:00');
+    setAgEndTime('12:00');
     setAgLocation('Balai Desa Sukamaju');
     setAgOrganizer(currentUser?.name || 'Admin');
     setAgStatus('Belum dimulai');
@@ -720,9 +791,21 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   const handleOpenEditAgenda = (ag: AgendaEvent) => {
     setEditingAgenda(ag);
     setAgTitle(ag.title);
-    setAgCategory(ag.category || 'WORKSHOP');
+    setAgCategory(ag.category || 'Budidaya Sorgum');
     setAgDate(ag.date);
-    setAgTime(ag.time || '');
+    const rawTime = ag.time || '';
+    setAgTime(rawTime);
+    const timeMatches = rawTime.match(/(\d{1,2}:\d{2})/g);
+    if (timeMatches && timeMatches.length >= 2) {
+      setAgStartTime(timeMatches[0]);
+      setAgEndTime(timeMatches[1]);
+    } else if (timeMatches && timeMatches.length === 1) {
+      setAgStartTime(timeMatches[0]);
+      setAgEndTime('');
+    } else {
+      setAgStartTime('09:00');
+      setAgEndTime('12:00');
+    }
     setAgLocation(ag.location || '');
     setAgOrganizer(ag.organizer || 'Admin KWT');
     setAgStatus(ag.status || 'Belum dimulai');
@@ -744,7 +827,15 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
   const handleSaveAgenda = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agTitle.trim()) return;
+    const trimmedAgTitle = agTitle.trim();
+    if (!trimmedAgTitle) return;
+
+    if (isAllLowerCase(trimmedAgTitle)) {
+      showToast('Judul agenda tidak boleh huruf kecil semua. Huruf awal setiap kata harus kapital atau huruf besar semua.', 'error');
+      return;
+    }
+
+    const formattedAgTitle = autoCapitalizeFirst(trimmedAgTitle);
 
     if (agDate) {
       const selectedDate = new Date(agDate);
@@ -786,6 +877,11 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       }
     }
 
+    const period = to12HourPeriod(agStartTime).period;
+    const computedFinalTime = agStartTime 
+      ? (agEndTime ? `${agStartTime} - ${agEndTime} WIB (${period})` : `${agStartTime} WIB (${period})`) 
+      : formatEventTimeWithPeriod(agTime);
+
     if (editingAgenda) {
       const d = new Date(agDate);
       const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
@@ -795,12 +891,12 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       const updated = agendaList.map(a =>
         a.id === editingAgenda.id ? {
           ...a,
-          title: agTitle,
+          title: formattedAgTitle,
           category: agCategory,
           date: agDate,
           dayNumber: updatedDayNumber,
           monthAbbr: updatedMonthAbbr,
-          time: agTime,
+          time: computedFinalTime,
           location: agLocation,
           organizer: agOrganizer,
           status: agStatus as any,
@@ -817,16 +913,16 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       );
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
-      showToast(`Agenda "${agTitle}" berhasil diperbarui!`);
+      showToast(`Agenda "${formattedAgTitle}" berhasil diperbarui!`);
       // Update ke backend (best effort)
       if (!editingAgenda.id.startsWith('ag_1') && !editingAgenda.id.startsWith('ag_2') && !editingAgenda.id.startsWith('ag_3')) {
         api(`/agenda/${editingAgenda.id}`, {
           method: 'PUT',
           body: {
-            title: agTitle,
+            title: formattedAgTitle,
             category: agCategory,
             date: agDate,
-            time: agTime,
+            time: computedFinalTime,
             location: agLocation,
             organizer: agOrganizer,
             status: agStatus,
@@ -847,12 +943,12 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
       const newAg: AgendaEvent = {
         id: `ag_${Date.now()}`,
-        title: agTitle,
+        title: formattedAgTitle,
         category: agCategory,
         date: agDate,
         dayNumber: isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0'),
         monthAbbr: isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()],
-        time: agTime,
+        time: computedFinalTime,
         location: agLocation,
         organizer: agOrganizer,
         status: agStatus as any,
@@ -871,15 +967,15 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       const updated = [...agendaList, newAg];
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
-      showToast(`Agenda "${agTitle}" berhasil ditambahkan!`);
+      showToast(`Agenda "${formattedAgTitle}" berhasil ditambahkan!`);
       
       api('/agenda', {
         method: 'POST',
         body: {
-          title: agTitle,
+          title: formattedAgTitle,
           category: agCategory,
           date: agDate,
-          time: agTime,
+          time: computedFinalTime,
           location: agLocation,
           organizer: agOrganizer,
           status: agStatus,
@@ -911,7 +1007,17 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       (ag.location && ag.location.toLowerCase().includes(agendaSearchQuery.toLowerCase())) ||
       (ag.organizer && ag.organizer.toLowerCase().includes(agendaSearchQuery.toLowerCase()));
 
-    const matchesCategory = agendaCategoryFilter === 'Semua' || ag.category === agendaCategoryFilter;
+    const catUpper = (ag.category || '').toUpperCase();
+    const selUpper = agendaCategoryFilter.toUpperCase();
+    const matchesCategory = agendaCategoryFilter === 'Semua' || ag.category === agendaCategoryFilter || (
+      catUpper === selUpper ||
+      (agendaCategoryFilter === 'Budidaya Sorgum' && catUpper.includes('BUDIDAYA')) ||
+      (agendaCategoryFilter === 'Panen & Pascapanen' && catUpper.includes('PANEN')) ||
+      (agendaCategoryFilter === 'Pengolahan Sorgum' && (catUpper.includes('PENGOLAHAN') || catUpper.includes('KREATIF'))) ||
+      (agendaCategoryFilter === 'Kegiatan Lapangan' && (catUpper.includes('LAPANGAN') || catUpper.includes('INSPEKSI') || catUpper.includes('RAPAT'))) ||
+      (agendaCategoryFilter === 'Pelatihan' && (catUpper.includes('PELATIHAN') || catUpper.includes('WORKSHOP'))) ||
+      (agendaCategoryFilter === 'Pemasaran' && (catUpper.includes('PEMASARAN') || catUpper.includes('UMKM')))
+    );
     const matchesStatus = agendaStatusFilter === 'Semua' || ag.status === agendaStatusFilter;
 
     return matchesSearch && matchesCategory && matchesStatus;
@@ -953,9 +1059,17 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!artTitle.trim()) return;
+    const trimmedArtTitle = artTitle.trim();
+    if (!trimmedArtTitle) return;
 
     setArtError('');
+    if (isAllLowerCase(trimmedArtTitle)) {
+      setArtError('Judul informasi tidak boleh huruf kecil semua. Huruf awal setiap kata harus kapital atau huruf besar semua.');
+      return;
+    }
+
+    const formattedArtTitle = autoCapitalizeFirst(trimmedArtTitle);
+
     const plainTextContent = artContent.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim();
     if (plainTextContent.length < 10) {
       setArtError('Isi lengkap artikel minimal 10 karakter. Mohon lengkapi artikel Anda.');
@@ -963,10 +1077,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     }
 
     const payload = {
-      title: artTitle,
+      title: formattedArtTitle,
       category: artCategory,
-      summary: artContent ? artContent.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : artTitle,
-      content: artContent ? [artContent] : [artTitle],
+      summary: artContent ? artContent.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : formattedArtTitle,
+      content: artContent ? [artContent] : [formattedArtTitle],
       image: artImage,
       gallery: artGallery,
       status: artStatus,
@@ -978,10 +1092,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     try {
       if (editingArticle) {
         await api(`/artikel/${editingArticle.id}`, { method: 'PUT', body: payload });
-        showToast(`Artikel "${artTitle}" berhasil diperbarui.`);
+        showToast(`Artikel "${formattedArtTitle}" berhasil diperbarui.`);
       } else {
         await api('/artikel', { method: 'POST', body: payload });
-        showToast(`Artikel baru "${artTitle}" berhasil dipublikasikan!`);
+        showToast(`Artikel baru "${formattedArtTitle}" berhasil dipublikasikan!`);
       }
       // Reload dari backend — pakai endpoint admin (termasuk Draft)
       const reloaded = await api<InfoArticle[]>('/artikel/admin');
@@ -992,38 +1106,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     }
 
     setIsArticleModalOpen(false);
-  };
-
-  // Announcement Actions — pin = toggle isUrgent (real ke backend)
-  const handleTogglePinAnnouncement = async (id: string) => {
-    const isPinned = pinnedIds.includes(id);
-    const nextPinned = isPinned ? pinnedIds.filter(pId => pId !== id) : [...pinnedIds, id];
-    if (!isPinned && nextPinned.length > 3) {
-      alert('Maksimal 3 pengumuman disematkan di atas.');
-      return;
-    }
-    setPinnedIds(nextPinned);
-    try {
-      await api(`/pengumuman/${id}`, { method: 'PUT', body: { isUrgent: !isPinned } });
-      showToast(isPinned ? 'Status pin pengumuman dilepas.' : 'Pengumuman berhasil disematkan di atas!');
-    } catch (err) {
-      setPinnedIds(pinnedIds);
-      showToast('Gagal mengubah pin.');
-    }
-  };
-
-  const handleDeleteAnnouncement = (id: string, title: string) => {
-    setDeleteConfirmModal({ id, title, type: 'pengumuman' });
-  };
-
-  const handleEditAnnouncement = (ann: Announcement) => {
-    setEditingAnnouncement(ann);
-    setAnnTitle(ann.title);
-    setAnnCategory(ann.category as any);
-    setAnnSummary(ann.summary || '');
-    setAnnContent(ann.content || ann.summary || '');
-    setAnnError('');
-    setIsAnnouncementModalOpen(true);
   };
 
   const confirmDelete = () => {
@@ -1038,15 +1120,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       api(`/artikel/${id}`, { method: 'DELETE' }).catch(err => {
         console.error('Failed to delete artikel on backend:', err);
         showToast('Gagal menghapus artikel di server.');
-      });
-    } else if (type === 'pengumuman') {
-      const updated = announcements.filter(a => a.id !== id);
-      onUpdateAnnouncements(updated);
-      showToast(`Pengumuman "${title}" berhasil dihapus.`);
-      // Hapus dari backend (wajib, agar tidak muncul lagi setelah refresh)
-      api(`/pengumuman/${id}`, { method: 'DELETE' }).catch(err => {
-        console.error('Failed to delete pengumuman on backend:', err);
-        showToast('Gagal menghapus pengumuman di server.');
       });
     } else if (type === 'agenda') {
       const updated = agendaList.filter(a => a.id !== id);
@@ -1067,47 +1140,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       });
     }
     setDeleteConfirmModal(null);
-  };
-
-  const handleSaveAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (annTitle.trim().length < 3) {
-      setAnnError('Judul pengumuman minimal 3 karakter.');
-      return;
-    }
-
-    const finalSummary = annSummary.trim() || annTitle.trim();
-    if (finalSummary.length < 5) {
-      setAnnError('Ringkasan pengumuman minimal 5 karakter.');
-      return;
-    }
-
-    const finalContent = annContent.trim() || finalSummary;
-
-    const payload = {
-      title: annTitle.trim(),
-      category: annCategory,
-      summary: finalSummary,
-      content: finalContent,
-      isUrgent: annCategory === 'MENDESAK'
-    };
-
-    try {
-      if (editingAnnouncement) {
-        await api(`/pengumuman/${editingAnnouncement.id}`, { method: 'PUT', body: payload });
-        showToast(`Pengumuman "${annTitle}" berhasil diperbarui.`);
-      } else {
-        await api('/pengumuman', { method: 'POST', body: payload });
-        showToast(`Pengumuman "${annTitle}" berhasil dipublikasikan!`);
-      }
-
-      const reloaded = await api<Announcement[]>('/pengumuman');
-      onUpdateAnnouncements(reloaded);
-    } catch (err: any) {
-      showToast(err.message || 'Gagal menyimpan pengumuman');
-    }
-
-    setIsAnnouncementModalOpen(false);
   };
 
   // Forum Topic Moderation Actions
@@ -1454,7 +1486,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                    Kelola Informasi & Pengumuman
+                    Kelola Informasi (Artikel)
                   </h1>
                 </div>
 
@@ -1464,22 +1496,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     className="px-4 py-2.5 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs flex items-center gap-2 shadow-md transition-all active:scale-95"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#A8B774]" />
-                    <span>Artikel</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingAnnouncement(null);
-                      setAnnTitle('');
-                      setAnnCategory('PENTING');
-                      setAnnSummary('');
-                      setAnnContent('');
-                      setAnnError('');
-                      setIsAnnouncementModalOpen(true);
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-[#FAF6EE] text-[#2C4219] border border-[#2C4219]/20 hover:bg-[#F0EADF] font-title font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Pengumuman</span>
+                    <span>Tambah Artikel</span>
                   </button>
                 </div>
               </div>
@@ -1657,7 +1674,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             </span>
                           </div>
                           <h4 className="font-bold text-[#2C4219] text-sm line-clamp-1">{ag.title}</h4>
-                          <p className="text-[#7A7062] text-[11px] font-semibold mt-0.5">{ag.time} • {ag.location || 'Lokasi TBA'}</p>
+                          <p className="text-[#7A7062] text-[11px] font-semibold mt-0.5">{formatEventTimeWithPeriod(ag.time)} • {ag.location || 'Lokasi TBA'}</p>
                         </div>
                       </div>
                       
@@ -1947,7 +1964,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             <div>
                               <h4 className="font-bold text-xs text-[#2C4219] line-clamp-1">{ag.title}</h4>
                               <p className="text-[11px] text-[#7A7062] flex items-center gap-2 mt-0.5">
-                                <span>{ag.time}</span>
+                                <span>{formatEventTimeWithPeriod(ag.time)}</span>
                                 <span>•</span>
                                 <span>{ag.location}</span>
                               </p>
@@ -2047,9 +2064,9 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           {/* ==================== TAB 6: DATA SORGUM (SCM INTEGRATION) ==================== */}
                     {activeTab === 'datasorgum' && (
                       <DashboardDesaView
-                        landPlots={landPlots}
-                        harvestRecords={harvestRecords}
-                        members={members}
+                        landPlots={landPlots || []}
+                        harvestRecords={harvestRecords || []}
+                        members={members || []}
                         totalUsers={dashboardStats?.totalUsers ?? 3}
                         totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
                         isAdmin={true}
@@ -3084,9 +3101,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     required
                     placeholder="Contoh: Teknik Pemupukan Organik Sorgum"
                     value={artTitle}
-                    onChange={(e) => setArtTitle(e.target.value)}
+                    onChange={(e) => setArtTitle(autoCapitalizeFirst(e.target.value))}
                     className="w-full p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   />
+                  <span className="text-[10px] text-[#7A7062]">Setiap kata otomatis diawali huruf kapital (tidak boleh huruf kecil semua)</span>
                 </div>
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Kategori</label>
@@ -3289,86 +3307,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: Buat Pengumuman Baru */}
-      {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-5 border border-[#E6E1D5] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#E6E1D5] pb-4">
-              <h3 className="font-title font-bold text-lg text-[#2C4219]">
-                Buat Pengumuman Baru
-              </h3>
-              <button
-                onClick={() => setIsAnnouncementModalOpen(false)}
-                className="p-2 rounded-full hover:bg-gray-100 text-[#7A7062]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveAnnouncement} className="space-y-4 text-xs font-medium">
-              {annError && (
-                <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
-                  {annError}
-                </div>
-              )}
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Judul Pengumuman</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Workshop Olahan Tepung Sorgum"
-                  value={annTitle}
-                  onChange={(e) => setAnnTitle(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Kategori</label>
-                <select
-                  value={annCategory}
-                  onChange={(e) => setAnnCategory(e.target.value as any)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                >
-                  <option value="PENTING">PENTING</option>
-                  <option value="MENDESAK">MENDESAK</option>
-                  <option value="HASIL PANEN">HASIL PANEN</option>
-                  <option value="INFORMASI ANGGOTA">INFORMASI ANGGOTA</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block font-bold text-[#2C4219]">Ringkasan</label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Pesan singkat pengumuman..."
-                  value={annSummary}
-                  onChange={(e) => setAnnSummary(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAnnouncementModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-[#E6E1D5] text-[#7A7062] font-bold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2C4219] text-white font-title font-bold shadow-md hover:bg-[#1E2E11]"
-                >
-                  Publikasikan Pengumuman
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Modal Tambah / Edit Agenda */}
       {isAgendaModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -3449,11 +3387,13 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                   </p>
                   <div className="bg-white/60 rounded-lg p-3 border border-[#E6E1D5]/50 space-y-1">
                     <p className="text-[11px] text-[#433A30] font-medium leading-relaxed">
-                      Keyword <b>Judul</b>: [Isi sendiri]<br />
-                      Keyword <b>Kategori</b>: [Isi sendiri]<br />
-                      Keyword <b>Tanggal</b>: [Isi sendiri]<br />
-                      Keyword <b>Waktu</b>: [Isi sendiri]<br />
-                      Keyword <b>Deskripsi</b>: [Isi sendiri]
+                      Keyword <b>Judul</b>: [Judul kegiatan]<br />
+                      Keyword <b>Kategori</b>: [Kategori kegiatan]<br />
+                      Keyword <b>Tanggal</b>: [Tanggal kegiatan]<br />
+                      Keyword <b>Waktu</b>: [Waktu/jam kegiatan]<br />
+                      Keyword <b>Deskripsi</b>: [Penjelasan singkat kegiatan]<br />
+                      Keyword <b>Perlengkapan</b>: [Alat / barang yang dibawa]<br />
+                      Keyword <b>Benefit</b>: [Fasilitas / keuntungan yang didapat]
                     </p>
                   </div>
                 </div>
@@ -3468,9 +3408,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                   required
                   placeholder="Contoh: Workshop Pengolahan Tepung Sorgum"
                   value={agTitle}
-                  onChange={(e) => setAgTitle(e.target.value)}
+                  onChange={(e) => setAgTitle(autoCapitalizeFirst(e.target.value))}
                   className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                 />
+                <span className="text-[10px] text-[#7A7062]">Setiap kata otomatis diawali huruf kapital (tidak boleh huruf kecil semua)</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3481,16 +3422,15 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     onChange={(e) => setAgCategory(e.target.value)}
                     className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   >
-                    <option value="WORKSHOP">WORKSHOP</option>
-                    <option value="PANEN BERSAMA">PANEN BERSAMA</option>
-                    <option value="RAPAT">RAPAT</option>
-                    <option value="PELATIHAN">PELATIHAN</option>
-                    <option value="INSPEKSI">INSPEKSI</option>
+                    <option value="Budidaya Sorgum">Budidaya Sorgum</option>
+                    <option value="Panen & Pascapanen">Panen & Pascapanen</option>
+                    <option value="Pengolahan Sorgum">Pengolahan Sorgum</option>
+                    <option value="Kegiatan Lapangan">Kegiatan Lapangan</option>
+                    <option value="Pelatihan">Pelatihan</option>
+                    <option value="Pemasaran">Pemasaran</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Tanggal Kegiatan *</label>
                   <input
@@ -3501,16 +3441,44 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Waktu Kegiatan</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 09:00 - 12:00"
-                    value={agTime}
-                    onChange={(e) => setAgTime(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
+              <div className="space-y-1.5">
+                <label className="block font-bold text-[#2C4219]">Waktu Kegiatan *</label>
+                <div className="flex items-end gap-3 sm:gap-4 flex-wrap">
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <label className="text-xs font-bold text-[#7A7062]">Jam Mulai</label>
+                    <IndonesianTimePicker
+                      value={agStartTime}
+                      onChange={(val) => {
+                        setAgStartTime(val);
+                        const p = to12HourPeriod(val).period;
+                        setAgTime(val ? (agEndTime ? `${val} - ${agEndTime} WIB (${p})` : `${val} WIB (${p})`) : '');
+                      }}
+                    />
+                  </div>
+
+                  <div className="pb-3 px-1 text-xs font-bold text-[#7A7062] shrink-0 select-none">
+                    s/d
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <label className="text-xs font-bold text-[#7A7062]">Jam Selesai</label>
+                    <IndonesianTimePicker
+                      value={agEndTime}
+                      onChange={(val) => {
+                        setAgEndTime(val);
+                        const p = to12HourPeriod(agStartTime || val).period;
+                        setAgTime(agStartTime ? (val ? `${agStartTime} - ${val} WIB (${p})` : `${agStartTime} WIB (${p})`) : '');
+                      }}
+                    />
+                  </div>
+
+                  <div className="pb-0 shrink-0">
+                    <span className="inline-flex items-center justify-center h-11 px-3.5 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-bold text-[#2C4219]">
+                      WIB
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -3523,6 +3491,30 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                   onChange={(e) => setAgDescription(e.target.value)}
                   className={`w-full p-3 rounded-xl border ${isRecordingAgenda ? 'border-rose-300 ring-2 ring-rose-100 bg-rose-50/30' : 'border-[#E6E1D5] bg-[#FAF6EE]'} text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all`}
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C4219]">Perlengkapan yang Dibawa (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Bawa sampel olahan, HP berkamera"
+                  value={agRequirements}
+                  onChange={(e) => setAgRequirements(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all"
+                />
+                <span className="text-[10px] text-[#7A7062]">Pisahkan dengan koma jika lebih dari satu</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C4219]">Benefit Peserta (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Stiker gratis, Snack, Sertifikat"
+                  value={agBenefits}
+                  onChange={(e) => setAgBenefits(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all"
+                />
+                <span className="text-[10px] text-[#7A7062]">Pisahkan dengan koma jika lebih dari satu</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3821,7 +3813,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                 {viewingAgenda.time && (
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-[#2C4219]" />
-                    <span className="font-bold">Waktu:</span> {viewingAgenda.time}
+                    <span className="font-bold">Waktu:</span> {formatEventTimeWithPeriod(viewingAgenda.time)}
                   </div>
                 )}
               </div>
@@ -4202,7 +4194,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <h3 className="font-title font-bold text-base text-[#2C4219]">
-                    Hapus {deleteConfirmModal.type === 'artikel' ? 'Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Pengumuman' : deleteConfirmModal.type === 'pengguna' ? 'Pengguna' : 'Agenda'}
+                    Hapus {deleteConfirmModal.type === 'artikel' ? 'Artikel' : deleteConfirmModal.type === 'pengguna' ? 'Pengguna' : 'Agenda'}
                   </h3>
                   <p className="text-xs text-[#7A7062]">Tindakan ini tidak dapat dibatalkan</p>
                 </div>
@@ -4218,7 +4210,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             {/* Detail item */}
             <div className="bg-[#FAF6EE] p-3.5 rounded-xl border border-[#E6E1D5] space-y-1">
               <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">
-                {deleteConfirmModal.type === 'artikel' ? 'Judul Artikel' : deleteConfirmModal.type === 'pengumuman' ? 'Judul Pengumuman' : deleteConfirmModal.type === 'pengguna' ? 'Nama Pengguna' : 'Judul Agenda'}
+                {deleteConfirmModal.type === 'artikel' ? 'Judul Artikel' : deleteConfirmModal.type === 'pengguna' ? 'Nama Pengguna' : 'Judul Agenda'}
               </p>
               <p className="font-bold text-xs text-[#2C4219] line-clamp-2">
                 "{deleteConfirmModal.title}"

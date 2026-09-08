@@ -1,26 +1,24 @@
 import React from 'react';
-import { NavItem, AgendaEvent, UserProfile, InfoArticle, Announcement } from '../../types';
-import { Calendar, BookOpen, Megaphone, ChevronRight } from 'lucide-react';
+import { NavItem, AgendaEvent, UserProfile, InfoArticle } from '../../types';
+import { Calendar, BookOpen, ChevronRight } from 'lucide-react';
 import { getCategoryColor } from '../../utils/agendaUtils';
 
 interface BerandaViewLiteProps {
   currentUser: UserProfile;
   events: AgendaEvent[];
   articles: InfoArticle[];
-  announcements: Announcement[];
+  announcements?: any[];
   setActiveNav: (nav: NavItem) => void;
   onSelectArticle: (article: InfoArticle) => void;
-  onSelectAnnouncement: (announcement: Announcement) => void;
+  onSelectAnnouncement?: (announcement: any) => void;
 }
 
 export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
   currentUser,
   events,
   articles,
-  announcements,
   setActiveNav,
-  onSelectArticle,
-  onSelectAnnouncement
+  onSelectArticle
 }) => {
   const upcomingEvents = [...events]
     .filter(e => {
@@ -29,8 +27,6 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3); // Cuma nampilin 3 paling dekat
-
-  const activeAnnouncements = announcements.filter(a => a.isActive);
 
   return (
     <div className="space-y-6 pb-12 w-full animate-in fade-in duration-300 max-w-5xl mx-auto">
@@ -47,36 +43,6 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
               Berikut informasi terbaru untuk Anda hari ini:
             </p>
           </div>
-
-          {/* Pengumuman Penting */}
-          {activeAnnouncements.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-rose-100 rounded-xl text-rose-600">
-                  <Megaphone className="w-6 h-6" />
-                </div>
-                <h3 className="font-bold text-2xl text-[#2C4219]">Pengumuman Penting</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activeAnnouncements.slice(0, 2).map(ann => (
-                  <div
-                    key={ann.id}
-                    onClick={() => onSelectAnnouncement(ann)}
-                    className="bg-white p-5 rounded-2xl border-2 border-rose-100 shadow-sm cursor-pointer hover:border-rose-300 hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mb-2">Penting</span>
-                    <h4 className="font-bold text-[#2C4219] text-lg leading-snug mb-2 line-clamp-2">{ann.title}</h4>
-                    <p className="text-sm text-[#433A30]/70 line-clamp-2 mb-4 flex-1">{ann.content}</p>
-                    <div className="flex items-center text-rose-600 font-bold text-sm mt-auto">
-                      <span>Baca Selengkapnya</span>
-                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Informasi */}
           {articles.length > 0 && (

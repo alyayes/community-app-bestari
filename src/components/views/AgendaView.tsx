@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { BASE_URL } from '../../api/client';
 import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
-import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor } from '../../utils/agendaUtils';
+import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod } from '../../utils/agendaUtils';
+import { IndonesianTimePicker, to12HourPeriod } from '../IndonesianTimePicker';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -32,7 +33,9 @@ import {
   X,
   XCircle,
   AlertTriangle,
-  Lock
+  Lock,
+  Package,
+  Gift
 } from 'lucide-react';
 
 interface AgendaViewProps {
@@ -79,7 +82,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       } else if (e.time) {
          endTime = e.time.trim();
       }
-      endTime = endTime.replace(/\./g, ':');
+      const timeMatch = endTime.match(/\b\d{1,2}[:.]\d{2}\b/);
+      if (timeMatch) {
+        endTime = timeMatch[0].replace('.', ':').padStart(5, '0');
+      }
       if (endTime < currentTimeStr) return true;
     }
     return false;
@@ -167,7 +173,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
           { key: 'category', match: /(?:kategori)\s*/i },
           { key: 'date', match: /(?:tanggal)\s*/i },
           { key: 'time', match: /(?:waktu|jam)\s*/i },
-          { key: 'desc', match: /(?:deskripsi|isi)\s*/i }
+          { key: 'desc', match: /(?:deskripsi|isi|kegiatan)\s*/i },
+          { key: 'requirements', match: /(?:perlengkapan|alat|bawa|syarat)\s*/i },
+          { key: 'benefits', match: /(?:benefit|keuntungan|manfaat|fasilitas)\s*/i }
         ];
 
         let foundPositions: { key: string; index: number; length: number }[] = [];
@@ -198,10 +206,12 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               setNewTitle(val);
             } else if (curr.key === 'category') {
               const upper = val.toUpperCase();
-              if (upper.includes('WORKSHOP') || upper.includes('KREATIF')) setNewCategory('WORKSHOP KREATIF');
-              else if (upper.includes('PANEN') || upper.includes('BERSAMA')) setNewCategory('PANEN BERSAMA');
-              else if (upper.includes('RAPAT') || upper.includes('RUTIN')) setNewCategory('RAPAT RUTIN');
-              else if (upper.includes('PELATIHAN') || upper.includes('UMKM')) setNewCategory('PELATIHAN UMKM');
+              if (upper.includes('BUDIDAYA')) setNewCategory('Budidaya Sorgum');
+              else if (upper.includes('PANEN') || upper.includes('PASCA')) setNewCategory('Panen & Pascapanen');
+              else if (upper.includes('PENGOLAHAN') || upper.includes('KREATIF')) setNewCategory('Pengolahan Sorgum');
+              else if (upper.includes('LAPANGAN') || upper.includes('RAPAT')) setNewCategory('Kegiatan Lapangan');
+              else if (upper.includes('PELATIHAN') || upper.includes('WORKSHOP')) setNewCategory('Pelatihan');
+              else if (upper.includes('PEMASARAN') || upper.includes('UMKM')) setNewCategory('Pemasaran');
               else setNewCategory(val); // Fallback: put as-is
             } else if (curr.key === 'date') {
               // Fix STT numeric spacing issues for dates
@@ -259,9 +269,24 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 }
               }
             } else if (curr.key === 'time') {
-              setNewTime(val);
+              const times = val.match(/(\d{1,2})(?::(\d{2}))?/g);
+              if (times && times.length >= 2) {
+                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                const e = times[1].includes(':') ? times[1] : `${times[1].padStart(2, '0')}:00`;
+                setNewStartTime(s.padStart(5, '0'));
+                setNewEndTime(e.padStart(5, '0'));
+                setNewTime(`${s.padStart(5, '0')} - ${e.padStart(5, '0')} WIB`);
+              } else if (times && times.length === 1) {
+                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                setNewStartTime(s.padStart(5, '0'));
+                setNewTime(`${s.padStart(5, '0')} WIB`);
+              }
             } else if (curr.key === 'desc') {
               setNewDesc(val);
+            } else if (curr.key === 'requirements') {
+              setNewRequirements(val);
+            } else if (curr.key === 'benefits') {
+              setNewBenefits(val);
             }
           }
         }
@@ -303,8 +328,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [newTime, setNewTime] = useState('09:00 - 12:00 WIB');
+  const [newStartTime, setNewStartTime] = useState('09:00');
+  const [newEndTime, setNewEndTime] = useState('12:00');
   const [newLocation, setNewLocation] = useState('Balai Desa Sukamaju');
-  const [newCategory, setNewCategory] = useState('WORKSHOP KREATIF');
+  const [newCategory, setNewCategory] = useState('Budidaya Sorgum');
   const [newDesc, setNewDesc] = useState('');
   const [newOrganizer, setNewOrganizer] = useState('Tim KWT Sorgum');
   const [newTargetParticipants, setNewTargetParticipants] = useState('');
@@ -318,7 +345,15 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Akan Datang' | 'Riwayat' | 'Sudah Daftar'>('Semua');
 
-  const categoriesList = ['Semua', 'WORKSHOP KREATIF', 'WORKSHOP', 'PANEN BERSAMA', 'PELATIHAN UMKM', 'RAPAT RUTIN'];
+  const categoriesList = [
+    'Semua',
+    'Budidaya Sorgum',
+    'Panen & Pascapanen',
+    'Pengolahan Sorgum',
+    'Kegiatan Lapangan',
+    'Pelatihan',
+    'Pemasaran'
+  ];
   const statusFilters = ['Semua', 'Akan Datang', 'Riwayat', 'Sudah Daftar'];
 
   // Filtered list based on search term and category
@@ -337,7 +372,18 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     const matchesSearch = title.toLowerCase().includes(activeSearch.toLowerCase()) ||
       loc.toLowerCase().includes(activeSearch.toLowerCase()) ||
       org.toLowerCase().includes(activeSearch.toLowerCase());
-    const matchesCat = selectedCategory === 'Semua' || (e.category && e.category.toUpperCase() === selectedCategory.toUpperCase());
+    
+    const catUpper = (e.category || '').toUpperCase();
+    const selUpper = selectedCategory.toUpperCase();
+    const matchesCat = selectedCategory === 'Semua' || (e.category && (
+      catUpper === selUpper ||
+      (selectedCategory === 'Budidaya Sorgum' && catUpper.includes('BUDIDAYA')) ||
+      (selectedCategory === 'Panen & Pascapanen' && catUpper.includes('PANEN')) ||
+      (selectedCategory === 'Pengolahan Sorgum' && (catUpper.includes('PENGOLAHAN') || catUpper.includes('KREATIF'))) ||
+      (selectedCategory === 'Kegiatan Lapangan' && (catUpper.includes('LAPANGAN') || catUpper.includes('INSPEKSI') || catUpper.includes('RAPAT'))) ||
+      (selectedCategory === 'Pelatihan' && (catUpper.includes('PELATIHAN') || catUpper.includes('WORKSHOP'))) ||
+      (selectedCategory === 'Pemasaran' && (catUpper.includes('PEMASARAN') || catUpper.includes('UMKM')))
+    ));
     return matchesSearch && matchesCat;
   }).sort((a, b) => {
     const todayObj = new Date();
@@ -392,8 +438,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     });
     setNewTime('09:00 - 12:00 WIB');
+    setNewStartTime('09:00');
+    setNewEndTime('12:00');
     setNewLocation('Balai Desa Sukamaju');
-    setNewCategory('WORKSHOP KREATIF');
+    setNewCategory('Budidaya Sorgum');
     setNewDesc('');
     setNewOrganizer(currentUser?.name || 'Tim KWT Sorgum');
     setNewTargetParticipants('');
@@ -410,9 +458,21 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     setEditingEventId(ev.id);
     setNewTitle(ev.title);
     setNewDate(ev.date);
-    setNewTime(ev.time);
+    const rawTime = ev.time || '';
+    setNewTime(rawTime);
+    const timeMatches = rawTime.match(/(\d{1,2}:\d{2})/g);
+    if (timeMatches && timeMatches.length >= 2) {
+      setNewStartTime(timeMatches[0]);
+      setNewEndTime(timeMatches[1]);
+    } else if (timeMatches && timeMatches.length === 1) {
+      setNewStartTime(timeMatches[0]);
+      setNewEndTime('');
+    } else {
+      setNewStartTime('09:00');
+      setNewEndTime('12:00');
+    }
     setNewLocation(ev.location);
-    setNewCategory(ev.category || 'WORKSHOP KREATIF');
+    setNewCategory(ev.category || 'Budidaya Sorgum');
     setNewDesc(ev.description || '');
     setNewOrganizer(ev.organizer || currentUser?.name || 'Tim KWT Sorgum');
     setNewTargetParticipants(ev.targetParticipants || '');
@@ -452,6 +512,11 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     const computedStatus = newDate < todayStr ? 'Selesai' : newStatus;
     const computedStatusType = computedStatus === 'Selesai' ? 'neutral' : (computedStatus === 'Belum dimulai' ? 'success' : 'warning');
 
+    const period = to12HourPeriod(newStartTime).period;
+    const computedFinalTime = newStartTime 
+      ? (newEndTime ? `${newStartTime} - ${newEndTime} WIB (${period})` : `${newStartTime} WIB (${period})`) 
+      : formatEventTimeWithPeriod(newTime);
+
     if (isEditing && editingEventId && onEditEvent) {
       const updatedEv: AgendaEvent = {
         ...selectedEvent,
@@ -460,7 +525,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         date: newDate,
         dayNumber,
         monthAbbr,
-        time: newTime,
+        time: computedFinalTime,
         location: newLocation,
         category: newCategory,
         description: newDesc,
@@ -481,7 +546,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         date: newDate,
         dayNumber,
         monthAbbr,
-        time: newTime,
+        time: computedFinalTime,
         location: newLocation,
         status: computedStatus as AgendaEvent['status'],
         statusType: computedStatusType as any,
@@ -920,7 +985,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 {/* Time */}
                 <div className="flex items-center gap-2.5 text-[#433A30]">
                   <Clock className="w-5 h-5 text-[#2C4219]" />
-                  <span className="font-medium text-sm">{selectedEvent.time}</span>
+                  <span className="font-medium text-sm">{formatEventTimeWithPeriod(selectedEvent.time)}</span>
                 </div>
 
                 <hr className="border-[#E6E1D5]" />
@@ -1021,7 +1086,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                           </h4>
                           <p className="text-[11px] text-[#433A30]/70 truncate flex items-center gap-1 mt-0.5">
                             <Clock className="w-3 h-3 text-[#433A30]/50 shrink-0" />
-                            <span>{ev.time}</span>
+                            <span>{formatEventTimeWithPeriod(ev.time)}</span>
                           </p>
                         </div>
                       </div>
@@ -1140,7 +1205,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   </p>
 
                   <div className="space-y-1 text-xs text-[#433A30]/80 pt-2 border-t border-[#E6E1D5]">
-                    <p className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-[#2C4219]" /> {ev.time}</p>
+                    <p className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-[#2C4219]" /> {formatEventTimeWithPeriod(ev.time)}</p>
                   </div>
                 </div>
 
@@ -1215,23 +1280,68 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             </div>
 
             {/* General Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div className="text-xs">
               <div className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-1">
                 <span className="text-[10px] uppercase font-bold text-[#433A30]/60">Waktu & Tanggal</span>
-                <p className="font-bold text-[#2C4219] flex items-center gap-1.5">
+                <p className="font-bold text-[#2C4219] flex items-center gap-1.5 flex-wrap">
                   <Clock className="w-4 h-4 text-[#2C4219]" />
-                  {selectedEvent.date} ({selectedEvent.time})
+                  <span>{selectedEvent.date}</span>
+                  <span className="text-[#A19D94]">•</span>
+                  <span>{formatEventTimeWithPeriod(selectedEvent.time)}</span>
                 </p>
               </div>
             </div>
 
-            {/* Deskripsi Kegiatan */}
+            {/* 1. Deskripsi Kegiatan */}
             <div className="space-y-2">
-              <h3 className="font-title font-bold text-sm text-[#2C4219]">Deskripsi Lengkap Kegiatan</h3>
-              <p className="text-xs text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5]">
-                {selectedEvent.description}
+              <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#2C4219]" />
+                Deskripsi Kegiatan
+              </h3>
+              <p className="text-xs text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5] whitespace-pre-line">
+                {selectedEvent.description || 'Tidak ada keterangan tambahan.'}
               </p>
             </div>
+
+            {/* 2. Perlengkapan yang Dibawa */}
+            {selectedEvent.requirements && selectedEvent.requirements.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-title font-bold text-sm text-[#B45309] flex items-center gap-2">
+                  <Package className="w-4 h-4 text-[#B45309]" />
+                  Perlengkapan yang Dibawa
+                </h3>
+                <div className="bg-[#FFFBEB] p-4 rounded-2xl border border-[#FDE68A] space-y-2">
+                  <ul className="space-y-1.5">
+                    {selectedEvent.requirements.map((req, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-xs text-[#92400E] font-medium leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] mt-1.5 shrink-0" />
+                        <span>{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Benefit / Keuntungan Peserta */}
+            {selectedEvent.benefits && selectedEvent.benefits.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-title font-bold text-sm text-[#2C4219] flex items-center gap-2">
+                  <Gift className="w-4 h-4 text-[#2C4219]" />
+                  Benefit & Keuntungan Peserta
+                </h3>
+                <div className="bg-[#F4F8EC] p-4 rounded-2xl border border-[#D5E5B8] space-y-2">
+                  <ul className="space-y-1.5">
+                    {selectedEvent.benefits.map((ben, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-xs text-[#2C4219] font-medium leading-relaxed">
+                        <CheckCircle2 className="w-4 h-4 text-[#2C4219] mt-0.5 shrink-0" />
+                        <span>{ben}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
 
             {/* Materi & Dokumentasi */}
             {(() => {
@@ -1527,11 +1637,13 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   </p>
                   <div className="bg-white/60 rounded-lg p-3 border border-[#E6E1D5]/50 space-y-1">
                     <p className="text-[11px] text-[#433A30] font-medium leading-relaxed">
-                      Keyword <b>Judul</b>: [Isi sendiri]<br/>
-                      Keyword <b>Kategori</b>: [Isi sendiri]<br/>
-                      Keyword <b>Tanggal</b>: [Isi sendiri]<br/>
-                      Keyword <b>Waktu</b>: [Isi sendiri]<br/>
-                      Keyword <b>Deskripsi</b>: [Isi sendiri]
+                      Keyword <b>Judul</b>: [Judul kegiatan]<br/>
+                      Keyword <b>Kategori</b>: [Kategori kegiatan]<br/>
+                      Keyword <b>Tanggal</b>: [Tanggal kegiatan]<br/>
+                      Keyword <b>Waktu</b>: [Waktu/jam kegiatan]<br/>
+                      Keyword <b>Deskripsi</b>: [Penjelasan singkat kegiatan]<br/>
+                      Keyword <b>Perlengkapan</b>: [Alat / barang yang dibawa]<br/>
+                      Keyword <b>Benefit</b>: [Fasilitas / keuntungan yang didapat]
                     </p>
                   </div>
                   {isProcessingSTT && (
@@ -1582,9 +1694,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block font-bold text-[#2C4219]">Tanggal Kegiatan *</label>
                   <input
@@ -1595,17 +1705,44 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="block font-bold text-[#2C4219]">Waktu Kegiatan</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: 09:00 WIB"
-                    value={newTime}
-                    onChange={(e) => setNewTime(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219]"
-                  />
+              <div className="space-y-1.5">
+                <label className="block font-bold text-[#2C4219]">Waktu Kegiatan *</label>
+                <div className="flex items-end gap-3 sm:gap-4 flex-wrap">
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <label className="text-xs font-bold text-[#7A7062]">Jam Mulai</label>
+                    <IndonesianTimePicker
+                      value={newStartTime}
+                      onChange={(val) => {
+                        setNewStartTime(val);
+                        const period = to12HourPeriod(val).period;
+                        setNewTime(val ? (newEndTime ? `${val} - ${newEndTime} WIB (${period})` : `${val} WIB (${period})`) : '');
+                      }}
+                    />
+                  </div>
+
+                  <div className="pb-3 px-1 text-xs font-bold text-[#7A7062] shrink-0 select-none">
+                    s/d
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <label className="text-xs font-bold text-[#7A7062]">Jam Selesai</label>
+                    <IndonesianTimePicker
+                      value={newEndTime}
+                      onChange={(val) => {
+                        setNewEndTime(val);
+                        const period = to12HourPeriod(newStartTime || val).period;
+                        setNewTime(newStartTime ? (val ? `${newStartTime} - ${val} WIB (${period})` : `${newStartTime} WIB (${period})`) : '');
+                      }}
+                    />
+                  </div>
+
+                  <div className="pb-0 shrink-0">
+                    <span className="inline-flex items-center justify-center h-11 px-3.5 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-bold text-[#2C4219]">
+                      WIB
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1619,6 +1756,30 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   onChange={(e) => setNewDesc(e.target.value)}
                   className={`w-full p-3 rounded-xl border ${isRecording ? 'border-rose-300 ring-2 ring-rose-100 bg-rose-50/30' : 'border-[#E6E1D5] bg-[#FAF6EE]'} text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all`}
                 />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C4219]">Perlengkapan yang Dibawa (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Bawa sampel olahan, HP berkamera"
+                  value={newRequirements}
+                  onChange={(e) => setNewRequirements(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all"
+                />
+                <span className="text-[10px] text-[#7A7062]">Pisahkan dengan koma jika lebih dari satu</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block font-bold text-[#2C4219]">Benefit Peserta (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Contoh: Stiker gratis, Snack, Sertifikat"
+                  value={newBenefits}
+                  onChange={(e) => setNewBenefits(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold focus:outline-none focus:border-[#2C4219] transition-all"
+                />
+                <span className="text-[10px] text-[#7A7062]">Pisahkan dengan koma jika lebih dari satu</span>
               </div>
 
               <div className="pt-3 border-t border-[#E6E1D5] flex flex-wrap items-center justify-end gap-3">
