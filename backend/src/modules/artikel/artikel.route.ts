@@ -21,6 +21,35 @@ function cleanNbsp(val: any): any {
   return val;
 }
 
+function extractCleanSummary(rawContent: any, fallbackSummary: string): string {
+  const sum = cleanNbsp(fallbackSummary) || '';
+  const isCorrupted = sum.length > 30 && (!sum.includes(' ') || sum.split(' ').some((w: string) => w.length > 35));
+  
+  if (!isCorrupted && sum.trim().length > 0) {
+    return sum;
+  }
+
+  const raw = Array.isArray(rawContent) ? rawContent.join(' ') : String(rawContent || '');
+  if (raw && raw.trim().length > 0) {
+    const extracted = raw
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'")
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (extracted.length > 0) {
+      return extracted;
+    }
+  }
+
+  return sum;
+}
+
 // Mapping Artikel -> InfoArticle frontend
 function toArticle(a: any) {
   let parsedContent: any = a.content;
@@ -32,7 +61,16 @@ function toArticle(a: any) {
     }
   }
   const content = cleanNbsp(parsedContent);
-  const summary = cleanNbsp(a.summary);
+  const summary = extractCleanSummary(content, a.summary);
+
+  // Auto-heal data di database jika summary tersimpan tanpa spasi akibat sanitasi lama
+  if (a.id && summary && summary !== a.summary && a.summary && a.summary.length > 30 && !a.summary.includes(' ')) {
+    prisma.artikel.update({
+      where: { id: a.id },
+      data: { summary }
+    }).catch(() => {});
+  }
+
   const gallery: string[] = typeof a.gallery === 'string' ? JSON.parse(a.gallery) : (a.gallery || []);
   return {
     id: a.id,
@@ -94,7 +132,11 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 // ── POST /api/artikel (ADMIN) ──────────────────────
 router.post('/', authenticate, authorize('ADMIN'), validate(createArtikelSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const a = await prisma.artikel.create({ data: req.body });
+    const data = { ...req.body };
+    if (!data.summary || (data.summary.length > 30 && !data.summary.includes(' '))) {
+      data.summary = extractCleanSummary(data.content, data.summary);
+    }
+    const a = await prisma.artikel.create({ data });
     return successResponse(res, toArticle(a), 'Artikel berhasil dibuat', 201);
   } catch (err) {
     next(err);
@@ -104,7 +146,11 @@ router.post('/', authenticate, authorize('ADMIN'), validate(createArtikelSchema)
 // ── PUT /api/artikel/:id (ADMIN) ───────────────────
 router.put('/:id', authenticate, authorize('ADMIN'), validate(updateArtikelSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const a = await prisma.artikel.update({ where: { id: String(req.params.id) }, data: req.body });
+    const data = { ...req.body };
+    if (data.summary && data.summary.length > 30 && !data.summary.includes(' ')) {
+      data.summary = extractCleanSummary(data.content, data.summary);
+    }
+    const a = await prisma.artikel.update({ where: { id: String(req.params.id) }, data });
     return successResponse(res, toArticle(a), 'Artikel berhasil diperbarui');
   } catch (err) {
     next(err);

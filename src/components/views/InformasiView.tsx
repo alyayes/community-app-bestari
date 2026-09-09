@@ -16,7 +16,7 @@ import {
   ArrowLeft,
   Image as ImageIcon
 } from 'lucide-react';
-import { cleanHtmlSummary, cleanArticleHtml } from '../../utils/agendaUtils';
+import { cleanHtmlSummary, cleanArticleHtml, getArticleExcerpt } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
 import { downloadArticlePdf } from '../../utils/articlePdf';
 
@@ -193,7 +193,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   dangerouslySetInnerHTML={{ __html: cleanArticleHtml(selectedArticle.content) }}
                 />
               ) : (
-                <p className="article-rich-content text-sm sm:text-base leading-relaxed text-justify">{cleanHtmlSummary(selectedArticle.summary)}</p>
+                <p className="article-rich-content text-sm sm:text-base leading-relaxed text-justify">{getArticleExcerpt(selectedArticle)}</p>
               )}
             </div>
           </div>
@@ -367,7 +367,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                 </h3>
 
                 <p className="text-xs text-[#433A30]/80 line-clamp-3 leading-relaxed font-normal">
-                  {cleanHtmlSummary(art.summary || (art.content && art.content.length > 0 ? art.content[0] : ''))}
+                  {getArticleExcerpt(art)}
                 </p>
               </div>
             </div>

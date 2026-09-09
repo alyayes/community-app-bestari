@@ -76,7 +76,7 @@ import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
-import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase } from '../../../utils/agendaUtils';
+import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
 
 
@@ -1100,7 +1100,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
     const formattedArtTitle = autoCapitalizeFirst(trimmedArtTitle);
 
-    const plainTextContent = artContent.replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, '').trim();
+    const plainTextContent = cleanHtmlSummary(artContent);
     if (plainTextContent.length < 10) {
       setArtError('Isi lengkap artikel minimal 10 karakter. Mohon lengkapi artikel Anda.');
       return;

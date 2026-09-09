@@ -8,7 +8,8 @@ import {
   X,
   Lock,
   Trash2,
-  Award
+  Award,
+  LogOut
 } from 'lucide-react';
 
 import { apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
@@ -18,11 +19,14 @@ interface ProfilViewProps {
   setCurrentUser: (user: UserProfile) => void;
   appMode?: 'lite' | 'pro';
   setAppMode?: (mode: 'lite' | 'pro') => void;
+  onLogout?: () => void;
 }
 
 
 
-export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode }) => {
+export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode, onLogout }) => {
+  // Logout confirmation modal state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   // Editing states for sections
   const [isEditPersonal, setIsEditPersonal] = useState(false);
   const [isEditAddress, setIsEditAddress] = useState(false);
@@ -277,6 +281,20 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             </button>
           </p>
         </div>
+
+        {/* Quick Logout Button in Header Card */}
+        {onLogout && (
+          <button
+            type="button"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 px-3.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-[#C53030] text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
+            title="Keluar dari Akun"
+          >
+            <LogOut className="w-3.5 h-3.5 text-[#C53030]" />
+            <span className="hidden sm:inline">Keluar Akun</span>
+            <span className="sm:hidden">Keluar</span>
+          </button>
+        )}
       </div>
 
 
@@ -566,6 +584,67 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             >
               <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${appMode === 'lite' ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Card Logout (Bawah Halaman - Jelas & Mudah Diakses) */}
+      {onLogout && (
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-rose-100 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] flex items-center gap-2">
+              <LogOut className="w-4 h-4 text-[#C53030]" />
+              <span>Keluar dari Aplikasi</span>
+            </h3>
+            <p className="text-xs sm:text-sm text-[#7A7062] mt-1">
+              Selesai beraktivitas? Anda dapat keluar dari akun ini dan masuk kembali kapan saja.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Keluar Akun</span>
+          </button>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Logout */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-2xl max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+              <LogOut className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="font-title font-bold text-base sm:text-lg text-[#2C4219]">
+                Keluar dari Akun?
+              </h4>
+              <p className="text-xs sm:text-sm text-[#7A7062] mt-1.5 leading-relaxed">
+                Apakah Anda yakin ingin keluar dari akun <b>{currentUser.name}</b>? Anda perlu masuk kembali untuk mengakses aplikasi.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-[#E6E1D5] text-xs sm:text-sm font-bold text-[#7A7062] hover:bg-[#FAF6EE] transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  onLogout?.();
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs sm:text-sm font-bold text-white shadow-sm transition-colors"
+              >
+                Ya, Keluar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -121,6 +121,7 @@ export const cleanHtmlSummary = (str?: string | null): string => {
   return str
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
@@ -141,6 +142,36 @@ export const cleanArticleHtml = (htmlContent?: string | string[] | null): string
   return raw
     .replace(/&nbsp;/gi, ' ')
     .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ');
+};
+
+/**
+ * Mendapatkan ringkasan artikel yang bersih dari tag HTML dan selalu berjarak spasi alami.
+ * Jika ringkasan lama rusak/tanpa spasi (misal akibat copy-paste dari AI atau sanitasi lama),
+ * fungsi ini otomatis mengekstrak ulang ringkasan yang bersih dari konten lengkap artikel.
+ */
+export const getArticleExcerpt = (article: { summary?: string | null; content?: any }): string => {
+  const sum = article?.summary || '';
+  // Cek apakah summary valid dan memiliki spasi normal.
+  // Jika panjang teks > 30 karakter tapi tidak ada spasi sama sekali atau ada kata > 35 huruf tanpa spasi:
+  const isCorrupted = sum.length > 30 && (!sum.includes(' ') || sum.split(' ').some(w => w.length > 35));
+  
+  if (!isCorrupted && sum.trim().length > 0) {
+    return cleanHtmlSummary(sum);
+  }
+
+  // Fallback: ekstrak dari content yang masih memiliki struktur tag / spasi lengkap
+  const rawContent = Array.isArray(article?.content) 
+    ? article.content.join(' ') 
+    : (article?.content || '');
+
+  if (rawContent && rawContent.trim().length > 0) {
+    const extracted = cleanHtmlSummary(rawContent);
+    if (extracted.length > 0) {
+      return extracted;
+    }
+  }
+
+  return cleanHtmlSummary(sum);
 };
 
 

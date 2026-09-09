@@ -1051,6 +1051,7 @@ export function App() {
               setCurrentUser={setCurrentUser}
               appMode={appMode}
               setAppMode={setAppMode}
+              onLogout={handleLogout}
             />
           )}
 

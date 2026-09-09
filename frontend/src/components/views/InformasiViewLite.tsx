@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { InfoArticle } from '../../types';
 import { ArrowLeft, Image as ImageIcon, ChevronLeft, Calendar, User, Layers, Download } from 'lucide-react';
-import { cleanHtmlSummary, cleanArticleHtml } from '../../utils/agendaUtils';
+import { cleanHtmlSummary, cleanArticleHtml, getArticleExcerpt } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
 import { downloadArticlePdf } from '../../utils/articlePdf';
 
@@ -138,7 +138,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
               dangerouslySetInnerHTML={{ __html: cleanArticleHtml(selectedArticle.content) }}
             />
           ) : (
-            <p className="article-rich-content text-sm sm:text-base leading-relaxed text-justify">{cleanHtmlSummary(selectedArticle.summary)}</p>
+            <p className="article-rich-content text-sm sm:text-base leading-relaxed text-justify">{getArticleExcerpt(selectedArticle)}</p>
           )}
         </div>
       </div>
@@ -169,7 +169,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
                     {art.title}
                   </h3>
                   <p className="text-xs sm:text-sm text-[#433A30]/80 line-clamp-2 font-normal leading-relaxed">
-                    {cleanHtmlSummary(art.summary)}
+                    {getArticleExcerpt(art)}
                   </p>
                 </div>
                 <div className="mt-3.5 pt-3 border-t border-[#E6E1D5]/60">

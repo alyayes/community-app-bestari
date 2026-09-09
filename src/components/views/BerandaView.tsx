@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Image as ImageIcon
 } from 'lucide-react';
-import { getCategoryColor, cleanHtmlSummary } from '../../utils/agendaUtils';
+import { getCategoryColor, cleanHtmlSummary, getArticleExcerpt } from '../../utils/agendaUtils';
 
 interface BerandaViewProps {
   currentUser: UserProfile;
@@ -208,7 +208,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                         {art.title}
                       </h4>
                       <p className="text-xs text-[#433A30] line-clamp-2 mt-1 break-words">
-                        {cleanHtmlSummary(art.summary)}
+                        {getArticleExcerpt(art)}
                       </p>
                     </div>
                   </div>
