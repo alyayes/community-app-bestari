@@ -159,15 +159,22 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
   doc.roundedRect(margin, yPos, catWidth, 6.5, 2, 2, 'FD');
   doc.setTextColor(44, 66, 25);
   doc.text(categoryText, margin + 4, yPos + 4.6);
-  yPos += 11;
+
+  // Advance down comfortably to Title (ample breathing space, no overlapping!)
+  yPos += 18;
 
   // 2. Article Title (Clean, bold, prominent)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
   doc.setTextColor(44, 66, 25);
   const titleLines = doc.splitTextToSize(article.title || 'Informasi Edukasi', contentWidth);
-  doc.text(titleLines, margin, yPos);
-  yPos += titleLines.length * 8 + 3;
+  const titleLineHeight = 8.5;
+  titleLines.forEach((line: string, idx: number) => {
+    doc.text(line, margin, yPos + idx * titleLineHeight);
+  });
+
+  // Advance down to Metadata with generous spacing
+  yPos += (titleLines.length - 1) * titleLineHeight + 14;
 
   // 3. Metadata Strip (Minimal, clean, without harsh borders)
   const authorName = article.author?.name || 'Admin';
@@ -176,7 +183,13 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
   doc.setFontSize(9);
   doc.setTextColor(115, 105, 95);
   doc.text(metaText, margin, yPos);
-  yPos += 9;
+
+  // Subtle soft divider line below metadata
+  yPos += 5;
+  doc.setDrawColor(230, 225, 213);
+  doc.setLineWidth(0.3);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
 
   // 4. Featured Image (if available)
   const rawImg = article.gallery?.[0] || article.image;
