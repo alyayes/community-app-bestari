@@ -189,11 +189,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             <div className="text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
               {selectedArticle.content && (Array.isArray(selectedArticle.content) ? selectedArticle.content.length > 0 : Boolean(selectedArticle.content)) ? (
                 <div 
-                  className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base"
+                  className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base text-justify"
                   dangerouslySetInnerHTML={{ __html: cleanArticleHtml(selectedArticle.content) }}
                 />
               ) : (
-                <p className="article-rich-content text-sm sm:text-base leading-relaxed">{cleanHtmlSummary(selectedArticle.summary)}</p>
+                <p className="article-rich-content text-sm sm:text-base leading-relaxed text-justify">{cleanHtmlSummary(selectedArticle.summary)}</p>
               )}
             </div>
           </div>

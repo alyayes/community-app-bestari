@@ -199,7 +199,8 @@ input[type="password"]::-ms-clear {
   word-break: normal !important;
   overflow-wrap: break-word !important;
   hyphens: none !important;
-  text-align: left;
+  text-align: justify !important;
+  text-justify: inter-word;
 }
 
 .article-rich-content p,
@@ -207,19 +208,18 @@ input[type="password"]::-ms-clear {
 .article-rich-content div,
 .article-rich-content span,
 .article-rich-content strong,
-.article-rich-content em,
-.article-rich-content h1,
-.article-rich-content h2,
-.article-rich-content h3 {
+.article-rich-content em {
   word-break: normal !important;
   overflow-wrap: break-word !important;
   hyphens: none !important;
 }
 
 .article-rich-content p {
+  text-align: justify !important;
+  text-justify: inter-word;
   margin-top: 0 !important;
   margin-bottom: 1.15rem !important;
-  line-height: 1.8 !important;
+  line-height: 1.85 !important;
 }
 
 .article-rich-content p:last-child {
@@ -245,7 +245,15 @@ input[type="password"]::-ms-clear {
   list-style: inherit !important;
   margin-bottom: 0.45rem !important;
   padding-left: 0.35rem !important;
-  line-height: 1.75 !important;
+  line-height: 1.8 !important;
+  text-align: justify !important;
+  text-justify: inter-word;
+}
+
+.article-rich-content h1,
+.article-rich-content h2,
+.article-rich-content h3 {
+  text-align: left !important;
 }
 
 .article-rich-content strong {

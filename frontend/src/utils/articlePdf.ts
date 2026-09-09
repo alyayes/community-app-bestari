@@ -239,7 +239,7 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
     doc.setFontSize(10);
     doc.setTextColor(60, 55, 50);
     const lines = doc.splitTextToSize(String(article.summary || 'Tidak ada konten.'), contentWidth);
-    doc.text(lines, margin, yPos);
+    doc.text(lines, margin, yPos, { align: 'justify', maxWidth: contentWidth });
     yPos += lines.length * 5.5;
   } else {
     for (const block of blocks) {
@@ -286,10 +286,10 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
         doc.setTextColor(44, 66, 25);
         doc.text(prefix, margin + 1, yPos);
 
-        // Draw item text
+        // Draw item text with justify
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 55, 50);
-        doc.text(lines, indentMargin, yPos);
+        doc.text(lines, indentMargin, yPos, { align: 'justify', maxWidth: listTextWidth });
         yPos += lines.length * 5.2 + 1.5;
       } else if (block.type === 'blockquote') {
         doc.setFont('helvetica', 'italic');
@@ -307,10 +307,10 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
         doc.setLineWidth(0.8);
         doc.line(margin + 1, yPos - 3, margin + 1, yPos + height - 5);
 
-        doc.text(lines, indentMargin, yPos);
+        doc.text(lines, indentMargin, yPos, { align: 'justify', maxWidth: blockWidth });
         yPos += lines.length * 5 + 3;
       } else {
-        // Paragraph
+        // Paragraph with justify
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(60, 55, 50);
@@ -319,7 +319,7 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
         const height = lines.length * 5.2 + 3;
         checkPageBreak(height);
 
-        doc.text(lines, margin, yPos);
+        doc.text(lines, margin, yPos, { align: 'justify', maxWidth: contentWidth });
         yPos += lines.length * 5.2 + 3;
       }
     }
