@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { BASE_URL, resolveImageUrl } from '../../api/client';
 import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
-import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod, isEventPast } from '../../utils/agendaUtils';
+import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod, isEventPast, cleanHtmlSummary } from '../../utils/agendaUtils';
 import { IndonesianTimePicker, to12HourPeriod } from '../IndonesianTimePicker';
 import {
   Calendar as CalendarIcon,
@@ -959,13 +959,13 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 </div>
 
                 {/* Title */}
-                <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug break-words">
+                <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] leading-snug line-clamp-2 break-words" title={selectedEvent.title}>
                   {selectedEvent.title}
                 </h2>
 
-                {/* Description */}
-                <p className="text-sm text-[#433A30]/90 leading-relaxed whitespace-pre-line break-words">
-                  {selectedEvent.description}
+                {/* Description dibatasi agar tidak kepanjangan di sebelah kalender */}
+                <p className="text-xs sm:text-sm text-[#433A30]/90 leading-relaxed line-clamp-3 break-words">
+                  {cleanHtmlSummary(selectedEvent.description) || 'Tidak ada keterangan tambahan.'}
                 </p>
 
                 <hr className="border-[#E6E1D5]" />

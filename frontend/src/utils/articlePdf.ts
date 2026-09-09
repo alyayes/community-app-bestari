@@ -338,7 +338,6 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(140, 140, 140);
-    doc.text('Sistem Informasi Komunitas', margin, footerY);
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, footerY, { align: 'right' });
   }
 

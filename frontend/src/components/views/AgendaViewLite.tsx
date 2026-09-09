@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
-import { Calendar, Clock, CheckCircle2, ChevronDown, Lock, FileText, ExternalLink, Package, Gift, X } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, ChevronDown, Lock, FileText, ExternalLink, Package, Gift, X, Award, Download } from 'lucide-react';
 import { getCategoryColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod, isEventPast } from '../../utils/agendaUtils';
+import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
 import { resolveImageUrl } from '../../api/client';
 
 /** Hapus semua tag HTML dari string — untuk deskripsi yang tersimpan dalam format rich-text */
@@ -23,6 +24,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [statusFilter, setStatusFilter] = useState<'Semua' | 'Mendatang' | 'Selesai'>('Semua');
   const [detailEvent, setDetailEvent] = useState<AgendaEvent | null>(null);
+  const [claimedCerts, setClaimedCerts] = useState<Record<string, boolean>>({});
 
   const categoriesList = [
     'Semua',
@@ -39,6 +41,64 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
 
   const isUserAttended = (ev: AgendaEvent) =>
     ev.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended) || false;
+
+  const handleDownloadCertificate = async (certTemplateJson: string, event: AgendaEvent) => {
+    try {
+      localStorage.setItem(`cert_claimed_${event.id}_${currentUser?.id}`, 'true');
+      setClaimedCerts(prev => ({ ...prev, [event.id]: true }));
+
+      let config: any;
+      try {
+        config = JSON.parse(certTemplateJson);
+      } catch {
+        alert('Format templat sertifikat tidak valid.');
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const name = currentUser?.certificateName || currentUser?.name || 'Peserta';
+
+      const loadImage = (url: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
+        const im = new Image();
+        im.crossOrigin = 'Anonymous';
+        im.onload = () => res(im);
+        im.onerror = rej;
+        im.src = url;
+      });
+
+      let logoImg: HTMLImageElement | null = null;
+      let sigImg: HTMLImageElement | null = null;
+
+      if (config.logoUrl) {
+        try { logoImg = await loadImage(resolveImageUrl(config.logoUrl)); } catch {}
+      }
+      if (config.signatureUrl) {
+        try { sigImg = await loadImage(resolveImageUrl(config.signatureUrl)); } catch {}
+      }
+
+      drawCertificateOnCanvas(canvas, config, name, event, logoImg, sigImg);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Sertifikat-${event.title}-${name}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Gagal mengunduh sertifikat:', err);
+      alert('Terjadi kesalahan saat mencetak sertifikat. Pastikan koneksi internet stabil.');
+    }
+  };
+
+  const unclaimedCertificates = events.filter(e => {
+    return isEventPast(e) &&
+           isCertificateActive(e.certificateTemplate) &&
+           e.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended) &&
+           !localStorage.getItem(`cert_claimed_${e.id}_${currentUser?.id}`) &&
+           !claimedCerts[e.id];
+  });
 
   const isAdmin = currentUser?.role?.toLowerCase().includes('admin') || Boolean(currentUser?.isAdmin);
 
@@ -87,6 +147,33 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
         </h1>
       </div>
 
+      {/* Banner Sertifikat Belum Diunduh */}
+      {unclaimedCertificates.length > 0 && (
+        <div className="bg-gradient-to-r from-[#D97706] to-[#B45309] rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3 text-white">
+            <div className="p-2 bg-white/20 rounded-full animate-pulse">
+              <Award className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">Sertifikat Baru Tersedia!</h3>
+              <p className="text-xs text-white/90">Anda memiliki {unclaimedCertificates.length} sertifikat kegiatan yang telah diikuti & hadir.</p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            onClick={() => {
+              if (unclaimedCertificates[0]?.certificateTemplate) {
+                handleDownloadCertificate(unclaimedCertificates[0].certificateTemplate, unclaimedCertificates[0]);
+              }
+            }}
+            className="w-full sm:w-auto px-4 py-2 bg-white text-[#B45309] font-bold text-xs rounded-xl hover:bg-orange-50 transition-colors shadow-sm flex items-center justify-center gap-1.5 shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Unduh Sertifikat</span>
+          </button>
+        </div>
+      )}
+
       {/* Filters: 2-column dropdown */}
       <div className="grid grid-cols-2 gap-3">
         {/* Category Dropdown */}
@@ -126,6 +213,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredEvents.map((ev) => {
           const isRegistered = isUserRegistered(ev);
+          const isAttended = isUserAttended(ev);
           const isPast = isEventPast(ev);
           const cleanDesc = stripHtml(ev.description || '');
 
@@ -179,10 +267,22 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 {!isAdmin && (
                   isPast ? (
                     isRegistered ? (
-                      <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Telah Diikuti</span>
-                      </div>
+                      isAttended && ev.certificateTemplate && isCertificateActive(ev.certificateTemplate) ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadCertificate(ev.certificateTemplate!, ev)}
+                          className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#D97706] to-[#B45309] text-white shadow-xs flex items-center gap-1 hover:from-[#B45309] hover:to-[#92400E] active:scale-95 transition-all whitespace-nowrap"
+                          title="Unduh Sertifikat Kehadiran"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          <span>Unduh Sertifikat</span>
+                        </button>
+                      ) : (
+                        <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Telah Diikuti</span>
+                        </div>
+                      )
                     ) : (
                       <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1 cursor-default whitespace-nowrap">
                         <span>Selesai</span>
@@ -388,6 +488,41 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 </div>
               );
             })()}
+
+            {/* Sertifikat Kehadiran */}
+            {isEventPast(detailEvent) && isUserRegistered(detailEvent) && 
+             detailEvent.certificateTemplate && 
+             isUserAttended(detailEvent) && (
+              <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
+                <h3 className="font-title font-bold text-sm text-[#D97706] flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#D97706]/20 flex items-center justify-center text-[#D97706]">
+                    <Award className="w-3.5 h-3.5" />
+                  </div>
+                  Sertifikat Penghargaan
+                </h3>
+                
+                {isCertificateActive(detailEvent.certificateTemplate) ? (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadCertificate(detailEvent.certificateTemplate!, detailEvent)}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-br from-[#D97706] to-[#B45309] hover:from-[#B45309] hover:to-[#92400E] text-white rounded-xl font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 group"
+                  >
+                    <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    <span>Unduh Sertifikat Kehadiran Anda</span>
+                  </button>
+                ) : (
+                  <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-xs text-red-700 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-red-500" />
+                      Sertifikat Dinonaktifkan Sementara
+                    </p>
+                    <p className="text-[11px] text-red-600/90 leading-relaxed">
+                      Sertifikat untuk kegiatan ini sedang tidak tersedia atau dinonaktifkan sementara oleh pengurus. Silakan hubungi admin untuk bantuan.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Daftar / Batal Daftar Button */}
             {!isAdmin && !isEventPast(detailEvent) && (
