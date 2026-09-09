@@ -16,8 +16,9 @@ import {
   ArrowLeft,
   Image as ImageIcon
 } from 'lucide-react';
-import { cleanHtmlSummary } from '../../utils/agendaUtils';
+import { cleanHtmlSummary, cleanArticleHtml } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
+import { downloadArticlePdf } from '../../utils/articlePdf';
 
 interface InformasiViewProps {
   articles: InfoArticle[];
@@ -70,116 +71,18 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
     return 'bg-[#2C4219] text-white border-transparent';
   };
 
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
+
   const handleDownloadPDF = async () => {
-    if (!selectedArticle) return;
-    
+    if (!selectedArticle || isDownloadingPdf) return;
     try {
-      const doc = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      let yPos = margin;
-
-      // Draw Header Line
-      doc.setDrawColor(168, 183, 116); // #A8B774
-      doc.setLineWidth(1);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 10;
-
-      // Draw Title
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(44, 66, 25); // #2C4219
-      const titleLines = doc.splitTextToSize(selectedArticle.title, pageWidth - margin * 2);
-      doc.text(titleLines, margin, yPos);
-      yPos += (titleLines.length * 10);
-
-      // Draw Meta (Kategori, Penulis, Tanggal)
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-      const authorName = selectedArticle.author?.name || 'Sekretariat KWT Sorgum';
-      const metaText = `Kategori: ${selectedArticle.category || 'Umum'}   |   Penulis: ${authorName}   |   Tanggal: ${selectedArticle.date}`;
-      doc.text(metaText, margin, yPos);
-      yPos += 10;
-
-      // Draw Line
-      doc.setDrawColor(230, 225, 213); // #E6E1D5
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 15;
-
-      // Draw Image if exists
-      const imgUrl = resolveImageUrl(selectedArticle.gallery?.[0] || selectedArticle.image);
-      if (imgUrl) {
-         try {
-           const img = new Image();
-           img.crossOrigin = 'Anonymous';
-           img.src = imgUrl;
-           await new Promise((resolve, reject) => {
-             img.onload = resolve;
-             img.onerror = reject;
-           });
-           
-           const imgWidth = pageWidth - margin * 2;
-           const imgHeight = (img.height * imgWidth) / img.width;
-           
-           // Ensure image is not too tall for the page
-           let finalImgHeight = imgHeight;
-           let finalImgWidth = imgWidth;
-           if (imgHeight > 100) { 
-              finalImgHeight = 100;
-              finalImgWidth = (img.width * finalImgHeight) / img.height;
-           }
-           
-           if (yPos + finalImgHeight > pageHeight - margin) {
-              doc.addPage();
-              yPos = margin;
-           }
-           
-           // Draw to canvas to bypass direct jsPDF CORS restrictions
-           const canvas = document.createElement('canvas');
-           canvas.width = img.width;
-           canvas.height = img.height;
-           const ctx = canvas.getContext('2d');
-           if (ctx) {
-             ctx.drawImage(img, 0, 0);
-             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-             const xPos = margin + (imgWidth - finalImgWidth) / 2; // Center horizontally
-             doc.addImage(dataUrl, 'JPEG', xPos, yPos, finalImgWidth, finalImgHeight);
-             yPos += finalImgHeight + 15;
-           }
-         } catch (e) {
-           console.warn('Could not load image for PDF', e);
-         }
-      }
-
-      // Draw Content
-      doc.setFontSize(12);
-      doc.setTextColor(60, 60, 60);
-      const contentLines = doc.splitTextToSize(selectedArticle.content, pageWidth - margin * 2);
-      
-      contentLines.forEach((line: string) => {
-        if (yPos > pageHeight - margin - 15) {
-          doc.addPage();
-          yPos = margin;
-        }
-        doc.text(line, margin, yPos);
-        yPos += 7;
-      });
-
-      // Footer
-      if (yPos > pageHeight - margin) {
-        doc.addPage();
-        yPos = margin;
-      }
-      doc.setFontSize(9);
-      doc.setTextColor(150, 150, 150);
-      doc.text('Diunduh dari Sistem Informasi Komunitas', pageWidth / 2, pageHeight - 15, { align: 'center' });
-
-      doc.save(`${selectedArticle.title.substring(0, 25)}.pdf`);
+      setIsDownloadingPdf(true);
+      await downloadArticlePdf(selectedArticle);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
       alert('Maaf, terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.');
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -286,11 +189,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             <div className="text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
               {selectedArticle.content && (Array.isArray(selectedArticle.content) ? selectedArticle.content.length > 0 : Boolean(selectedArticle.content)) ? (
                 <div 
-                  className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base break-words"
-                  dangerouslySetInnerHTML={{ __html: Array.isArray(selectedArticle.content) ? selectedArticle.content.join('\n') : String(selectedArticle.content) }}
+                  className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base"
+                  dangerouslySetInnerHTML={{ __html: cleanArticleHtml(selectedArticle.content) }}
                 />
               ) : (
-                <p className="article-rich-content text-sm sm:text-base leading-relaxed break-words">{cleanHtmlSummary(selectedArticle.summary)}</p>
+                <p className="article-rich-content text-sm sm:text-base leading-relaxed">{cleanHtmlSummary(selectedArticle.summary)}</p>
               )}
             </div>
           </div>
@@ -354,10 +257,11 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
                 <button
                   onClick={handleDownloadPDF}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2"
+                  disabled={isDownloadingPdf}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#2C4219] hover:bg-[#1E2E11] disabled:opacity-60 text-white font-title font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Unduh Dokumen (PDF)
+                  {isDownloadingPdf ? 'Menyiapkan PDF...' : 'Unduh Dokumen (PDF)'}
                 </button>
                 <button
                   onClick={async () => {

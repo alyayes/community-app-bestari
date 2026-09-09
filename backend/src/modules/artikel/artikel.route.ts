@@ -9,9 +9,30 @@ import { timeAgo, formatDateID } from '../../utils/format';
 
 const router = Router();
 
+function cleanNbsp(val: any): any {
+  if (typeof val === 'string') {
+    return val
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ');
+  }
+  if (Array.isArray(val)) {
+    return val.map(cleanNbsp);
+  }
+  return val;
+}
+
 // Mapping Artikel -> InfoArticle frontend
 function toArticle(a: any) {
-  const content: string[] = typeof a.content === 'string' ? JSON.parse(a.content) : (a.content || []);
+  let parsedContent: any = a.content;
+  if (typeof a.content === 'string') {
+    try {
+      parsedContent = JSON.parse(a.content);
+    } catch {
+      parsedContent = a.content;
+    }
+  }
+  const content = cleanNbsp(parsedContent);
+  const summary = cleanNbsp(a.summary);
   const gallery: string[] = typeof a.gallery === 'string' ? JSON.parse(a.gallery) : (a.gallery || []);
   return {
     id: a.id,
@@ -20,7 +41,7 @@ function toArticle(a: any) {
     timeAgo: timeAgo(a.createdAt),
     date: formatDateID(a.createdAt),
     image: a.image || '',
-    summary: a.summary,
+    summary,
     content,
     gallery,
     author: {

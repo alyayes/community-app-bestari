@@ -195,9 +195,25 @@ input[type="password"]::-ms-clear {
 .article-rich-content {
   font-family: inherit;
   color: #433A30;
-  line-height: 1.8;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  line-height: 1.85;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
+  text-align: left;
+}
+
+.article-rich-content p,
+.article-rich-content li,
+.article-rich-content div,
+.article-rich-content span,
+.article-rich-content strong,
+.article-rich-content em,
+.article-rich-content h1,
+.article-rich-content h2,
+.article-rich-content h3 {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  hyphens: none !important;
 }
 
 .article-rich-content p {

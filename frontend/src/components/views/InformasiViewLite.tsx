@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { InfoArticle } from '../../types';
-import { ArrowLeft, Image as ImageIcon, ChevronLeft, Calendar, User, Layers } from 'lucide-react';
-import { cleanHtmlSummary } from '../../utils/agendaUtils';
+import { ArrowLeft, Image as ImageIcon, ChevronLeft, Calendar, User, Layers, Download } from 'lucide-react';
+import { cleanHtmlSummary, cleanArticleHtml } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
+import { downloadArticlePdf } from '../../utils/articlePdf';
 
 interface InformasiViewLiteProps {
   articles: InfoArticle[];
@@ -24,6 +25,20 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
   );
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (!selectedArticle || isDownloadingPdf) return;
+    try {
+      setIsDownloadingPdf(true);
+      await downloadArticlePdf(selectedArticle);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      alert('Maaf, terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedArticle?.gallery && selectedArticle.gallery.length > 1) {
@@ -50,20 +65,31 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           {selectedArticle.title}
         </h1>
 
-        {/* Metadata Badges (Tanggal, Penulis, Kategori) */}
-        <div className="flex flex-wrap items-center gap-2 text-xs text-[#7A7062] mb-5 pb-3 border-b border-[#E6E1D5]">
-          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#2C4219] shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-[#2C4219]" />
-            {selectedArticle.date || 'Rabu, 9 September 2026'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#433A30] shadow-2xs">
-            <User className="w-3.5 h-3.5 text-[#A8B774]" />
-            {selectedArticle.author?.name || 'Admin'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#572E4A] shadow-2xs">
-            <Layers className="w-3.5 h-3.5 text-[#572E4A]" />
-            {selectedArticle.category}
-          </span>
+        {/* Metadata Badges (Tanggal, Penulis, Kategori) & PDF Button */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#7A7062] mb-5 pb-3 border-b border-[#E6E1D5]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#2C4219] shadow-2xs">
+              <Calendar className="w-3.5 h-3.5 text-[#2C4219]" />
+              {selectedArticle.date || 'Rabu, 9 September 2026'}
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#433A30] shadow-2xs">
+              <User className="w-3.5 h-3.5 text-[#A8B774]" />
+              {selectedArticle.author?.name || 'Admin'}
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#572E4A] shadow-2xs">
+              <Layers className="w-3.5 h-3.5 text-[#572E4A]" />
+              {selectedArticle.category}
+            </span>
+          </div>
+
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isDownloadingPdf}
+            className="inline-flex items-center gap-1.5 bg-[#2C4219] hover:bg-[#1E2E11] disabled:opacity-50 text-white px-3 py-1.5 rounded-xl font-bold text-xs shadow-2xs active:scale-95 transition-all cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>{isDownloadingPdf ? 'Mengunduh...' : 'Unduh PDF'}</span>
+          </button>
         </div>
         
         {selectedArticle.gallery && selectedArticle.gallery.length > 0 ? (
@@ -108,11 +134,11 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
         <div className="text-sm sm:text-base text-[#433A30] leading-relaxed">
           {selectedArticle.content && (Array.isArray(selectedArticle.content) ? selectedArticle.content.length > 0 : Boolean(selectedArticle.content)) ? (
             <div 
-              className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base break-words"
-              dangerouslySetInnerHTML={{ __html: Array.isArray(selectedArticle.content) ? selectedArticle.content.join('\n') : String(selectedArticle.content) }}
+              className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base"
+              dangerouslySetInnerHTML={{ __html: cleanArticleHtml(selectedArticle.content) }}
             />
           ) : (
-            <p className="article-rich-content text-sm sm:text-base leading-relaxed break-words">{cleanHtmlSummary(selectedArticle.summary)}</p>
+            <p className="article-rich-content text-sm sm:text-base leading-relaxed">{cleanHtmlSummary(selectedArticle.summary)}</p>
           )}
         </div>
       </div>

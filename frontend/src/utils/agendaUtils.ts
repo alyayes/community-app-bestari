@@ -131,5 +131,18 @@ export const cleanHtmlSummary = (str?: string | null): string => {
     .trim();
 };
 
+/**
+ * Membersihkan &nbsp; dan karakter spasi non-breaking dari konten HTML artikel
+ * agar browser dapat melakukan word wrap secara alami per kata dan tidak memotong suku kata di tengah.
+ */
+export const cleanArticleHtml = (htmlContent?: string | string[] | null): string => {
+  if (!htmlContent) return '';
+  const raw = Array.isArray(htmlContent) ? htmlContent.join('\n') : String(htmlContent);
+  return raw
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/g, ' ');
+};
+
+
 
 
