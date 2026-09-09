@@ -148,69 +148,35 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
   const contentWidth = pageWidth - margin * 2; // 170mm
   let yPos = margin;
 
-  // 1. Header Bar
+  // 1. Category Tag (Pill)
+  const categoryText = (article.category || 'INFORMASI').toUpperCase();
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(44, 66, 25); // #2C4219
-  doc.text('KOMUNITAS KWT MELATI SORGUM', margin, yPos);
+  doc.setFontSize(8.5);
+  const catWidth = doc.getTextWidth(categoryText) + 8;
+  doc.setFillColor(243, 247, 237); // Soft light green
+  doc.setDrawColor(168, 183, 116); // #A8B774 subtle border
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, yPos, catWidth, 6.5, 2, 2, 'FD');
+  doc.setTextColor(44, 66, 25);
+  doc.text(categoryText, margin + 4, yPos + 4.6);
+  yPos += 11;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(122, 112, 98); // #7A7062
-  doc.text('DOKUMEN INFORMASI & EDUKASI RESMI', pageWidth - margin, yPos, { align: 'right' });
-  yPos += 3;
-
-  doc.setDrawColor(44, 66, 25);
-  doc.setLineWidth(0.8);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 8;
-
-  // 2. Article Title
+  // 2. Article Title (Clean, bold, prominent)
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
+  doc.setFontSize(20);
   doc.setTextColor(44, 66, 25);
   const titleLines = doc.splitTextToSize(article.title || 'Informasi Edukasi', contentWidth);
   doc.text(titleLines, margin, yPos);
-  yPos += titleLines.length * 7.5 + 4;
+  yPos += titleLines.length * 8 + 3;
 
-  // 3. Metadata Card (Kategori, Tanggal, Penulis)
-  const metaHeight = 11;
-  doc.setFillColor(250, 246, 238); // #FAF6EE
-  doc.setDrawColor(230, 225, 213); // #E6E1D5
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, yPos, contentWidth, metaHeight, 2, 2, 'FD');
-
-  const metaY = yPos + 7;
-  const colWidth = contentWidth / 3;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 100, 100);
-
-  // Kategori
-  doc.text('Kategori:', margin + 4, metaY);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(44, 66, 25);
-  doc.text(article.category || 'Umum', margin + 18, metaY);
-
-  // Tanggal
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text('Tanggal:', margin + colWidth + 4, metaY);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(44, 66, 25);
-  doc.text(article.date || 'Rabu, 9 September 2026', margin + colWidth + 18, metaY);
-
-  // Penulis
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
-  doc.text('Penulis:', margin + colWidth * 2 + 4, metaY);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(44, 66, 25);
+  // 3. Metadata Strip (Minimal, clean, without harsh borders)
   const authorName = article.author?.name || 'Admin';
-  doc.text(authorName.slice(0, 22), margin + colWidth * 2 + 17, metaY);
-
-  yPos += metaHeight + 8;
+  const metaText = `Tanggal: ${article.date || 'Rabu, 9 September 2026'}   •   Penulis: ${authorName}   •   Kategori: ${article.category || 'Umum'}`;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(115, 105, 95);
+  doc.text(metaText, margin, yPos);
+  yPos += 9;
 
   // 4. Featured Image (if available)
   const rawImg = article.gallery?.[0] || article.image;
@@ -219,7 +185,7 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
     if (imgObj) {
       let imgW = contentWidth;
       let imgH = (imgObj.height * imgW) / imgObj.width;
-      const maxImgH = 80;
+      const maxImgH = 85;
       if (imgH > maxImgH) {
         imgH = maxImgH;
         imgW = (imgObj.width * imgH) / imgObj.height;
@@ -232,7 +198,7 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
 
       const imgX = margin + (contentWidth - imgW) / 2;
       doc.addImage(imgObj.dataUrl, 'JPEG', imgX, yPos, imgW, imgH);
-      yPos += imgH + 8;
+      yPos += imgH + 10;
     }
   }
 
@@ -241,11 +207,6 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
   doc.setFontSize(13);
   doc.setTextColor(44, 66, 25);
   doc.text('Detail Informasi', margin, yPos);
-  yPos += 2;
-
-  doc.setDrawColor(200, 210, 180);
-  doc.setLineWidth(0.4);
-  doc.line(margin, yPos, margin + 40, yPos);
   yPos += 7;
 
   // 6. Content Blocks
@@ -364,14 +325,15 @@ export const downloadArticlePdf = async (article: InfoArticle): Promise<void> =>
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(140, 140, 140);
-    doc.text('Sistem Informasi Komunitas KWT Melati Sorgum', margin, footerY);
+    doc.text('Sistem Informasi Komunitas', margin, footerY);
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - margin, footerY, { align: 'right' });
   }
 
-  // 8. Save Document with clean filename
-  const cleanTitle = (article.title || 'Dokumen_Informasi')
-    .replace(/[^a-zA-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .slice(0, 40);
+  // 8. Save Document with full complete title and NO underscores
+  const cleanTitle = (article.title || 'Dokumen Informasi')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
   doc.save(`${cleanTitle}.pdf`);
 };
