@@ -506,7 +506,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    if (newDate) {
+    if (!isEditing && currentUser?.role !== 'ADMIN' && newDate) {
       const selectedDate = new Date(newDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);

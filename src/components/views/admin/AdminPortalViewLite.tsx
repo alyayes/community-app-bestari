@@ -427,6 +427,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   const [agContactPhone, setAgContactPhone] = useState('');
   const [agRequirements, setAgRequirements] = useState('');
   const [agBenefits, setAgBenefits] = useState('');
+  const [agQuotaMax, setAgQuotaMax] = useState<number>(50);
   
   // Materials and Documentation
   const [agMateriUrls, setAgMateriUrls] = useState<string[]>([]);
@@ -748,6 +749,51 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
   // Normalisasi URL gambar agar tahan ganti domain
   const cmsImgUrl = (u: string) => resolveImageUrl(u);
+
+  // Helper render styling judul banner Poppins dengan aksen garis wavy
+  const renderCmsPreviewTitle = (titleStr?: string) => {
+    if (!titleStr) {
+      return (
+        <>
+          Menanam Bersama, <br />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            Tumbuh Bersama
+          </span>
+        </>
+      );
+    }
+
+    const normalized = titleStr.replace(/\\n/g, '\n');
+    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+
+    if (lines.length > 1) {
+      const firstPart = lines.slice(0, -1).join(' ');
+      const lastPart = lines[lines.length - 1];
+      return (
+        <>
+          {firstPart} <br />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            {lastPart}
+          </span>
+        </>
+      );
+    }
+
+    if (titleStr.includes(',')) {
+      const parts = titleStr.split(',');
+      return (
+        <>
+          {parts[0].trim()}, <br />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            {parts.slice(1).join(',').trim()}
+          </span>
+        </>
+      );
+    }
+
+    return <span>{titleStr}</span>;
+  };
+
   const handleSaveCms = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: CmsData = {
@@ -799,6 +845,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     setAgLocation('Balai Desa Sukamaju');
     setAgOrganizer(currentUser?.name || 'Admin');
     setAgStatus('Belum dimulai');
+    setAgQuotaMax(50);
     setAgDescription('');
     setAgTargetParticipants('');
     setAgContactName('');
@@ -834,9 +881,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       setAgStartTime('09:00');
       setAgEndTime('12:00');
     }
-    setAgLocation(ag.location || '');
+    setAgLocation(ag.location || 'Balai Desa Sukamaju');
     setAgOrganizer(ag.organizer || 'Admin KWT');
     setAgStatus(ag.status || 'Belum dimulai');
+    setAgQuotaMax(ag.quota?.max ?? 50);
     setAgDescription(ag.description || '');
     setAgTargetParticipants((ag as any).targetParticipants || '');
     setAgContactName((ag as any).contactPerson?.name || '');
@@ -847,6 +895,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     setAgDokumentasiUrls(ag.dokumentasiUrls || []);
     setAgLinkUrls(ag.linkUrls || []);
     setAgCertificateTemplate(ag.certificateTemplate || '');
+    setAgCertificateFile(null);
     setAgLinkInput('');
     setAgMateriFiles([]);
     setAgDokumentasiFiles([]);
@@ -864,16 +913,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     }
 
     const formattedAgTitle = autoCapitalizeFirst(trimmedAgTitle);
-
-    if (agDate) {
-      const selectedDate = new Date(agDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (!isNaN(selectedDate.getTime()) && selectedDate < today) {
-        setShowDateWarning(true);
-        return;
-      }
-    }
 
     // Upload files if any
     let uploadedMateri = [...agMateriUrls];
@@ -910,12 +949,19 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       ? (agEndTime ? `${agStartTime} - ${agEndTime} WIB (${period})` : `${agStartTime} WIB (${period})`) 
       : formatEventTimeWithPeriod(agTime);
 
-    if (editingAgenda) {
-      const d = new Date(agDate);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-      const updatedDayNumber = isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0');
-      const updatedMonthAbbr = isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()];
+    const d = new Date(agDate + 'T00:00:00');
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+    const updatedDayNumber = isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0');
+    const updatedMonthAbbr = isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()];
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = !isNaN(d.getTime()) && d < today;
+    // Jika tanggal lampau, otomatis Selesai (siap untuk simulasi sertifikat/arsip). Jika hari ini/mendatang, otomatis Belum dimulai.
+    const finalStatus: 'Belum dimulai' | 'Selesai' = isPast ? 'Selesai' : 'Belum dimulai';
+    const finalStatusType = finalStatus === 'Selesai' ? 'neutral' : 'success';
+
+    if (editingAgenda) {
       const updated = agendaList.map(a =>
         a.id === editingAgenda.id ? {
           ...a,
@@ -927,10 +973,15 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           time: computedFinalTime,
           location: agLocation,
           organizer: agOrganizer,
-          status: agStatus as any,
+          status: finalStatus,
+          statusType: finalStatusType,
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
+          quota: {
+            registered: a.quota?.registered || (a.peserta ? a.peserta.filter(p => !p.userName?.toLowerCase().includes('admin')).length : 0),
+            max: agQuotaMax
+          },
           requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
           benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
           materiUrls: uploadedMateri,
@@ -942,48 +993,53 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       setAgendaList(updated);
       if (onUpdateAgendas) onUpdateAgendas(updated);
       showToast(`Agenda "${formattedAgTitle}" berhasil diperbarui!`);
+
       // Update ke backend (best effort)
-      if (!editingAgenda.id.startsWith('ag_1') && !editingAgenda.id.startsWith('ag_2') && !editingAgenda.id.startsWith('ag_3')) {
-        api(`/agenda/${editingAgenda.id}`, {
-          method: 'PUT',
-          body: {
-            title: formattedAgTitle,
-            category: agCategory,
-            date: agDate,
-            time: computedFinalTime,
-            location: agLocation,
-            organizer: agOrganizer,
-            status: agStatus,
-            description: agDescription,
-            targetParticipants: agTargetParticipants,
-            contactPerson: { name: agContactName, phone: agContactPhone },
-            requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-            benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-            materiUrls: uploadedMateri,
-            dokumentasiUrls: uploadedDok,
-            linkUrls: agLinkUrls,
-            certificateTemplate: uploadedCert
-          }
-        }).catch(err => console.error('Failed to update agenda on backend:', err));
-      }
+      api(`/agenda/${editingAgenda.id}`, {
+        method: 'PUT',
+        body: {
+          title: formattedAgTitle,
+          category: agCategory,
+          date: agDate,
+          dayNumber: updatedDayNumber,
+          monthAbbr: updatedMonthAbbr,
+          time: computedFinalTime,
+          location: agLocation,
+          organizer: agOrganizer,
+          status: finalStatus,
+          statusType: finalStatusType,
+          description: agDescription,
+          targetParticipants: agTargetParticipants,
+          contactPerson: { name: agContactName, phone: agContactPhone },
+          quota: {
+            registered: (editingAgenda as any).quota?.registered || (editingAgenda.peserta ? editingAgenda.peserta.filter(p => !p.userName?.toLowerCase().includes('admin')).length : 0),
+            max: agQuotaMax
+          },
+          requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+          materiUrls: uploadedMateri,
+          dokumentasiUrls: uploadedDok,
+          linkUrls: agLinkUrls,
+          certificateTemplate: uploadedCert
+        }
+      }).catch(err => console.error('Failed to update agenda on backend:', err));
     } else {
-      const d = new Date(agDate);
-      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
       const newAg: AgendaEvent = {
         id: `ag_${Date.now()}`,
         title: formattedAgTitle,
         category: agCategory,
         date: agDate,
-        dayNumber: isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0'),
-        monthAbbr: isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()],
+        dayNumber: updatedDayNumber,
+        monthAbbr: updatedMonthAbbr,
         time: computedFinalTime,
         location: agLocation,
         organizer: agOrganizer,
-        status: agStatus as any,
-        statusType: 'success',
+        status: finalStatus,
+        statusType: finalStatusType,
         description: agDescription,
         targetParticipants: agTargetParticipants,
         contactPerson: { name: agContactName, phone: agContactPhone },
+        quota: { registered: 0, max: agQuotaMax },
         requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
         benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
         materiUrls: uploadedMateri,
@@ -1003,13 +1059,17 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           title: formattedAgTitle,
           category: agCategory,
           date: agDate,
+          dayNumber: updatedDayNumber,
+          monthAbbr: updatedMonthAbbr,
           time: computedFinalTime,
           location: agLocation,
           organizer: agOrganizer,
-          status: agStatus,
+          status: finalStatus,
+          statusType: finalStatusType,
           description: agDescription,
           targetParticipants: agTargetParticipants,
           contactPerson: { name: agContactName, phone: agContactPhone },
+          quota: { registered: 0, max: agQuotaMax },
           requirements: agRequirements ? agRequirements.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
           benefits: agBenefits ? agBenefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
           materiUrls: uploadedMateri,
@@ -2127,21 +2187,21 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
               </div>
 
               {/* Page Switcher Tabs */}
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 font-['Poppins']">
                 {([
-                  { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo & Nama' },
-                  { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero & carousel' },
-                  { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar' },
-                  { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan bergabung' },
-                  { key: 'footer', label: 'Pengaturan Footer', icon: LayoutGrid, desc: 'Teks & Tautan' }
+                  { key: 'identitas', label: 'Identitas Web', icon: Type, desc: 'Logo, nama & subtitle' },
+                  { key: 'landing', label: 'Halaman Utama', icon: Home, desc: 'Hero banner & carousel' },
+                  { key: 'login', label: 'Halaman Login', icon: LogIn, desc: 'Sambutan & gambar masuk' },
+                  { key: 'register', label: 'Halaman Register', icon: UserPlus, desc: 'Ajakan & gambar daftar' },
+                  { key: 'footer', label: 'Pengaturan Footer', icon: LayoutGrid, desc: 'Kebijakan & bantuan' }
                 ] as const).map(({ key, label, icon: Icon, desc }) => (
                   <button
                     key={key}
                     type="button"
                     onClick={() => setCmsActivePage(key)}
-                    className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98]
+                    className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98] cursor-pointer
                     ${cmsActivePage === key
-                        ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/20'
+                        ? 'bg-[#2C4219] text-white border-[#2C4219] shadow-lg shadow-[#2C4219]/25 ring-2 ring-[#A8B774]/40'
                         : 'bg-white text-[#433A30] border-[#E6E1D5] hover:border-[#2C4219]/40 hover:shadow-md'}`}
                   >
                     <div className="flex items-center gap-3">
@@ -2150,8 +2210,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-title font-bold text-sm leading-tight">{label}</p>
-                        <p className={`text-[11px] mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/80' : 'text-[#433A30]/60'}`}>{desc}</p>
+                        <p className="font-['Poppins'] font-bold text-sm leading-tight">{label}</p>
+                        <p className={`font-['Poppins'] text-xs mt-0.5 ${cmsActivePage === key ? 'text-[#E2E8D5]/85' : 'text-[#7A7062]'}`}>{desc}</p>
                       </div>
                       {cmsActivePage === key && (
                         <CheckCircle2 className="w-4 h-4 text-[#A8B774] ml-auto shrink-0" />
@@ -2167,52 +2227,56 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                   {/* ── IDENTITAS WEB EDITOR ── */}
                   {cmsActivePage === 'identitas' && (
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                        <Type className="w-5 h-5 text-[#2C4219]" />
-                        <h2 className="font-title font-bold text-base text-[#2C4219]">Identitas Website</h2>
+                    <div className="space-y-6 font-['Poppins']">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-[#E6E1D5]">
+                        <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-center text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" />
+                        </div>
+                        <div>
+                          <h2 className="font-['Poppins'] font-bold text-base sm:text-lg text-[#2C4219]">Identitas Website</h2>
+                          <p className="text-xs text-[#7A7062]">Atur nama web, subtitle resmi, dan logo aplikasi</p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <Type className="w-3.5 h-3.5" /> Nama Website
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" /> Nama Website
                         </label>
                         <input
                           type="text"
                           value={cmsWebName}
                           onChange={(e) => setCmsWebName(e.target.value)}
-                          placeholder="Contoh: KWT Sorgum"
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                          placeholder="Contoh: Community App"
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all placeholder:text-gray-400"
                         />
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <Type className="w-3.5 h-3.5" /> Subtitle / Teks Tambahan
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" /> Subtitle / Teks Tambahan
                         </label>
                         <input
                           type="text"
                           value={cmsWebSubtitle}
                           onChange={(e) => setCmsWebSubtitle(e.target.value)}
                           placeholder="Contoh: KWT MELATI SORGUM"
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all placeholder:text-gray-400"
                         />
                       </div>
 
-
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <ImageIcon className="w-3.5 h-3.5" /> Logo Website
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <ImageIcon className="w-4 h-4 text-[#A8B774]" /> Logo Website
                         </label>
 
                         {cmsWebLogo && (
-                          <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-[#A8B774]/60 bg-white mb-2">
-                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain p-2" />
+                          <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-[#A8B774]/60 bg-white p-2 shadow-sm mb-3">
+                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain" />
                             <button
                               type="button"
                               onClick={() => setCmsWebLogo('')}
                               title="Hapus gambar"
-                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -2224,13 +2288,13 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             value={cmsWebLogo}
                             onChange={(e) => setCmsWebLogo(e.target.value)}
                             placeholder="Atau masukkan URL logo (https://...)"
-                            className="w-full p-2.5 rounded-xl border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50"
+                            className="w-full p-3.5 rounded-xl border border-[#E6E1D5] text-sm font-medium focus:outline-none focus:border-[#2C4219] bg-[#FAF6EE]/50 placeholder:text-gray-400"
                           />
                         )}
 
                         <div className="mt-2">
-                          <label className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
-                            <Upload className="w-4 h-4" />
+                          <label className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                            <Upload className="w-4 h-4 text-[#A8B774]" />
                             {cmsUploading ? 'Mengunggah...' : 'Upload Logo Baru'}
                             <input
                               type="file"
@@ -2258,62 +2322,70 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                   {/* ── LANDING EDITOR ── */}
                   {cmsActivePage === 'landing' && (
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                        <Home className="w-5 h-5 text-[#2C4219]" />
-                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Utama</h2>
+                    <div className="space-y-6 font-['Poppins']">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-[#E6E1D5]">
+                        <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-center text-[#2C4219]">
+                          <Home className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h2 className="font-['Poppins'] font-bold text-base sm:text-lg text-[#2C4219]">Konten Halaman Utama (Banner Hero)</h2>
+                          <p className="text-xs text-[#7A7062]">Atur teks judul besar dan deskripsi banner halaman beranda</p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <Type className="w-3.5 h-3.5" /> Judul Utama
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" /> Judul Utama Banner (Headline)
                         </label>
                         <input
                           type="text"
                           value={cmsLandingTitle}
                           onChange={(e) => setCmsLandingTitle(e.target.value)}
-                          placeholder="Contoh: Bersama Menanam, Bersama Sejahtera"
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                          placeholder="Contoh: Menanam Bersama,\nTumbuh Bersama"
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all placeholder:text-gray-400"
                         />
-                        <p className="text-[10px] text-[#7A7062]">Gunakan \n untuk baris baru.</p>
+                        <p className="text-xs text-[#7A7062]">
+                          💡 Tips: Gunakan tanda koma (<b>,</b>) atau <b>\n</b> untuk membagi baris kedua yang bergaris aksen hijau.
+                        </p>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <FileText className="w-3.5 h-3.5" /> Deskripsi Pendek
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <FileText className="w-4 h-4 text-[#A8B774]" /> Deskripsi Pendek Banner (Subheadline)
                         </label>
                         <textarea
                           value={cmsLandingDesc}
                           onChange={(e) => setCmsLandingDesc(e.target.value)}
-                          rows={3}
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                          rows={4}
+                          placeholder="Tuliskan kalimat ajakan atau penjelasan singkat komunitas..."
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-medium text-[#433A30] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none leading-relaxed placeholder:text-gray-400"
                         />
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Carousel ({cmsLandingImages.length})
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <ImageIcon className="w-4 h-4 text-[#A8B774]" /> Gambar Carousel ({cmsLandingImages.length})
                         </label>
 
                         {/* Grid foto dinamis */}
                         {cmsLandingImages.length > 0 && (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {cmsLandingImages.map((url, idx) => (
-                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
                                     <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
-                                      <span className="text-[10px]">Masukkan URL</span>
+                                      <span className="text-xs">Masukkan URL</span>
                                     </div>
                                   )}
                                   <button
                                     type="button"
                                     onClick={() => setCmsLandingImages(prev => prev.filter((_, i) => i !== idx))}
                                     title="Hapus gambar"
-                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -2328,7 +2400,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                                     if (text) setCmsLandingImages(prev => prev.map((u, i) => i === idx ? text : u));
                                   }}
                                   placeholder="https://..."
-                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-white"
                                 />
                               </div>
                             ))}
@@ -2337,10 +2409,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                         {/* 2 Opsi Upload */}
                         <div className="grid grid-cols-2 gap-3 mt-3">
-                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
                             <ImageIcon className="w-5 h-5 mb-0.5" />
                             {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -2367,11 +2439,11 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setCmsLandingImages(prev => [...prev, ''])}
-                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
                           >
                             <Link className="w-5 h-5 mb-0.5" />
                             Opsi 2: Gunakan URL
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
                           </button>
                         </div>
                       </div>
@@ -2380,60 +2452,69 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                   {/* ── LOGIN EDITOR ── */}
                   {cmsActivePage === 'login' && (
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                        <LogIn className="w-5 h-5 text-[#2C4219]" />
-                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Login</h2>
+                    <div className="space-y-6 font-['Poppins']">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-[#E6E1D5]">
+                        <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-center text-[#2C4219]">
+                          <LogIn className="w-4 h-4 text-[#A8B774]" />
+                        </div>
+                        <div>
+                          <h2 className="font-['Poppins'] font-bold text-base sm:text-lg text-[#2C4219]">Konten Halaman Login</h2>
+                          <p className="text-xs text-[#7A7062]">Atur judul sambutan, deskripsi, dan foto background masuk</p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <Type className="w-3.5 h-3.5" /> Judul Login
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" /> Judul Login
                         </label>
                         <input
                           type="text"
                           value={cmsLoginTitle}
                           onChange={(e) => setCmsLoginTitle(e.target.value)}
-                          placeholder="Contoh: Selamat Datang\nKembali Ibu!"
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                          placeholder="Contoh: Selamat Datang Kembali,\nIbu Petani Hebat!"
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all placeholder:text-gray-400"
                         />
+                        <p className="text-xs text-[#7A7062]">
+                          💡 Tips: Gunakan tanda koma (<b>,</b>) atau <b>\n</b> untuk membagi baris teks.
+                        </p>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <FileText className="w-3.5 h-3.5" /> Deskripsi Login
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <FileText className="w-4 h-4 text-[#A8B774]" /> Deskripsi Login
                         </label>
                         <textarea
                           value={cmsLoginDesc}
                           onChange={(e) => setCmsLoginDesc(e.target.value)}
                           rows={3}
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                          placeholder="Tuliskan petunjuk atau kalimat sapaan untuk pengguna..."
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-medium text-[#433A30] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none leading-relaxed placeholder:text-gray-400"
                         />
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Login ({cmsLoginImages.length})
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <ImageIcon className="w-4 h-4 text-[#A8B774]" /> Gambar Background Login ({cmsLoginImages.length})
                         </label>
                         {/* Grid foto dinamis */}
                         {cmsLoginImages.length > 0 && (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {cmsLoginImages.map((url, idx) => (
-                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
                                     <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
-                                      <span className="text-[10px]">Masukkan URL</span>
+                                      <span className="text-xs">Masukkan URL</span>
                                     </div>
                                   )}
                                   <button
                                     type="button"
                                     onClick={() => setCmsLoginImages(prev => prev.filter((_, i) => i !== idx))}
                                     title="Hapus gambar"
-                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -2448,7 +2529,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                                     if (text) setCmsLoginImages(prev => prev.map((u, i) => i === idx ? text : u));
                                   }}
                                   placeholder="https://..."
-                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-white"
                                 />
                               </div>
                             ))}
@@ -2456,10 +2537,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                         )}
 
                         <div className="grid grid-cols-2 gap-3 mt-3">
-                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
                             <ImageIcon className="w-5 h-5 mb-0.5" />
                             {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -2486,11 +2567,11 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setCmsLoginImages(prev => [...prev, ''])}
-                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
                           >
                             <Link className="w-5 h-5 mb-0.5" />
                             Opsi 2: Gunakan URL
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
                           </button>
                         </div>
                       </div>
@@ -2499,60 +2580,69 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                   {/* ── REGISTER EDITOR ── */}
                   {cmsActivePage === 'register' && (
-                    <div className="space-y-5">
-                      <div className="flex items-center gap-2 pb-3 border-b border-[#E6E1D5]">
-                        <UserPlus className="w-5 h-5 text-[#2C4219]" />
-                        <h2 className="font-title font-bold text-base text-[#2C4219]">Halaman Register</h2>
+                    <div className="space-y-6 font-['Poppins']">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-[#E6E1D5]">
+                        <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-center text-[#2C4219]">
+                          <UserPlus className="w-4 h-4 text-[#A8B774]" />
+                        </div>
+                        <div>
+                          <h2 className="font-['Poppins'] font-bold text-base sm:text-lg text-[#2C4219]">Konten Halaman Register</h2>
+                          <p className="text-xs text-[#7A7062]">Atur ajakan bergabung dan gambar latar belakang pendaftaran</p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <Type className="w-3.5 h-3.5" /> Judul Register
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <Type className="w-4 h-4 text-[#A8B774]" /> Judul Register
                         </label>
                         <input
                           type="text"
                           value={cmsRegTitle}
                           onChange={(e) => setCmsRegTitle(e.target.value)}
                           placeholder="Contoh: Komunitas Sorgum,\nTumbuh & Maju Bersama"
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all"
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all placeholder:text-gray-400"
                         />
+                        <p className="text-xs text-[#7A7062]">
+                          💡 Tips: Gunakan tanda koma (<b>,</b>) atau <b>\n</b> untuk membagi baris kedua.
+                        </p>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <FileText className="w-3.5 h-3.5" /> Deskripsi Register
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <FileText className="w-4 h-4 text-[#A8B774]" /> Deskripsi Register
                         </label>
                         <textarea
                           value={cmsRegDesc}
                           onChange={(e) => setCmsRegDesc(e.target.value)}
                           rows={3}
-                          className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-xs font-semibold focus:outline-none focus:border-[#2C4219] focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none"
+                          placeholder="Tuliskan ajakan manis untuk mendaftar akun baru..."
+                          className="w-full p-3.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE]/50 text-sm font-medium text-[#433A30] focus:outline-none focus:border-[#2C4219] focus:bg-white focus:ring-2 focus:ring-[#2C4219]/10 transition-all resize-none leading-relaxed placeholder:text-gray-400"
                         />
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="flex items-center gap-1.5 font-bold text-xs text-[#2C4219]">
-                          <ImageIcon className="w-3.5 h-3.5" /> Gambar Background Register ({cmsRegImages.length})
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 font-bold text-sm text-[#2C4219]">
+                          <ImageIcon className="w-4 h-4 text-[#A8B774]" /> Gambar Background Register ({cmsRegImages.length})
                         </label>
                         {/* Grid foto dinamis */}
                         {cmsRegImages.length > 0 && (
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {cmsRegImages.map((url, idx) => (
-                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2 rounded-xl border border-[#E6E1D5]">
-                                <div className="relative h-24 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
+                              <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
+                                <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
                                     <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
-                                      <span className="text-[10px]">Masukkan URL</span>
+                                      <span className="text-xs">Masukkan URL</span>
                                     </div>
                                   )}
                                   <button
                                     type="button"
                                     onClick={() => setCmsRegImages(prev => prev.filter((_, i) => i !== idx))}
                                     title="Hapus gambar"
-                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
+                                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-sm"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
@@ -2567,7 +2657,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                                     if (text) setCmsRegImages(prev => prev.map((u, i) => i === idx ? text : u));
                                   }}
                                   placeholder="https://..."
-                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-[10px] font-medium focus:outline-none focus:border-[#2C4219] bg-white"
+                                  className="w-full p-2 rounded-lg border border-[#E6E1D5] text-xs font-medium focus:outline-none focus:border-[#2C4219] bg-white"
                                 />
                               </div>
                             ))}
@@ -2575,10 +2665,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                         )}
 
                         <div className="grid grid-cols-2 gap-3 mt-3">
-                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <label className={`flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] cursor-pointer hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95 ${cmsUploading ? 'opacity-60 pointer-events-none' : ''}`}>
                             <ImageIcon className="w-5 h-5 mb-0.5" />
                             {cmsUploading ? 'Mengunggah...' : 'Opsi 1: Upload File'}
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Pilih gambar dari perangkat</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -2605,11 +2695,11 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setCmsRegImages(prev => [...prev, ''])}
-                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-[11px] font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
+                            className="flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 border-dashed border-[#2C4219]/40 bg-[#FAF6EE] text-xs font-bold text-[#2C4219] hover:bg-[#F0EADF] hover:border-[#2C4219] transition-all active:scale-95"
                           >
                             <Link className="w-5 h-5 mb-0.5" />
                             Opsi 2: Gunakan URL
-                            <span className="text-[9px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
+                            <span className="text-[10px] font-medium text-[#433A30]/60">Tempel link gambar dari web</span>
                           </button>
                         </div>
                       </div>
@@ -2710,105 +2800,155 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                     {/* Landing Preview */}
                     {cmsActivePage === 'landing' && (
-                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                          {cmsLandingImages[0] && (
-                            <img src={cmsImgUrl(cmsLandingImages[0])} alt="Hero" className="w-full h-full object-cover opacity-60" />
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-xl bg-[#1E2E11] text-white flex flex-col font-['Poppins']">
+                        {/* Hero Screen Simulation */}
+                        <div className="relative p-6 sm:p-8 flex flex-col items-center text-center justify-center min-h-[380px] overflow-hidden">
+                          {/* Background Image Layer */}
+                          {cmsLandingImages[0] ? (
+                            <img
+                              src={cmsImgUrl(cmsLandingImages[0])}
+                              alt="Hero Preview"
+                              className="absolute inset-0 w-full h-full object-cover opacity-35"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-[#2C4219]" />
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] to-transparent" />
-                          <div className="absolute inset-x-6 bottom-6 flex flex-col items-center text-center">
-                            <h3 className="font-title font-bold text-white text-3xl leading-tight drop-shadow-md">
-                              {cmsLandingTitle || 'Judul Utama'}
+                          {/* Rich Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] via-[#1E2E11]/80 to-black/60" />
+
+                          {/* Glow Orbs */}
+                          <div className="absolute top-6 left-8 w-20 h-20 rounded-full bg-[#A8B774]/20 blur-2xl pointer-events-none" />
+                          <div className="absolute bottom-8 right-8 w-24 h-24 rounded-full bg-amber-400/15 blur-2xl pointer-events-none" />
+
+                          <div className="relative z-10 max-w-md mx-auto space-y-4">
+                            {/* Hero Headline */}
+                            <h3 className="font-['Poppins'] font-bold text-xl sm:text-2xl text-white tracking-tight leading-tight drop-shadow-md">
+                              {renderCmsPreviewTitle(cmsLandingTitle)}
                             </h3>
+
+                            {/* Subheadline */}
+                            <p className="font-['Poppins'] max-w-xl mx-auto text-sm sm:text-base text-gray-100 font-medium leading-relaxed drop-shadow-md">
+                              {cmsLandingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
+                            </p>
+
+                            {/* Simulated CTA Buttons */}
+                            <div className="pt-2 flex items-center justify-center gap-3">
+                              <div className="px-4 py-2 rounded-full bg-[#2C4219] text-white text-xs font-bold border border-[#A8B774] shadow-md flex items-center gap-1.5 cursor-default">
+                                <LogIn className="w-3.5 h-3.5 text-[#A8B774]" />
+                                Masuk Aplikasi
+                              </div>
+                              <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white text-xs font-semibold border border-white/20 shadow-md cursor-default">
+                                Daftar Akun
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-6 bg-white shrink-0">
-                          <p className="text-sm text-[#433A30]/90 text-center leading-relaxed line-clamp-3">
-                            {cmsLandingDesc || 'Deskripsi singkat akan tampil di sini.'}
-                          </p>
-                          {cmsLandingImages.length > 0 && (
-                            <div className="flex gap-3 mt-4 overflow-x-auto pb-2 justify-center">
-                              {cmsLandingImages.map((img, i) => (
-                                <div key={i} className="w-16 h-12 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
-                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+
+                        {/* Carousel Thumbnails Strip */}
+                        {cmsLandingImages.length > 0 && (
+                          <div className="p-3 bg-[#17230D] border-t border-white/10 flex items-center gap-2 overflow-x-auto justify-center">
+                            <span className="text-[11px] text-gray-400 font-medium shrink-0 mr-1">Slide:</span>
+                            {cmsLandingImages.map((img, i) => (
+                              <div key={i} className="relative w-14 h-9 shrink-0 rounded-lg overflow-hidden border border-white/20 group">
+                                <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                <span className="absolute bottom-0.5 right-1 text-[9px] font-bold text-white bg-black/60 px-1 rounded">
+                                  #{i + 1}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* Login Preview */}
                     {cmsActivePage === 'login' && (
-                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                          {cmsLoginImages[0] && <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="w-full h-full object-cover opacity-50" />}
-                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
-                          <div className="absolute bottom-6 left-6 right-6">
-                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
-                              {cmsLoginTitle || 'Judul Login'}
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-xl bg-white flex flex-col font-['Poppins']">
+                        <div className="relative min-h-[220px] p-6 flex flex-col justify-end bg-[#2C4219] overflow-hidden">
+                          {cmsLoginImages[0] && (
+                            <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] via-[#1E2E11]/60 to-transparent" />
+                          <div className="relative z-10">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-[#A8B774] mb-2">
+                              <LogIn className="w-3 h-3 text-[#A8B774]" /> Masuk Akun
+                            </div>
+                            <h3 className="font-['Poppins'] font-black text-xl sm:text-2xl text-white leading-tight drop-shadow-md">
+                              {cmsLoginTitle || 'Selamat Datang Kembali!'}
                             </h3>
+                            <p className="font-['Poppins'] text-xs text-gray-200/90 font-normal mt-1 leading-relaxed line-clamp-2">
+                              {cmsLoginDesc || 'Silakan masuk untuk melanjutkan aktivitas Anda.'}
+                            </p>
                           </div>
                         </div>
-                        <div className="p-6 bg-white shrink-0">
-                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
-                            {cmsLoginDesc || 'Deskripsi login akan tampil di sini.'}
-                          </p>
+                        <div className="p-5 bg-white space-y-3">
+                          <div className="space-y-2">
+                            <div className="h-10 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-3.5 text-xs text-[#433A30]/50 font-medium">
+                              nomor.telepon@anda.com
+                            </div>
+                            <div className="h-10 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-3.5 text-xs text-[#433A30]/50 font-medium">
+                              ••••••••
+                            </div>
+                            <div className="h-10 rounded-xl bg-[#2C4219] flex items-center justify-center font-bold text-white text-xs shadow-md">
+                              Masuk Sekarang
+                            </div>
+                          </div>
                           {cmsLoginImages.length > 0 && (
-                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                            <div className="pt-2 border-t border-[#E6E1D5] flex items-center gap-2 overflow-x-auto">
+                              <span className="text-[10px] text-[#7A7062] font-semibold shrink-0">Gambar:</span>
                               {cmsLoginImages.map((img, i) => (
-                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                <div key={i} className="w-12 h-8 shrink-0 rounded-lg overflow-hidden border border-[#E6E1D5]">
                                   <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                               ))}
                             </div>
                           )}
-                          <div className="space-y-3 pt-4">
-                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
-                              <span className="text-xs text-[#433A30]/50 font-medium">email@contoh.com</span>
-                            </div>
-                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
-                              <span className="text-sm font-bold text-white">Masuk</span>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     )}
 
                     {/* Register Preview */}
                     {cmsActivePage === 'register' && (
-                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white flex flex-col h-[500px]">
-                        <div className="relative flex-1 overflow-hidden bg-[#2C4219]">
-                          {cmsRegImages[0] && <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="w-full h-full object-cover opacity-50" />}
-                          <div className="absolute inset-0 bg-gradient-to-b from-[#1E2E11]/40 to-[#1E2E11]/90" />
-                          <div className="absolute bottom-6 left-6 right-6">
-                            <h3 className="font-title font-bold text-white text-2xl leading-tight">
-                              {cmsRegTitle || 'Judul Register'}
+                      <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-xl bg-white flex flex-col font-['Poppins']">
+                        <div className="relative min-h-[220px] p-6 flex flex-col justify-end bg-[#2C4219] overflow-hidden">
+                          {cmsRegImages[0] && (
+                            <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] via-[#1E2E11]/60 to-transparent" />
+                          <div className="relative z-10">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-[#A8B774] mb-2">
+                              <UserPlus className="w-3 h-3 text-[#A8B774]" /> Gabung Komunitas
+                            </div>
+                            <h3 className="font-['Poppins'] font-black text-xl sm:text-2xl text-white leading-tight drop-shadow-md">
+                              {cmsRegTitle || 'Daftar Akun Baru'}
                             </h3>
+                            <p className="font-['Poppins'] text-xs text-gray-200/90 font-normal mt-1 leading-relaxed line-clamp-2">
+                              {cmsRegDesc || 'Daftarkan diri Anda untuk bergabung bersama KWT Melati Sorgum.'}
+                            </p>
                           </div>
                         </div>
-                        <div className="p-6 bg-white shrink-0">
-                          <p className="text-sm text-[#433A30]/90 leading-relaxed line-clamp-2">
-                            {cmsRegDesc || 'Deskripsi register akan tampil di sini.'}
-                          </p>
+                        <div className="p-5 bg-white space-y-3">
+                          <div className="space-y-2">
+                            <div className="h-10 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-3.5 text-xs text-[#433A30]/50 font-medium">
+                              Nama Lengkap
+                            </div>
+                            <div className="h-10 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-3.5 text-xs text-[#433A30]/50 font-medium">
+                              Nomor WhatsApp
+                            </div>
+                            <div className="h-10 rounded-xl bg-[#2C4219] flex items-center justify-center font-bold text-white text-xs shadow-md">
+                              Daftar Sekarang
+                            </div>
+                          </div>
                           {cmsRegImages.length > 0 && (
-                            <div className="flex gap-3 mt-3 overflow-x-auto pb-2">
+                            <div className="pt-2 border-t border-[#E6E1D5] flex items-center gap-2 overflow-x-auto">
+                              <span className="text-[10px] text-[#7A7062] font-semibold shrink-0">Gambar:</span>
                               {cmsRegImages.map((img, i) => (
-                                <div key={i} className="w-20 h-14 shrink-0 rounded-xl overflow-hidden bg-[#FAF6EE] border border-[#E6E1D5]">
+                                <div key={i} className="w-12 h-8 shrink-0 rounded-lg overflow-hidden border border-[#E6E1D5]">
                                   <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                               ))}
                             </div>
                           )}
-                          <div className="space-y-3 pt-4">
-                            <div className="h-11 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center px-4">
-                              <span className="text-xs text-[#433A30]/50 font-medium">Nama lengkap</span>
-                            </div>
-                            <div className="h-11 rounded-xl bg-[#2C4219] flex items-center justify-center shadow-md">
-                              <span className="text-sm font-bold text-white">Daftar Sekarang</span>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     )}

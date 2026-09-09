@@ -67,8 +67,51 @@ export const LandingView: React.FC<LandingViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const renderHeroTitle = (titleStr?: string) => {
+    if (!titleStr) {
+      return (
+        <>
+          Menanam Bersama, <br className="hidden sm:inline" />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            Tumbuh Bersama
+          </span>
+        </>
+      );
+    }
+
+    const normalized = titleStr.replace(/\\n/g, '\n');
+    const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
+
+    if (lines.length > 1) {
+      const firstPart = lines.slice(0, -1).join(' ');
+      const lastPart = lines[lines.length - 1];
+      return (
+        <>
+          {firstPart} <br className="hidden sm:inline" />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            {lastPart}
+          </span>
+        </>
+      );
+    }
+
+    if (titleStr.includes(',')) {
+      const parts = titleStr.split(',');
+      return (
+        <>
+          {parts[0].trim()}, <br className="hidden sm:inline" />
+          <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
+            {parts.slice(1).join(',').trim()}
+          </span>
+        </>
+      );
+    }
+
+    return <span>{titleStr}</span>;
+  };
+
   return (
-    <div className="relative min-h-screen bg-[#2C4219] text-white font-sans overflow-x-hidden selection:bg-[#A8B774] selection:text-[#2C4219]">
+    <div className="relative min-h-screen bg-[#2C4219] text-white font-['Poppins'] overflow-x-hidden selection:bg-[#A8B774] selection:text-[#2C4219]">
       {/* 1. STICKY NAVBAR */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
@@ -162,24 +205,15 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
 
         {/* Center Hero Text Content */}
-        <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-6 my-auto pt-10">
+        <div className="relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6 my-auto pt-10 font-['Poppins']">
 
           {/* MAIN HEADLINE */}
-          <h1 className="font-title font-bold text-2xl sm:text-4xl lg:text-5xl tracking-tight leading-tight drop-shadow-lg">
-            {cmsData?.landingTitle ? (
-              <span dangerouslySetInnerHTML={{ __html: cmsData.landingTitle.replace('\\n', '<br className="hidden sm:inline" />') }} />
-            ) : (
-              <>
-                Menanam Bersama, <br className="hidden sm:inline" />
-                <span className="text-[#A8B774] underline decoration-[#A8B774]/50 decoration-wavy underline-offset-8">
-                  Tumbuh Bersama
-                </span>
-              </>
-            )}
+          <h1 className="font-['Poppins'] font-bold text-2xl sm:text-3xl md:text-4xl tracking-tight leading-tight drop-shadow-lg text-white">
+            {renderHeroTitle(cmsData?.landingTitle)}
           </h1>
 
           {/* SUBHEADLINE */}
-          <p className="max-w-3xl mx-auto text-sm sm:text-base lg:text-lg text-gray-100 font-medium leading-relaxed drop-shadow-md">
+          <p className="font-['Poppins'] max-w-4xl mx-auto text-lg sm:text-2xl lg:text-3xl text-gray-100 font-medium leading-relaxed drop-shadow-md">
             {cmsData?.landingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
           </p>
 
