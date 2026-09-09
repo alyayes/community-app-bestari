@@ -205,15 +205,15 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
 
         {/* Center Hero Text Content */}
-        <div className="relative z-20 max-w-5xl mx-auto px-4 sm:px-6 text-center space-y-6 my-auto pt-10 font-['Poppins']">
+        <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-5 my-auto pt-10 font-['Poppins']">
 
           {/* MAIN HEADLINE */}
-          <h1 className="font-['Poppins'] font-bold text-2xl sm:text-3xl md:text-4xl tracking-tight leading-tight drop-shadow-lg text-white">
+          <h1 className="font-['Poppins'] font-extrabold text-3xl sm:text-5xl md:text-6xl tracking-tight leading-[1.15] drop-shadow-xl text-white">
             {renderHeroTitle(cmsData?.landingTitle)}
           </h1>
 
           {/* SUBHEADLINE */}
-          <p className="font-['Poppins'] max-w-4xl mx-auto text-lg sm:text-2xl lg:text-3xl text-gray-100 font-medium leading-relaxed drop-shadow-md">
+          <p className="font-['Poppins'] max-w-2xl mx-auto text-sm sm:text-base md:text-lg text-gray-200/90 font-normal leading-relaxed drop-shadow-md">
             {cmsData?.landingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
           </p>
 

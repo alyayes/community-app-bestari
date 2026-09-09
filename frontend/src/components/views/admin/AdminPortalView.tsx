@@ -3191,12 +3191,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                           <div className="relative z-10 max-w-md mx-auto space-y-4">
                             {/* Hero Headline */}
-                            <h3 className="font-['Poppins'] font-bold text-xl sm:text-2xl text-white tracking-tight leading-tight drop-shadow-md">
+                            <h3 className="font-['Poppins'] font-extrabold text-2xl sm:text-3xl text-white tracking-tight leading-tight drop-shadow-md">
                               {renderCmsPreviewTitle(cmsLandingTitle)}
                             </h3>
 
                             {/* Subheadline */}
-                            <p className="font-['Poppins'] max-w-xl mx-auto text-sm sm:text-base text-gray-100 font-medium leading-relaxed drop-shadow-md">
+                            <p className="font-['Poppins'] max-w-xl mx-auto text-xs sm:text-sm text-gray-200/90 font-normal leading-relaxed drop-shadow-md">
                               {cmsLandingDesc || 'Wadah digital interaktif bagi ibu-ibu KWT Melati Sorgum. Mari saling terhubung untuk mencatat hasil panen, berdiskusi, dan memajukan produk olahan lokal kita bersama.'}
                             </p>
 
