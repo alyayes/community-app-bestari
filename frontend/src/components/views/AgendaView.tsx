@@ -271,17 +271,33 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 }
               }
             } else if (curr.key === 'time') {
-              const times = val.match(/(\d{1,2})(?::(\d{2}))?/g);
+              let timeVal = val.toLowerCase();
+              const numWords: Record<string, string> = {
+                'dua belas': '12', 'sebelas': '11', 'sepuluh': '10',
+                'sembilan': '9', 'delapan': '8', 'tujuh': '7', 'enam': '6',
+                'lima': '5', 'empat': '4', 'tiga': '3', 'dua': '2', 'satu': '1',
+                'dua puluh': '20', 'tiga puluh': '30'
+              };
+              Object.keys(numWords).sort((a, b) => b.length - a.length).forEach(k => {
+                timeVal = timeVal.replace(new RegExp(`\\b${k}\\b`, 'g'), numWords[k]);
+              });
+
+              const times = timeVal.match(/(\d{1,2})(?::(\d{2}))?/g);
               if (times && times.length >= 2) {
-                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
-                const e = times[1].includes(':') ? times[1] : `${times[1].padStart(2, '0')}:00`;
-                setNewStartTime(s.padStart(5, '0'));
-                setNewEndTime(e.padStart(5, '0'));
-                setNewTime(`${s.padStart(5, '0')} - ${e.padStart(5, '0')} WIB`);
+                let s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                let e = times[1].includes(':') ? times[1] : `${times[1].padStart(2, '0')}:00`;
+                const sPad = s.padStart(5, '0');
+                const ePad = e.padStart(5, '0');
+                setNewStartTime(sPad);
+                setNewEndTime(ePad);
+                const period = to12HourPeriod(sPad).period;
+                setNewTime(`${sPad} - ${ePad} WIB (${period})`);
               } else if (times && times.length === 1) {
-                const s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
-                setNewStartTime(s.padStart(5, '0'));
-                setNewTime(`${s.padStart(5, '0')} WIB`);
+                let s = times[0].includes(':') ? times[0] : `${times[0].padStart(2, '0')}:00`;
+                const sPad = s.padStart(5, '0');
+                setNewStartTime(sPad);
+                const period = to12HourPeriod(sPad).period;
+                setNewTime(`${sPad} WIB (${period})`);
               }
             } else if (curr.key === 'desc') {
               setNewDesc(val);
@@ -1738,6 +1754,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     <label className="text-xs font-bold text-[#7A7062]">Jam Mulai</label>
                     <IndonesianTimePicker
                       value={newStartTime}
+                      align="left"
                       onChange={(val) => {
                         setNewStartTime(val);
                         const period = to12HourPeriod(val).period;
