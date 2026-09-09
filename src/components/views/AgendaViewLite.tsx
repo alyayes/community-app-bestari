@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { Calendar, Clock, CheckCircle2, ChevronDown, Lock, FileText, ExternalLink, Package, Gift, X } from 'lucide-react';
 import { getCategoryColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod } from '../../utils/agendaUtils';
+import { resolveImageUrl } from '../../api/client';
 
 /** Hapus semua tag HTML dari string — untuk deskripsi yang tersimpan dalam format rich-text */
 const stripHtml = (html: string): string => (html || '').replace(/<[^>]*>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').trim();
@@ -82,7 +83,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 w-full pb-8">
+    <div className="space-y-6 animate-in fade-in duration-300 w-full pb-24 md:pb-8">
       {/* Page Header */}
       <div className="mb-4 border-b border-[#E6E1D5] pb-4">
         <h1 className="font-title font-bold text-2xl text-[#2C4219] flex items-center gap-2">
@@ -170,10 +171,11 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
               </div>
 
               {/* Footer: Rincian + Daftar button */}
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E6E1D5]">
+              <div className="flex items-center justify-between gap-2 pt-3 mt-3 border-t border-[#E6E1D5]">
                 <button
+                  type="button"
                   onClick={() => setDetailEvent(ev)}
-                  className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2C4219] hover:underline whitespace-nowrap"
                 >
                   <FileText className="w-3.5 h-3.5 text-[#2C4219]" />
                   <span>Rincian Kegiatan</span>
@@ -182,23 +184,31 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 {!isAdmin && (
                   isPast ? (
                     isRegistered ? (
-                      <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm flex items-center gap-1.5 cursor-default border border-emerald-400">
+                      <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Telah Diikuti</span>
                       </div>
                     ) : (
-                      <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1.5 cursor-default">
+                      <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1 cursor-default whitespace-nowrap">
                         <span>Selesai</span>
                       </div>
                     )
                   ) : (
                     <button
+                      type="button"
                       onClick={() => toggleRegistration(ev)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`inline-flex items-center justify-center gap-1 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap ${
                         isRegistered ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
                       }`}
                     >
-                      {isRegistered ? 'Terdaftar' : 'Daftar'}
+                      {isRegistered ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-[#2C4219]" />
+                          <span>Terdaftar</span>
+                        </>
+                      ) : (
+                        <span>Daftar</span>
+                      )}
                     </button>
                   )
                 )}
@@ -327,21 +337,48 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                     Berkas & Materi Kegiatan
                   </h3>
                   {canAccess ? (
-                    <div className="space-y-2">
-                      {detailEvent.materiUrls?.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center justify-between p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold text-[#2C4219] hover:bg-[#A8B774]/20 transition-all">
-                          <span className="truncate">Unduh Berkas Materi #{idx + 1}</span>
-                          <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-2" />
-                        </a>
-                      ))}
-                      {detailEvent.linkUrls?.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center justify-between p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold text-[#2C4219] hover:bg-[#A8B774]/20 transition-all">
-                          <span className="truncate">{url}</span>
-                          <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-2" />
-                        </a>
-                      ))}
+                    <div className="space-y-3">
+                      {detailEvent.materiUrls && detailEvent.materiUrls.length > 0 && (
+                        <div className="space-y-2">
+                          {detailEvent.materiUrls.map((url, idx) => {
+                            const resolvedUrl = resolveImageUrl(url);
+                            return (
+                              <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center justify-between p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold text-[#2C4219] hover:bg-[#A8B774]/20 transition-all">
+                                <span className="truncate">Unduh Berkas Materi #{idx + 1}</span>
+                                <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-2" />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {detailEvent.linkUrls && detailEvent.linkUrls.length > 0 && (
+                        <div className="space-y-2">
+                          {detailEvent.linkUrls.map((url, idx) => (
+                            <a key={idx} href={url.startsWith('http') ? url : `https://${url}`} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center justify-between p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-xs font-semibold text-[#2C4219] hover:bg-[#A8B774]/20 transition-all">
+                              <span className="truncate">{url}</span>
+                              <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-2" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {detailEvent.dokumentasiUrls && detailEvent.dokumentasiUrls.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-[#E6E1D5]">
+                          <div className="text-[11px] font-bold text-[#2C4219]">Galeri Dokumentasi:</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {detailEvent.dokumentasiUrls.map((url, idx) => {
+                              const resolvedUrl = resolveImageUrl(url);
+                              return (
+                                <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer"
+                                  className="group block rounded-xl border border-[#E6E1D5] overflow-hidden aspect-[4/3] relative bg-[#FAF6EE] hover:border-[#A8B774] transition-all">
+                                  <img src={resolvedUrl} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-[#FAF6EE] p-3 rounded-xl border border-[#E6E1D5] flex items-center gap-2.5 text-xs text-[#5C5246]">
@@ -362,17 +399,19 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
               <div className="pt-2 border-t border-[#E6E1D5]">
                 {isUserRegistered(detailEvent) ? (
                   <button
+                    type="button"
                     onClick={() => { onUnregisterEvent?.(detailEvent.id); setDetailEvent(null); }}
-                    className="w-full py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm border border-red-200 hover:bg-red-100 transition-all"
+                    className="w-full py-2.5 sm:py-3 rounded-xl bg-red-50 text-red-600 font-bold text-xs sm:text-sm border border-red-200 hover:bg-red-100 transition-all shadow-2xs active:scale-95"
                   >
-                    Batal Ikut
+                    Batal Ikut Kegiatan
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => { onRegisterEvent?.(detailEvent.id); setDetailEvent(null); }}
-                    className="w-full py-3 rounded-xl bg-[#2C4219] text-white font-bold text-sm hover:bg-[#1E2E11] transition-all shadow-md"
+                    className="w-full py-2.5 sm:py-3 rounded-xl bg-[#2C4219] text-white font-bold text-xs sm:text-sm hover:bg-[#1E2E11] transition-all shadow-sm active:scale-95"
                   >
-                    Ikut Kegiatan
+                    Ikut Kegiatan Ini
                   </button>
                 )}
               </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
-import { BASE_URL } from '../../api/client';
+import { BASE_URL, resolveImageUrl } from '../../api/client';
 import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
 import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod } from '../../utils/agendaUtils';
 import { IndonesianTimePicker, to12HourPeriod } from '../IndonesianTimePicker';
@@ -607,10 +607,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       let sigImg: HTMLImageElement | null = null;
       
       if (config.logoUrl) {
-        try { logoImg = await loadImage(config.logoUrl); } catch {}
+        try { logoImg = await loadImage(resolveImageUrl(config.logoUrl)); } catch {}
       }
       if (config.signatureUrl) {
-        try { sigImg = await loadImage(config.signatureUrl); } catch {}
+        try { sigImg = await loadImage(resolveImageUrl(config.signatureUrl)); } catch {}
       }
 
       drawCertificateOnCanvas(canvas, config, name, event, logoImg, sigImg);
@@ -665,7 +665,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   });
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-300">
+    <div className="space-y-6 pb-24 md:pb-12 animate-in fade-in duration-300">
       {unclaimedCertificates.length > 0 && (
         <div className="bg-gradient-to-r from-[#D97706] to-[#B45309] rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 text-white">
@@ -992,38 +992,48 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 <hr className="border-[#E6E1D5]" />
 
                 {/* Footer: Rincian & Daftar */}
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-[#E6E1D5]">
                   <button
+                    type="button"
                     onClick={() => setShowDetailModal(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-[#2C4219] border border-[#2C4219]/30 bg-[#FAF6EE] hover:bg-[#A8B774]/20 hover:border-[#2C4219]/60 transition-all shadow-xs hover:shadow-sm active:scale-95"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm text-[#2C4219] border border-[#2C4219]/25 bg-[#FAF6EE] hover:bg-[#A8B774]/20 hover:border-[#2C4219]/50 transition-all shadow-2xs hover:shadow-xs active:scale-95 whitespace-nowrap shrink-0"
                   >
-                    <FileText className="w-4 h-4" />
-                    Rincian Kegiatan
+                    <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#2C4219]" />
+                    <span>Rincian Kegiatan</span>
                   </button>
                   {!isAdmin && (
                     isEventPast(selectedEvent) ? (
                       isUserRegistered(selectedEvent) ? (
-                        <div className="px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md flex items-center gap-2 cursor-default border border-emerald-400">
-                          <CheckCircle2 className="w-4 h-4" />
+                        <div className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs cursor-default border border-emerald-400 whitespace-nowrap shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           <span>Telah Diikuti</span>
                         </div>
                       ) : (
-                        <div className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-2 cursor-default">
+                        <div className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-[#E6E1D5]/50 text-[#7A7062] cursor-default whitespace-nowrap shrink-0">
                           <span>Telah Selesai</span>
                         </div>
                       )
                     ) : (
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleRegistration(selectedEvent.id);
                         }}
-                        className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${isUserRegistered(selectedEvent)
-                          ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
-                          : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
-                          }`}
+                        className={`inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-xs active:scale-95 whitespace-nowrap shrink-0 ${
+                          isUserRegistered(selectedEvent)
+                            ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]'
+                            : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'
+                        }`}
                       >
-                        {isUserRegistered(selectedEvent) ? 'Terdaftar' : 'Daftar'}
+                        {isUserRegistered(selectedEvent) ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#2C4219]" />
+                            <span>Terdaftar</span>
+                          </>
+                        ) : (
+                          <span>Daftar</span>
+                        )}
                       </button>
                     )
                   )}
@@ -1210,40 +1220,49 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]">
+                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#E6E1D5]">
                   <button
+                    type="button"
                     onClick={() => {
                       setSelectedEvent(ev);
                       setShowDetailModal(true);
                     }}
-                    className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2C4219] hover:underline whitespace-nowrap"
                   >
                     <FileText className="w-3.5 h-3.5 text-[#2C4219]" />
                     <span>Rincian Kegiatan</span>
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {!isAdmin && (
                       isEventPast(ev) ? (
                         isUserRegistered(ev) ? (
-                          <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm flex items-center gap-1.5 cursor-default border border-emerald-400">
+                          <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Telah Diikuti</span>
                           </div>
                         ) : (
-                          <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1.5 cursor-default">
+                          <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1 cursor-default whitespace-nowrap">
                             <span>Selesai</span>
                           </div>
                         )
                       ) : (
                         <button
+                          type="button"
                           onClick={() => toggleRegistration(ev.id)}
                           className={`
-                            px-3 py-1.5 rounded-xl text-xs font-bold transition-all
+                            inline-flex items-center justify-center gap-1 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap
                             ${isUserRegistered(ev) ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'}
                           `}
                         >
-                          {isUserRegistered(ev) ? 'Terdaftar' : 'Daftar'}
+                          {isUserRegistered(ev) ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-[#2C4219]" />
+                              <span>Terdaftar</span>
+                            </>
+                          ) : (
+                            'Daftar'
+                          )}
                         </button>
                       )
                     )}
@@ -1384,12 +1403,13 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {selectedEvent.materiUrls.map((url, idx) => {
-                          const isImage = url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
+                          const resolvedUrl = resolveImageUrl(url);
+                          const isImage = resolvedUrl.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
 
                           if (isImage) {
                             return (
-                              <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
-                                <img src={url} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
+                                <img src={resolvedUrl} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
                                   <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -1401,7 +1421,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                           }
 
                           return (
-                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
+                            <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
                               <div className="w-10 h-10 rounded-xl bg-[#E5A300]/10 text-[#E5A300] flex items-center justify-center group-hover:scale-110 transition-transform">
                                 <FileText className="w-5 h-5" />
                               </div>
@@ -1425,9 +1445,11 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                         Galeri Dokumentasi
                       </h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {selectedEvent.dokumentasiUrls.map((url, idx) => (
-                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
-                              <img src={url} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        {selectedEvent.dokumentasiUrls.map((url, idx) => {
+                          const resolvedUrl = resolveImageUrl(url);
+                          return (
+                            <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
+                              <img src={resolvedUrl} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
                                 <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -1435,8 +1457,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                                 </span>
                               </div>
                             </a>
-                          )
-                        )}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1516,10 +1538,11 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             
 
             {/* Modal Footer Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-[#E6E1D5]">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-4 border-t border-[#E6E1D5]">
               <button
+                type="button"
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 rounded-xl border border-[#E6E1D5] text-xs font-semibold text-[#433A30] hover:bg-[#FAF6EE]"
+                className="px-4 py-2 sm:py-2.5 rounded-xl border border-[#E6E1D5] text-xs font-semibold text-[#433A30] hover:bg-[#FAF6EE] text-center transition-colors"
               >
                 Tutup Window
               </button>
@@ -1527,28 +1550,29 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               {!isAdmin && (
                 isEventPast(selectedEvent) ? (
                   isUserRegistered(selectedEvent) ? (
-                    <div className="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md cursor-default border border-emerald-400">
+                    <div className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs cursor-default border border-emerald-400">
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Kegiatan Telah Selesai Diikuti</span>
                     </div>
                   ) : (
-                    <div className="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-[#E6E1D5]/50 text-[#7A7062] cursor-default">
+                    <div className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-[#E6E1D5]/50 text-[#7A7062] cursor-default">
                       <span>Kegiatan Telah Selesai</span>
                     </div>
                   )
                 ) : (
                   <button
+                    type="button"
                     onClick={() => {
                       toggleRegistration(selectedEvent.id);
                       setShowDetailModal(false);
                     }}
                     className={`
-                      px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all active:scale-95
+                      px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95
                       ${isUserRegistered(selectedEvent) ? 'bg-[#A8B774] text-[#2C4219] hover:bg-[#92A360]' : 'bg-[#2C4219] text-white hover:bg-[#1E2E11]'}
                     `}
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{isUserRegistered(selectedEvent) ? 'Terdaftar (Batal Pendaftaran)' : 'Konfirmasi Pendaftaran Sekarang'}</span>
+                    <span>{isUserRegistered(selectedEvent) ? 'Terdaftar (Batal Ikut)' : 'Ikut Kegiatan Ini'}</span>
                   </button>
                 )
               )}

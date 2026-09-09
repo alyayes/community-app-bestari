@@ -12,12 +12,23 @@ const router = Router();
 
 const MONTHS_ID = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 
+export function cleanUploadUrl(u: any): string {
+  if (!u || typeof u !== 'string') return u;
+  const idx = u.indexOf('/uploads/');
+  if (idx !== -1) {
+    return u.substring(idx);
+  }
+  return u;
+}
+
 function toAgenda(a: any, opts: { userId?: string } = {}) {
   const rundown = typeof a.rundown === 'string' ? JSON.parse(a.rundown) : (a.rundown || []);
   const requirements = typeof a.requirements === 'string' ? JSON.parse(a.requirements) : (a.requirements || []);
   const benefits = typeof a.benefits === 'string' ? JSON.parse(a.benefits) : (a.benefits || []);
-  const materiUrls = typeof a.materiUrls === 'string' ? JSON.parse(a.materiUrls) : (a.materiUrls || []);
-  const dokumentasiUrls = typeof a.dokumentasiUrls === 'string' ? JSON.parse(a.dokumentasiUrls) : (a.dokumentasiUrls || []);
+  const rawMateri = typeof a.materiUrls === 'string' ? JSON.parse(a.materiUrls) : (a.materiUrls || []);
+  const rawDok = typeof a.dokumentasiUrls === 'string' ? JSON.parse(a.dokumentasiUrls) : (a.dokumentasiUrls || []);
+  const materiUrls = Array.isArray(rawMateri) ? rawMateri.map(cleanUploadUrl) : [];
+  const dokumentasiUrls = Array.isArray(rawDok) ? rawDok.map(cleanUploadUrl) : [];
   const linkUrls = typeof a.linkUrls === 'string' ? JSON.parse(a.linkUrls) : (a.linkUrls || []);
 
   const d = new Date(a.date + 'T00:00:00');
@@ -230,10 +241,12 @@ router.delete('/:id/reminder', authenticate, async (req: Request, res: Response,
 // ── POST /api/agenda (USER LOGIN) ──────────────────
 router.post('/', authenticate, validate(createAgendaSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { quota, contactPerson, ...rest } = req.body;
+    const { quota, contactPerson, materiUrls, dokumentasiUrls, ...rest } = req.body;
     const a = await prisma.agenda.create({
       data: {
         ...rest,
+        materiUrls: Array.isArray(materiUrls) ? materiUrls.map(cleanUploadUrl) : materiUrls,
+        dokumentasiUrls: Array.isArray(dokumentasiUrls) ? dokumentasiUrls.map(cleanUploadUrl) : dokumentasiUrls,
         quotaRegistered: quota?.registered || 0,
         quotaMax: quota?.max || 0,
         contactName: contactPerson?.name || '',
@@ -274,11 +287,13 @@ router.put('/:id', authenticate, validate(updateAgendaSchema), async (req: Reque
       throw new UnauthorizedError('Anda tidak memiliki izin untuk mengedit agenda ini');
     }
 
-    const { quota, contactPerson, ...rest } = req.body;
+    const { quota, contactPerson, materiUrls, dokumentasiUrls, ...rest } = req.body;
     const a = await prisma.agenda.update({
       where: { id: String(req.params.id) },
       data: {
         ...rest,
+        materiUrls: Array.isArray(materiUrls) ? materiUrls.map(cleanUploadUrl) : (materiUrls !== undefined ? materiUrls : undefined),
+        dokumentasiUrls: Array.isArray(dokumentasiUrls) ? dokumentasiUrls.map(cleanUploadUrl) : (dokumentasiUrls !== undefined ? dokumentasiUrls : undefined),
         quotaRegistered: quota?.registered ?? undefined,
         quotaMax: quota?.max ?? undefined,
         contactName: contactPerson?.name ?? undefined,

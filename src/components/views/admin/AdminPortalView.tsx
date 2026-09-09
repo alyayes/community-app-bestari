@@ -3934,7 +3934,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <div className="text-[10px] font-bold text-[#A19D94]">File Tersimpan ({agMateriUrls.length}):</div>
                         {agMateriUrls.map((url, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-[#FAF6EE]/50 border border-[#E6E1D5] p-2 rounded-xl group transition-all hover:bg-white hover:shadow-sm">
-                            <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 overflow-hidden hover:opacity-80">
+                            <a href={resolveImageUrl(url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 overflow-hidden hover:opacity-80">
                               <div className="w-6 h-6 rounded-md bg-[#E5A300]/10 flex items-center justify-center shrink-0">
                                 <FileText className="w-3 h-3 text-[#E5A300]" />
                               </div>
@@ -4076,7 +4076,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div className="text-[10px] font-bold text-[#A19D94]">Foto Tersimpan ({agDokumentasiUrls.length}):</div>
                       {agDokumentasiUrls.map((url, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-[#FAF6EE]/50 border border-[#E6E1D5] p-2 rounded-xl group transition-all hover:bg-white hover:shadow-sm">
-                          <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 overflow-hidden hover:opacity-80">
+                          <a href={resolveImageUrl(url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 overflow-hidden hover:opacity-80">
                             <div className="w-6 h-6 rounded-md bg-[#A8B774]/10 flex items-center justify-center shrink-0">
                               <svg className="w-3 h-3 text-[#A8B774]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             </div>
@@ -4224,12 +4224,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {viewingAgenda.materiUrls.map((url, idx) => {
-                      const isImage = url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
+                      const resolvedUrl = resolveImageUrl(url);
+                      const isImage = resolvedUrl.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/) != null;
 
                       if (isImage) {
                         return (
-                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
-                            <img src={url} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#E5A300] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-video sm:aspect-auto sm:h-20 relative bg-[#FAF6EE]">
+                            <img src={resolvedUrl} alt={`Materi Gambar ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
                               <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -4241,7 +4242,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       }
 
                       return (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
+                        <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white to-[#FAF6EE] p-3 rounded-2xl border border-[#E6E1D5] shadow-xs hover:shadow-md hover:-translate-y-1 hover:border-[#E5A300] flex items-center gap-3 text-xs font-bold text-[#2C4219] transition-all duration-300">
                           <div className="w-10 h-10 rounded-xl bg-[#E5A300]/10 text-[#E5A300] flex items-center justify-center group-hover:scale-110 transition-transform">
                             <FileText className="w-5 h-5" />
                           </div>
@@ -4265,9 +4266,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     Galeri Dokumentasi
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {viewingAgenda.dokumentasiUrls.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
-                          <img src={url} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    {viewingAgenda.dokumentasiUrls.map((url, idx) => {
+                      const resolvedUrl = resolveImageUrl(url);
+                      return (
+                        <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="group block rounded-2xl border-2 border-transparent hover:border-[#A8B774] overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 aspect-[4/3] relative bg-[#FAF6EE]">
+                          <img src={resolvedUrl} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
                             <span className="text-white text-[10px] font-bold flex items-center gap-1.5">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
@@ -4275,8 +4278,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </span>
                           </div>
                         </a>
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronDown, Save, Upload, Eye, Award, Palette, Type, Image as ImageIcon, X, Calendar, CheckCircle2, Trash2 } from 'lucide-react';
 import { AgendaEvent } from '../../../types';
-import { api, SERVER_BASE } from '../../../api/client';
+import { api, SERVER_BASE, resolveImageUrl } from '../../../api/client';
 
 import { CertificateConfig, drawCertificateOnCanvas, isCertificateActive } from '../../../utils/certificate';
 
@@ -202,7 +202,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.onload = () => setLogoImgElement(img);
-      img.src = config.logoUrl;
+      img.src = resolveImageUrl(config.logoUrl);
     } else {
       setLogoImgElement(null);
     }
@@ -213,7 +213,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
       const img = new Image();
       img.crossOrigin = 'Anonymous';
       img.onload = () => setSigImgElement(img);
-      img.src = config.signatureUrl;
+      img.src = resolveImageUrl(config.signatureUrl);
     } else {
       setSigImgElement(null);
     }
@@ -641,7 +641,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
                                         className="w-full h-20 rounded-xl flex items-center justify-center overflow-hidden"
                                         style={{ background: 'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px' }}
                                       >
-                                        <img src={config.signatureUrl} alt="TTD" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
+                                        <img src={resolveImageUrl(config.signatureUrl)} alt="TTD" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
                                       </div>
                                       <div className="flex items-center gap-1.5">
                                         <Upload className="w-3 h-3 text-[#D97706]" />
@@ -740,7 +740,7 @@ export const CertificateBuilderView: React.FC<CertificateBuilderViewProps> = ({
                                         className="w-full h-20 rounded-xl flex items-center justify-center overflow-hidden"
                                         style={{ background: 'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px' }}
                                       >
-                                        <img src={config.logoUrl} alt="Logo" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
+                                        <img src={resolveImageUrl(config.logoUrl)} alt="Logo" className="max-h-16 max-w-full object-contain drop-shadow-sm" />
                                       </div>
                                       <div className="flex items-center gap-1.5">
                                         <Upload className="w-3 h-3 text-[#293379]" />
