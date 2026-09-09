@@ -79,7 +79,7 @@ import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
-import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary } from '../../../utils/agendaUtils';
+import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary, isEventPast } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
 
 
@@ -928,10 +928,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const updatedDayNumber = isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0');
     const updatedMonthAbbr = isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isPast = !isNaN(d.getTime()) && d < today;
-    // Jika tanggal lampau, otomatis Selesai (siap untuk simulasi sertifikat/arsip). Jika hari ini/mendatang, otomatis Belum dimulai.
+    const isPast = isEventPast({ date: agDate, time: computedFinalTime });
+    // Jika tanggal lampau atau hari ini lewat jam selesai -> otomatis Selesai. Jika hari ini (belum lewat jam selesai) / mendatang -> Belum dimulai.
     const finalStatus: 'Belum dimulai' | 'Selesai' = isPast ? 'Selesai' : 'Belum dimulai';
     const finalStatusType = finalStatus === 'Selesai' ? 'neutral' : 'success';
 
@@ -1062,8 +1060,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Filtered Agendas
   const filteredAgendas = agendaList.map(ag => {
-    const isPast = ag.date && !isNaN(new Date(ag.date).getTime()) && new Date(ag.date).getTime() < new Date().setHours(0, 0, 0, 0);
-    return isPast ? { ...ag, status: 'Selesai' as any } : ag;
+    const isPast = isEventPast(ag);
+    return {
+      ...ag,
+      status: (isPast ? 'Selesai' : 'Belum dimulai') as any,
+      statusType: isPast ? 'neutral' : 'success'
+    };
   }).filter(ag => {
     const matchesSearch = ag.title.toLowerCase().includes(agendaSearchQuery.toLowerCase()) ||
       (ag.location && ag.location.toLowerCase().includes(agendaSearchQuery.toLowerCase())) ||
@@ -1779,10 +1781,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                   <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">Kegiatan Terdekat</p>
                   {(() => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
                     const nearestAgenda = agendaList
-                      .filter(a => a.status !== 'Selesai' && new Date(a.date).getTime() >= today.getTime())
+                      .filter(a => !isEventPast(a))
                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
                     return (
                       <div className="mt-1">
@@ -2298,10 +2298,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                     <div className="space-y-3">
                       {(() => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
                         const upcomingAgendas = agendaList
-                          .filter(a => a.status !== 'Selesai' && new Date(a.date).getTime() >= today.getTime())
+                          .filter(a => !isEventPast(a))
                           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                           .slice(0, 3);
 

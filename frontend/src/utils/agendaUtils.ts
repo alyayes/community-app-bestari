@@ -174,6 +174,88 @@ export const getArticleExcerpt = (article: { summary?: string | null; content?: 
   return cleanHtmlSummary(sum);
 };
 
+/**
+ * Normalisasi format tanggal ke format YYYY-MM-DD
+ */
+export const getNormalizedDateStr = (dateVal?: string): string => {
+  if (!dateVal) return '';
+  const trimmed = dateVal.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  // Cek jika format DD Mon YYYY (misal 10 Sep 2026 atau 10 Okt 2026)
+  const matchIndo = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})$/);
+  if (matchIndo) {
+    const day = matchIndo[1].padStart(2, '0');
+    const monthStr = matchIndo[2].toUpperCase();
+    const year = matchIndo[3];
+    const monthMap: Record<string, string> = {
+      JAN: '01', FEB: '02', MAR: '03', APR: '04', MEI: '05', MAY: '05',
+      JUN: '06', JUL: '07', AGU: '08', AUG: '08', SEP: '09',
+      OKT: '10', OCT: '10', NOV: '11', DES: '12', DEC: '12'
+    };
+    const month = monthMap[monthStr.slice(0, 3)] || '01';
+    return `${year}-${month}-${day}`;
+  }
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return trimmed;
+};
 
+/**
+ * Mengekstrak jam selesai agenda dalam format HH:mm (24-jam)
+ */
+export const getEventEndTime = (timeStr?: string): string => {
+  if (!timeStr) return '23:59';
+  let target = timeStr;
+  if (timeStr.includes('-') || timeStr.includes('–')) {
+    const parts = timeStr.split(/[-–]/);
+    if (parts.length > 1) target = parts[1].trim();
+  }
+  
+  // Deteksi format jam dan menit: misal 12:00, 12.00, dsb.
+  const match = target.match(/\b(\d{1,2})[:.](\d{2})\b/);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    
+    // Konversi jika ada indikator Siang / Sore / Malam pada format 12-jam (misal 01:00 Siang -> 13:00)
+    const lower = target.toLowerCase();
+    if ((lower.includes('siang') || lower.includes('sore') || lower.includes('malam') || lower.includes('pm')) && hour < 12) {
+      if (hour < 11) {
+        hour += 12;
+      }
+    }
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  }
+  return '23:59';
+};
 
+/**
+ * Menentukan apakah suatu agenda sudah selesai atau belum.
+ * - Tanggal lampau (< hari ini) -> Selesai (true)
+ * - Tanggal masa depan (> hari ini) -> Belum selesai (false)
+ * - Tanggal hari ini:
+ *   Selesai HANYA JIKA jam sekarang sudah melebihi jam selesai agenda (misal > 12:00 Siang).
+ *   Jika sebelum jam selesai -> Belum selesai (false).
+ */
+export const isEventPast = (e: { date?: string; time?: string; status?: string }): boolean => {
+  if (!e || !e.date) return false;
+  
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const evDateStr = getNormalizedDateStr(e.date);
 
+  // Jika tanggal agenda sebelum hari ini -> Selesai
+  if (evDateStr < todayStr) return true;
+  
+  // Jika tanggal agenda di masa depan -> Belum selesai
+  if (evDateStr > todayStr) return false;
+
+  // Jika tanggal agenda adalah HARI INI:
+  // Hanya dianggap selesai jika jam sekarang MELEBIHI jam selesai agenda
+  const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+  const endTime = getEventEndTime(e.time);
+  
+  return currentTimeStr > endTime;
+};

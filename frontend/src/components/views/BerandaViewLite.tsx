@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavItem, AgendaEvent, UserProfile, InfoArticle } from '../../types';
 import { Calendar, BookOpen, ChevronRight } from 'lucide-react';
-import { getCategoryColor } from '../../utils/agendaUtils';
+import { getCategoryColor, isEventPast } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
 
 interface BerandaViewLiteProps {
@@ -22,10 +22,7 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
   onSelectArticle
 }) => {
   const upcomingEvents = [...events]
-    .filter(e => {
-      const isPast = e.date && !isNaN(new Date(e.date).getTime()) && new Date(e.date).getTime() < new Date().setHours(0, 0, 0, 0);
-      return e.status !== 'Selesai' && !isPast;
-    })
+    .filter(e => !isEventPast(e))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3); // Cuma nampilin 3 paling dekat
 

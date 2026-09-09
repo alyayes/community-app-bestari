@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { Calendar, Clock, CheckCircle2, ChevronDown, Lock, FileText, ExternalLink, Package, Gift, X } from 'lucide-react';
-import { getCategoryColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod } from '../../utils/agendaUtils';
+import { getCategoryColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod, isEventPast } from '../../utils/agendaUtils';
 import { resolveImageUrl } from '../../api/client';
 
 /** Hapus semua tag HTML dari string — untuk deskripsi yang tersimpan dalam format rich-text */
@@ -39,11 +39,6 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
 
   const isUserAttended = (ev: AgendaEvent) =>
     ev.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended) || false;
-
-  const isEventPast = (ev: AgendaEvent) => {
-    if (ev.status === 'Selesai') return true;
-    return Boolean(ev.date && !isNaN(new Date(ev.date).getTime()) && new Date(ev.date).getTime() < new Date().setHours(0, 0, 0, 0));
-  };
 
   const isAdmin = currentUser?.role?.toLowerCase().includes('admin') || Boolean(currentUser?.isAdmin);
 

@@ -21,6 +21,66 @@ export function cleanUploadUrl(u: any): string {
   return u;
 }
 
+function getNormalizedDateStr(dateVal?: string): string {
+  if (!dateVal) return '';
+  const trimmed = dateVal.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const matchIndo = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]{3,})\s+(\d{4})$/);
+  if (matchIndo) {
+    const day = matchIndo[1].padStart(2, '0');
+    const monthStr = matchIndo[2].toUpperCase();
+    const year = matchIndo[3];
+    const monthMap: Record<string, string> = {
+      JAN: '01', FEB: '02', MAR: '03', APR: '04', MEI: '05', MAY: '05',
+      JUN: '06', JUL: '07', AGU: '08', AUG: '08', SEP: '09',
+      OKT: '10', OCT: '10', NOV: '11', DES: '12', DEC: '12'
+    };
+    const month = monthMap[monthStr.slice(0, 3)] || '01';
+    return `${year}-${month}-${day}`;
+  }
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
+function getEventEndTime(timeStr?: string | null): string {
+  if (!timeStr) return '23:59';
+  let target = timeStr;
+  if (timeStr.includes('-') || timeStr.includes('–')) {
+    const parts = timeStr.split(/[-–]/);
+    if (parts.length > 1) target = parts[1].trim();
+  }
+  const match = target.match(/\b(\d{1,2})[:.](\d{2})\b/);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    const lower = target.toLowerCase();
+    if ((lower.includes('siang') || lower.includes('sore') || lower.includes('malam') || lower.includes('pm')) && hour < 12) {
+      if (hour < 11) {
+        hour += 12;
+      }
+    }
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  }
+  return '23:59';
+}
+
+function isEventPast(e: { date?: string | null; time?: string | null }): boolean {
+  if (!e || !e.date) return false;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const evDateStr = getNormalizedDateStr(e.date);
+
+  if (evDateStr < todayStr) return true;
+  if (evDateStr > todayStr) return false;
+
+  const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+  const endTime = getEventEndTime(e.time);
+  return currentTimeStr > endTime;
+}
+
 function toAgenda(a: any, opts: { userId?: string } = {}) {
   const rundown = typeof a.rundown === 'string' ? JSON.parse(a.rundown) : (a.rundown || []);
   const requirements = typeof a.requirements === 'string' ? JSON.parse(a.requirements) : (a.requirements || []);
@@ -35,13 +95,9 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
   const dayNumber = a.dayNumber || String(d.getDate()).padStart(2, '0');
   const monthAbbr = a.monthAbbr || MONTHS_ID[d.getMonth()];
 
-  // Auto-status: jika tanggal agenda sudah lewat (bukan hari ini) → otomatis Selesai
-  let status = a.status || 'Belum dimulai';
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  if (a.date && a.date < todayStr) {
-    status = 'Selesai';
-  }
+  // Auto-status: berdasarkan tanggal dan jam selesai acara
+  const past = isEventPast({ date: a.date, time: a.time });
+  const status = past ? 'Selesai' : 'Belum dimulai';
 
   const peserta = Array.isArray(a.peserta) ? a.peserta : [];
   const reminders = Array.isArray(a.reminders) ? a.reminders : [];
@@ -106,42 +162,18 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Auto-update status to 'Selesai' for past agendas based on date and time
-    const activeAgendas = await prisma.agenda.findMany({
-      where: { status: { not: 'Selesai' } }
-    });
-
-    if (activeAgendas.length > 0) {
-      const now = new Date();
-      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-      for (const a of activeAgendas) {
-        if (!a.date) continue;
-        let isPast = false;
-        
-        if (a.date < todayStr) {
-          isPast = true;
-        } else if (a.date === todayStr) {
-          let endTime = "23:59";
-          if (a.time && a.time.includes('-')) {
-             const parts = a.time.split('-');
-             if (parts.length > 1) endTime = parts[1].trim();
-          } else if (a.time) {
-             endTime = a.time.trim();
-          }
-          
-          endTime = endTime.replace(/\./g, ':');
-          if (endTime < currentTimeStr) {
-            isPast = true;
-          }
-        }
-
-        if (isPast) {
-          await prisma.agenda.update({
-            where: { id: a.id },
-            data: { status: 'Selesai' }
-          });
-        }
+    // Sinkronisasi status di database agar konsisten (tanggal lampau / lewat jam selesai = Selesai, hari ini sebelum selesai / mendatang = Belum dimulai)
+    const allAgendas = await prisma.agenda.findMany();
+    for (const a of allAgendas) {
+      if (!a.date) continue;
+      const shouldBePast = isEventPast({ date: a.date, time: a.time });
+      const currentStatus = a.status || 'Belum dimulai';
+      const expectedStatus = shouldBePast ? 'Selesai' : 'Belum dimulai';
+      if (currentStatus !== expectedStatus) {
+        await prisma.agenda.update({
+          where: { id: a.id },
+          data: { status: expectedStatus }
+        });
       }
     }
 

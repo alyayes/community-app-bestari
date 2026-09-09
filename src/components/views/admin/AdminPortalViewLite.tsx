@@ -76,7 +76,7 @@ import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
-import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary } from '../../../utils/agendaUtils';
+import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary, isEventPast } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
 
 
@@ -954,10 +954,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     const updatedDayNumber = isNaN(d.getTime()) ? agDate.slice(0, 2) : d.getDate().toString().padStart(2, '0');
     const updatedMonthAbbr = isNaN(d.getTime()) ? 'OKT' : monthNames[d.getMonth()];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isPast = !isNaN(d.getTime()) && d < today;
-    // Jika tanggal lampau, otomatis Selesai (siap untuk simulasi sertifikat/arsip). Jika hari ini/mendatang, otomatis Belum dimulai.
+    const isPast = isEventPast({ date: agDate, time: computedFinalTime });
+    // Jika tanggal lampau atau hari ini lewat jam selesai -> otomatis Selesai. Jika hari ini (belum lewat jam selesai) / mendatang -> Belum dimulai.
     const finalStatus: 'Belum dimulai' | 'Selesai' = isPast ? 'Selesai' : 'Belum dimulai';
     const finalStatusType = finalStatus === 'Selesai' ? 'neutral' : 'success';
 
@@ -1088,8 +1086,12 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
   // Filtered Agendas
   const filteredAgendas = agendaList.map(ag => {
-    const isPast = ag.date && !isNaN(new Date(ag.date).getTime()) && new Date(ag.date).getTime() < new Date().setHours(0, 0, 0, 0);
-    return isPast ? { ...ag, status: 'Selesai' as any } : ag;
+    const isPast = isEventPast(ag);
+    return {
+      ...ag,
+      status: (isPast ? 'Selesai' : 'Belum dimulai') as any,
+      statusType: isPast ? 'neutral' : 'success'
+    };
   }).filter(ag => {
     const matchesSearch = ag.title.toLowerCase().includes(agendaSearchQuery.toLowerCase()) ||
       (ag.location && ag.location.toLowerCase().includes(agendaSearchQuery.toLowerCase())) ||

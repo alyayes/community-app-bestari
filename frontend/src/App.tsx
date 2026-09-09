@@ -12,6 +12,7 @@ import {
   INITIAL_HARVEST_RECORDS
 } from './data/mockData';
 import { api, apiLogin, apiRegister, getToken, setToken } from './api/client';
+import { isEventPast } from './utils/agendaUtils';
 
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -681,10 +682,15 @@ export function App() {
   };
 
   const handleEditEvent = async (updatedEv: AgendaEvent) => {
-    // Hitung status berdasarkan tanggal di sisi klien (tanggal lampau = Selesai)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const computedStatus = updatedEv.date < todayStr ? 'Selesai' : updatedEv.status;
-    const finalEv: AgendaEvent = { ...updatedEv, status: computedStatus as AgendaEvent['status'] };
+    // Hitung status berdasarkan tanggal dan jam acara
+    const isPast = isEventPast(updatedEv);
+    const computedStatus = isPast ? 'Selesai' : 'Belum dimulai';
+    const computedStatusType = isPast ? 'neutral' : 'success';
+    const finalEv: AgendaEvent = {
+      ...updatedEv,
+      status: computedStatus as AgendaEvent['status'],
+      statusType: computedStatusType
+    };
 
     // Update lokal DULU agar UI langsung responsif
     setEvents(prev => prev.map(ev => ev.id === finalEv.id ? finalEv : ev));

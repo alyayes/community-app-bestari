@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AgendaEvent, UserProfile } from '../../types';
 import { BASE_URL, resolveImageUrl } from '../../api/client';
 import { drawCertificateOnCanvas, isCertificateActive } from '../../utils/certificate';
-import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod } from '../../utils/agendaUtils';
+import { getCategoryColor, getCategoryBorderColor, getCategoryHoverBorderColor, formatEventTimeWithPeriod, isEventPast } from '../../utils/agendaUtils';
 import { IndonesianTimePicker, to12HourPeriod } from '../IndonesianTimePicker';
 import {
   Calendar as CalendarIcon,
@@ -65,32 +65,6 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   onUpdateAttendance, 
   searchQuery = '' 
 }) => {
-  const isEventPast = (e: AgendaEvent) => {
-    if (e.status === 'Selesai') return true;
-    if (!e.date) return false;
-    
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
-    if (e.date < todayStr) return true;
-    if (e.date === todayStr) {
-      const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-      let endTime = "23:59";
-      if (e.time && e.time.includes('-')) {
-         const parts = e.time.split('-');
-         if (parts.length > 1) endTime = parts[1].trim();
-      } else if (e.time) {
-         endTime = e.time.trim();
-      }
-      const timeMatch = endTime.match(/\b\d{1,2}[:.]\d{2}\b/);
-      if (timeMatch) {
-        endTime = timeMatch[0].replace('.', ':').padStart(5, '0');
-      }
-      if (endTime < currentTimeStr) return true;
-    }
-    return false;
-  };
-
   const isUserRegistered = (e: AgendaEvent) => {
     if (e.isRegistered) return true;
     return e.peserta?.some(p => p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) || false;
@@ -404,10 +378,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     ));
     return matchesSearch && matchesCat;
   }).sort((a, b) => {
-    const todayObj = new Date();
-    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-    const aPast = a.status === 'Selesai' || Boolean(a.date && a.date < todayStr);
-    const bPast = b.status === 'Selesai' || Boolean(b.date && b.date < todayStr);
+    const aPast = isEventPast(a);
+    const bPast = isEventPast(b);
     
     // If "Semua", put past events at the bottom
     if (aPast && !bPast) return 1;
@@ -525,15 +497,14 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     const benList = newBenefits.split(',').map(s => s.trim()).filter(Boolean);
     const contactObj = newContactName || newContactPhone ? { name: newContactName, phone: newContactPhone } : undefined;
 
-    const todayObj = new Date();
-    const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
-    const computedStatus = newDate < todayStr ? 'Selesai' : newStatus;
-    const computedStatusType = computedStatus === 'Selesai' ? 'neutral' : (computedStatus === 'Belum dimulai' ? 'success' : 'warning');
-
     const period = to12HourPeriod(newStartTime).period;
     const computedFinalTime = newStartTime 
       ? (newEndTime ? `${newStartTime} - ${newEndTime} WIB (${period})` : `${newStartTime} WIB (${period})`) 
       : formatEventTimeWithPeriod(newTime);
+
+    const isPast = isEventPast({ date: newDate, time: computedFinalTime });
+    const computedStatus = isPast ? 'Selesai' : 'Belum dimulai';
+    const computedStatusType = isPast ? 'neutral' : 'success';
 
     if (isEditing && editingEventId && onEditEvent) {
       const updatedEv: AgendaEvent = {

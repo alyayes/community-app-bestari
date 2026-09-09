@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Image as ImageIcon
 } from 'lucide-react';
-import { getCategoryColor, cleanHtmlSummary, getArticleExcerpt } from '../../utils/agendaUtils';
+import { getCategoryColor, cleanHtmlSummary, getArticleExcerpt, isEventPast } from '../../utils/agendaUtils';
 
 interface BerandaViewProps {
   currentUser: UserProfile;
@@ -89,10 +89,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
 
   const latestArticles = articles.slice(0, 4);
   const upcomingEvents = [...events]
-    .filter(e => {
-      const isPast = e.date && !isNaN(new Date(e.date).getTime()) && new Date(e.date).getTime() < new Date().setHours(0, 0, 0, 0);
-      return e.status !== 'Selesai' && !isPast;
-    })
+    .filter(e => !isEventPast(e))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 5);
 
