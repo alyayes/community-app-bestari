@@ -96,6 +96,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     return e.peserta?.some(p => p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) || false;
   };
 
+  const isAdmin = Boolean(currentUser?.isAdmin || currentUser?.role?.toLowerCase().includes('admin') || currentUser?.name?.toLowerCase().includes('admin'));
+
   const events = rawEvents;
   const defaultSelected = events.find(e => !isEventPast(e)) || events[0];
   const [selectedEvent, setSelectedEvent] = useState<AgendaEvent>(defaultSelected);
@@ -842,10 +844,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   const dMonthNumStr = (d.getMonth() + 1).toString().padStart(2, '0');
                   const dYearStr = d.getFullYear().toString();
 
-                  const isAdmin = currentUser?.name?.toLowerCase().includes('admin');
                   const dayEvents = events.filter(e => {
                     const isDateMatch = (e.dayNumber === formattedDay && e.monthAbbr === dMonthStr) || 
-                      (Boolean(e.date) && e.date.startsWith(`${dYearStr}-${dMonthNumStr}-`));
+                      (Boolean(e.date) && e.date === `${dYearStr}-${dMonthNumStr}-${formattedDay}`);
                     if (!isDateMatch) return false;
                     if (isEventPast(e)) return false;
                     if (isAdmin) return true;
@@ -971,12 +972,12 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 </div>
 
                 {/* Title */}
-                <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug">
+                <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug break-words">
                   {selectedEvent.title}
                 </h2>
 
                 {/* Description */}
-                <p className="text-sm text-[#433A30]/90 leading-relaxed">
+                <p className="text-sm text-[#433A30]/90 leading-relaxed whitespace-pre-line break-words">
                   {selectedEvent.description}
                 </p>
 
@@ -999,7 +1000,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     <FileText className="w-4 h-4" />
                     Rincian Kegiatan
                   </button>
-                  {currentUser?.role !== 'admin' && (
+                  {!isAdmin && (
                     isEventPast(selectedEvent) ? (
                       isUserRegistered(selectedEvent) ? (
                         <div className="px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md flex items-center gap-2 cursor-default border border-emerald-400">
@@ -1222,7 +1223,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                   </button>
 
                   <div className="flex items-center gap-2">
-                    {currentUser?.role !== 'admin' && (
+                    {!isAdmin && (
                       isEventPast(ev) ? (
                         isUserRegistered(ev) ? (
                           <div className="px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm flex items-center gap-1.5 cursor-default border border-emerald-400">
@@ -1298,7 +1299,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 <FileText className="w-4 h-4 text-[#2C4219]" />
                 Deskripsi Kegiatan
               </h3>
-              <p className="text-xs text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5] whitespace-pre-line">
+              <p className="text-xs text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5] whitespace-pre-line break-words">
                 {selectedEvent.description || 'Tidak ada keterangan tambahan.'}
               </p>
             </div>
@@ -1345,7 +1346,6 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
             {/* Materi & Dokumentasi */}
             {(() => {
-              const isAdmin = currentUser?.role?.toLowerCase().includes('admin') || currentUser?.isAdmin;
               const isRegistered = isUserRegistered(selectedEvent);
               const isPast = isEventPast(selectedEvent);
               const isAttended = selectedEvent.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended);
@@ -1524,7 +1524,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                 Tutup Window
               </button>
 
-              {currentUser?.role !== 'admin' && (
+              {!isAdmin && (
                 isEventPast(selectedEvent) ? (
                   isUserRegistered(selectedEvent) ? (
                     <div className="px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md cursor-default border border-emerald-400">

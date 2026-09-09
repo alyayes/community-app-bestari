@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { InfoArticle } from '../../types';
-import { ArrowLeft, Image as ImageIcon, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, ChevronLeft, Calendar, User, Layers } from 'lucide-react';
+import { cleanHtmlSummary } from '../../utils/agendaUtils';
+import { resolveImageUrl } from '../../api/client';
 
 interface InformasiViewLiteProps {
   articles: InfoArticle[];
@@ -15,9 +17,10 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
   onSelectArticle,
   searchQuery = ''
 }) => {
+  const q = (searchQuery || '').toLowerCase();
   const filteredArticles = articles.filter(a => 
-    a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    a.summary.toLowerCase().includes(searchQuery.toLowerCase())
+    (a.title || '').toLowerCase().includes(q) || 
+    (a.summary || '').toLowerCase().includes(q)
   );
 
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -43,17 +46,33 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           Kembali ke Daftar
         </button>
 
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#2C4219] mb-4 leading-snug">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#2C4219] mb-3 leading-snug">
           {selectedArticle.title}
         </h1>
+
+        {/* Metadata Badges (Tanggal, Penulis, Kategori) */}
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[#7A7062] mb-5 pb-3 border-b border-[#E6E1D5]">
+          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#2C4219] shadow-2xs">
+            <Calendar className="w-3.5 h-3.5 text-[#2C4219]" />
+            {selectedArticle.date || 'Rabu, 9 September 2026'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#433A30] shadow-2xs">
+            <User className="w-3.5 h-3.5 text-[#A8B774]" />
+            {selectedArticle.author?.name || 'Admin'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-xl border border-[#E6E1D5] font-semibold text-[#572E4A] shadow-2xs">
+            <Layers className="w-3.5 h-3.5 text-[#572E4A]" />
+            {selectedArticle.category}
+          </span>
+        </div>
         
         {selectedArticle.gallery && selectedArticle.gallery.length > 0 ? (
-          <div className="relative mb-5 group overflow-hidden rounded-2xl shadow-xs bg-[#E6E1D5]/30">
-            <div className="relative w-full h-44 sm:h-60 md:h-80">
+          <div className="relative mb-6 group overflow-hidden rounded-2xl shadow-xs bg-[#E6E1D5]/30">
+            <div className="relative w-full h-48 sm:h-64 md:h-80">
               {selectedArticle.gallery.map((imgUrl, idx) => (
                 <img
                   key={idx}
-                  src={imgUrl}
+                  src={resolveImageUrl(imgUrl)}
                   alt={`${selectedArticle.title} ${idx + 1}`}
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
                     idx === activeImageIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'
@@ -80,17 +99,20 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           </div>
         ) : selectedArticle.image && (
           <img 
-            src={selectedArticle.image} 
+            src={resolveImageUrl(selectedArticle.image)} 
             alt={selectedArticle.title}
-            className="w-full h-44 sm:h-60 md:h-80 object-cover rounded-2xl mb-5 shadow-xs"
+            className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-2xl mb-6 shadow-xs"
           />
         )}
 
-        <div className="prose max-w-none text-sm sm:text-base text-[#433A30] leading-relaxed [&>h1]:text-[#2C4219] [&>h2]:text-[#2C4219]">
-          {selectedArticle.content && selectedArticle.content.length > 0 ? (
-            <div dangerouslySetInnerHTML={{ __html: selectedArticle.content.join('\n') }} />
+        <div className="text-sm sm:text-base text-[#433A30] leading-relaxed">
+          {selectedArticle.content && (Array.isArray(selectedArticle.content) ? selectedArticle.content.length > 0 : Boolean(selectedArticle.content)) ? (
+            <div 
+              className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base break-words"
+              dangerouslySetInnerHTML={{ __html: Array.isArray(selectedArticle.content) ? selectedArticle.content.join('\n') : String(selectedArticle.content) }}
+            />
           ) : (
-            <p>{selectedArticle.summary}</p>
+            <p className="article-rich-content text-sm sm:text-base leading-relaxed break-words">{cleanHtmlSummary(selectedArticle.summary)}</p>
           )}
         </div>
       </div>
@@ -110,7 +132,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
             >
               <div className="w-full h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
                 {art.image ? (
-                  <img src={art.image} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img src={resolveImageUrl(art.image)} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <ImageIcon className="w-10 h-10 text-[#2C4219]/30" />
                 )}
@@ -121,7 +143,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
                     {art.title}
                   </h3>
                   <p className="text-xs sm:text-sm text-[#433A30]/80 line-clamp-2 font-normal leading-relaxed">
-                    {art.summary}
+                    {cleanHtmlSummary(art.summary)}
                   </p>
                 </div>
                 <div className="mt-3.5 pt-3 border-t border-[#E6E1D5]/60">

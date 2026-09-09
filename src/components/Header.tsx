@@ -64,7 +64,6 @@ export const Header: React.FC<HeaderProps> = ({
     beranda: 'Beranda Utama',
     agenda: 'Agenda Kegiatan',
     informasi: 'Informasi',
-    pengumuman: 'Pengumuman Resmi',
     diskusi: 'Diskusi & Komunitas',
     dashboard: 'Data Sorgum',
     profil: 'Profil Anggota KWT'

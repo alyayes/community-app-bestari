@@ -13,7 +13,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
-import { SERVER_BASE } from '../../api/client';
+import { SERVER_BASE, resolveImageUrl } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 
 interface RegisterViewProps {
@@ -48,7 +48,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
     ? cmsData.registerImages.map(i => i.url)
     : (cmsData?.registerImage ? [cmsData.registerImage] : ["https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&q=80&w=1200"]);
 
-  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
+  const imgUrl = (u: string) => resolveImageUrl(u);
 
   useEffect(() => {
     if (registerImages.length <= 1) return;
@@ -147,7 +147,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             className="flex items-center gap-3 cursor-pointer group text-left"
           >
             {cmsData?.webLogo ? (
-              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-10 h-10 md:w-11 md:h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0" />
+              <img src={resolveImageUrl(cmsData.webLogo)} alt="Logo" className="w-10 h-10 md:w-11 md:h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0" />
             ) : (
               <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-[#A8B774]/30 shrink-0">
                 <Sprout className="w-5 h-5 md:w-6 md:h-6" />
@@ -189,7 +189,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
       {/* RIGHT PANEL: Complete Registration Form (50% split, centered) */}
       <div className="w-full md:w-1/2 bg-transparent md:bg-[#FAF6EE] flex flex-col justify-start md:justify-center items-center flex-1 relative z-20 -mt-10 md:mt-0">
         <div className="bg-[#FAF6EE] md:bg-transparent w-full rounded-t-[2rem] md:rounded-none px-6 pt-10 pb-12 sm:p-10 lg:p-14 xl:p-16 max-w-full shadow-[0_-15px_40px_rgba(0,0,0,0.2)] md:shadow-none flex-1 md:flex-none flex flex-col items-center">
-          <div className="max-w-sm w-full space-y-6 sm:space-y-8">
+          <div className="max-w-md w-full space-y-6 sm:space-y-8">
 
           {/* Header */}
           <div className="text-center md:text-left">
@@ -210,7 +210,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
             {/* 1. NAMA LENGKAP */}
             <div className="space-y-1.5">
-              <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
+              <label className="block font-bold text-[#2C4219] text-xs sm:text-sm whitespace-nowrap">
                 Nama Lengkap
               </label>
               <div className="relative">
@@ -226,11 +226,11 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
               </div>
             </div>
 
-            {/* 3. EMAIL & NO WHATSAPP (2 KOLOM TERPISAH) */}
+            {/* 3. EMAIL & NOMOR TELEPON (2 KOLOM TERPISAH) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Kolom Email */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm whitespace-nowrap">
                   Email
                 </label>
                 <div className="relative">
@@ -245,10 +245,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
                 </div>
               </div>
 
-              {/* Kolom WhatsApp */}
+              {/* Kolom Nomor Telepon */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
-                  No. Handphone (WhatsApp)
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm whitespace-nowrap">
+                  Nomor Telepon
                 </label>
                 <div className="relative">
                   <input
@@ -267,7 +267,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Kata Sandi */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm whitespace-nowrap">
                   Kata Sandi
                 </label>
                 <div className="relative">
@@ -293,7 +293,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
               {/* Konfirmasi Kata Sandi */}
               <div className="space-y-1.5">
-                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm">
+                <label className="block font-bold text-[#2C4219] text-xs sm:text-sm whitespace-nowrap">
                   Konfirmasi Kata Sandi
                 </label>
                 <div className="relative">

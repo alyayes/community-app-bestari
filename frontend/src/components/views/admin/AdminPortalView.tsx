@@ -77,7 +77,7 @@ import {
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
-import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError } from '../../../api/client';
+import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
 import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
@@ -88,6 +88,31 @@ const Font = Quill.import('formats/font') as any;
 const customFonts = ['sans-serif', 'serif', 'monospace', 'arial', 'courier-new', 'georgia', 'trebuchet', 'verdana', 'poppins'];
 Font.whitelist = customFonts;
 Quill.register(Font, true);
+
+const QUILL_MODULES = {
+  toolbar: [
+    [{ 'font': customFonts }, { 'header': [1, 2, 3, 4, 5, 6, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'script': 'sub' }, { 'script': 'super' }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+    [{ 'direction': 'rtl' }],
+    [{ 'align': [] }],
+    ['link', 'image'],
+    ['clean']
+  ],
+};
+
+const QUILL_FORMATS = [
+  'font', 'header',
+  'bold', 'italic', 'underline', 'strike',
+  'color', 'background',
+  'script',
+  'list', 'bullet', 'indent',
+  'direction',
+  'align',
+  'link', 'image'
+];
 
 interface AdminPortalViewProps {
   setAppMode?: (mode: 'lite' | 'pro') => void;
@@ -607,18 +632,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [artGallery, setArtGallery] = useState<string[]>([]);
   const [artStatus, setArtStatus] = useState<'Draft' | 'Published'>('Published');
 
-  const quillModules = {
-    toolbar: [
-      [{ 'font': customFonts }, { 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'script': 'sub' }, { 'script': 'super' }],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
-      [{ 'align': [] }],
-      ['clean']
-    ],
-  };
   const [artError, setArtError] = useState('');
 
   // Announcement Modal State
@@ -691,9 +704,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return res.urls;
   };
 
-  // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
-  const cmsImgUrl = (u: string) =>
-    u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
+  // Normalisasi URL gambar agar tahan ganti domain
+  const cmsImgUrl = (u: string) => resolveImageUrl(u);
   const handleSaveCms = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: CmsData = {
@@ -1034,9 +1046,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedArtTitle = artTitle.trim();
-    if (!trimmedArtTitle) return;
-
     setArtError('');
+    if (!trimmedArtTitle) {
+      setArtError('Judul informasi artikel wajib diisi.');
+      return;
+    }
     if (isAllLowerCase(trimmedArtTitle)) {
       setArtError('Judul informasi tidak boleh huruf kecil semua. Huruf awal setiap kata harus kapital atau huruf besar semua.');
       return;
@@ -1053,7 +1067,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const payload = {
       title: formattedArtTitle,
       category: artCategory,
-      summary: artContent ? artContent.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : formattedArtTitle,
+      summary: plainTextContent || formattedArtTitle,
       content: artContent ? [artContent] : [formattedArtTitle],
       image: artImage,
       gallery: artGallery,
@@ -1075,11 +1089,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       const reloaded = await api<InfoArticle[]>('/artikel/admin');
       setAdminArticles(reloaded);
       onUpdateArticles(reloaded);
+      setIsArticleModalOpen(false);
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan artikel');
     }
-
-    setIsArticleModalOpen(false);
   };
 
   const confirmDelete = () => {
@@ -1525,7 +1538,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               <div className="flex items-center gap-3 max-w-sm">
                                 {art.image ? (
                                   <img
-                                    src={art.image}
+                                    src={resolveImageUrl(art.image)}
                                     alt={art.title}
                                     className="w-14 h-10 rounded-lg object-cover shrink-0 border border-[#E6E1D5]"
                                   />
@@ -3195,7 +3208,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                {((usersList && usersList.length > 0) ? usersList : ((members && members.length > 0) ? members : DEFAULT_USERS_LIST)).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => (
+                {((usersList && usersList.length > 0) ? usersList : ((members && members.length > 0) ? members : DEFAULT_USERS_LIST)).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).map((u) => {
+                  const isUserAdmin = (u.role || '').toUpperCase() === 'ADMIN' || (u.role || '').toUpperCase() === 'ADMINISTRATOR' || (u.role || '').toLowerCase().includes('admin');
+                  return (
                   <div key={u.id} className="bg-white rounded-3xl border border-[#E6E1D5] shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden group flex flex-col relative">
                     {/* Card Header (Avatar & Name & Status) */}
                     <div className="p-6 pb-5 flex items-start gap-4">
@@ -3217,8 +3232,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div className="flex-1 overflow-hidden pt-1">
                         <p className="font-title font-bold text-[#2C4219] text-base truncate group-hover:text-[#A8B774] transition-colors" title={u.name}>{u.name}</p>
                         <p className="text-[11px] text-[#7A7062] font-semibold truncate mt-0.5" title={u.email}>{u.email}</p>
-                        <span className={`inline-block mt-2 px-2.5 py-1 rounded-md font-bold text-[9px] uppercase tracking-wider ${u.role === 'ADMIN' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-[#FAF6EE] text-[#7A7062] border border-[#E6E1D5]'}`}>
-                          {u.role === 'ADMIN' ? 'Admin Portal' : 'Anggota KWT'}
+                        <span className={`inline-block mt-2 px-2.5 py-1 rounded-md font-bold text-[9px] uppercase tracking-wider ${isUserAdmin ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-[#FAF6EE] text-[#7A7062] border border-[#E6E1D5]'}`}>
+                          {isUserAdmin ? 'Admin Portal' : 'Anggota KWT'}
                         </span>
                       </div>
                     </div>
@@ -3267,7 +3282,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        {u.role !== 'ADMIN' && (
+                        {!isUserAdmin && (
                           <button
                             onClick={() => setDeleteConfirmModal({ id: u.id, title: u.name, type: 'pengguna' })}
                             className="p-2.5 rounded-xl bg-[#FAF6EE] hover:bg-rose-500 text-[#7A7062] hover:text-white transition-all duration-300 shadow-xs hover:shadow-md"
@@ -3279,7 +3294,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
 
                 {((usersList && usersList.length > 0) ? usersList : ((members && members.length > 0) ? members : DEFAULT_USERS_LIST)).filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(userSearchQuery.toLowerCase())).length === 0 && (
                   <div className="col-span-full py-16 text-center border-2 border-dashed border-[#E6E1D5] rounded-3xl bg-[#FAF6EE]/50">
@@ -3598,7 +3614,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       theme="snow"
                       value={artContent}
                       onChange={setArtContent}
-                      modules={quillModules}
+                      modules={QUILL_MODULES}
+                      formats={QUILL_FORMATS}
                       placeholder="Tuliskan isi artikel Anda di sini..."
                     />
                   </div>

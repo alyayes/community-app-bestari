@@ -5,7 +5,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import { UserProfile, CmsData } from '../../types';
-import { SERVER_BASE, getToken } from '../../api/client';
+import { SERVER_BASE, getToken, resolveImageUrl } from '../../api/client';
 
 interface LandingViewProps {
   currentUser: UserProfile;
@@ -45,9 +45,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
 
   const activeHeroImages = cmsData?.landingImages?.length ? cmsData.landingImages : HERO_IMAGES;
-  // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
-  const imgUrl = (u: string) =>
-    u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
+  // Normalisasi URL gambar: menggunakan resolveImageUrl agar tahan ganti domain
+  const imgUrl = (u: string) => resolveImageUrl(u);
 
   // Auto transition hero images every 5.5 seconds
   useEffect(() => {
@@ -83,7 +82,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             className="flex items-center gap-3.5 cursor-pointer group"
           >
             {cmsData?.webLogo ? (
-              <img src={cmsData.webLogo.startsWith('/uploads/') ? `${SERVER_BASE}${cmsData.webLogo}` : cmsData.webLogo} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30" />
+              <img src={resolveImageUrl(cmsData.webLogo)} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30" />
             ) : (
               <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30">
                 <Sprout className="w-7 h-7" />

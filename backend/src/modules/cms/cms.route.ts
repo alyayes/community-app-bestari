@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../../config/database';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse } from '../../utils/response';
 
 const router = Router();
@@ -53,12 +53,8 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
 });
 
 // Update the global CMS configuration (Admin only)
-router.put('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.put('/', authenticate, authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (req.user?.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Akses ditolak. Khusus Admin.' });
-    }
-
     const data = req.body;
     const cms = await prisma.cms.upsert({
       where: { id: 'global' },

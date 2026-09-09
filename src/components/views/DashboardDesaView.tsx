@@ -17,7 +17,9 @@ import {
   ArrowUpDown,
   SlidersHorizontal,
   FileSpreadsheet,
-  Heart
+  Heart,
+  ExternalLink,
+  RotateCw
 } from 'lucide-react';
 import type { LandPlot, HarvestRecord, UserProfile } from '../../types';
 import { getAvatarUrl, handleAvatarError } from '../../api/client';
@@ -30,6 +32,9 @@ interface DashboardDesaViewProps {
   totalRawMaterialKg?: number;
   isAdmin?: boolean;
   onOpenMulaiPanen: () => void;
+  onSimpanPanen?: () => void;
+  onRefresh?: () => Promise<void> | void;
+  isRefreshing?: boolean;
 }
 
 type MetricCardType = 'ringkasan' | 'panen' | 'lahan' | 'anggota' | 'produksi';
@@ -42,6 +47,8 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   totalRawMaterialKg,
   isAdmin = false,
   onOpenMulaiPanen,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   // Pastikan array selalu valid dan aman dari undefined/null
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
@@ -325,13 +332,28 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
     <div className="space-y-4 sm:space-y-5 pb-12">
       {/* Menu Kategori Data SCM (Sama seperti di User Community) */}
       <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-2">
-        <div className="px-1 flex items-center justify-between">
-          <p className="text-[11px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
-            Pilih Kategori Data:
-          </p>
-          <span className="text-[10px] sm:text-[11px] font-bold text-[#A8B774] bg-[#FAF6EE] px-2.5 py-0.5 rounded-md border border-[#E6E1D5]">
-            Sistem Rantai Pasok (SCM) Desa
-          </span>
+        <div className="px-1 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
+              Pilih Kategori Data:
+            </p>
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Real-Time
+            </span>
+          </div>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={() => onRefresh()}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-[#2C4219] bg-[#FAF6EE] hover:bg-[#EAE4D5] px-2.5 py-1 rounded-md border border-[#E6E1D5] transition-all active:scale-95 disabled:opacity-50"
+              title="Segarkan data SCM sekarang"
+            >
+              <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-emerald-700' : ''}`} />
+              <span>{isRefreshing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
+            </button>
+          )}
         </div>
 
         {/* Grid 5 Tab: Pada HP tampil 1 tombol Ringkasan lebar + 4 tombol 2x2. Pada tablet/PC tampil 5 kolom sejajar */}

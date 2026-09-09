@@ -81,7 +81,7 @@ const CommentBubble = ({
                 <p className="text-sm text-[#433A30]/80 line-clamp-2 leading-tight">{comment.quotedCommentText}</p>
               </div>
             )}
-            <p className="text-sm text-[#433A30] leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+            <p className="text-sm text-[#433A30] leading-relaxed whitespace-pre-wrap break-words">{comment.content}</p>
 
             {comment.imageAttachments && comment.imageAttachments.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
@@ -172,7 +172,7 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
           <span>{isMe ? 'Anda' : thread.authorName}</span>
           <span className="text-xs font-normal text-[#433A30]/60">{thread.timeAgo}</span>
         </div>
-        <p className={`text-[15px] text-[#433A30] leading-relaxed whitespace-pre-wrap ${isMe ? 'text-right' : 'text-left'}`}>
+        <p className={`text-[15px] text-[#433A30] leading-relaxed whitespace-pre-wrap break-words w-full ${isMe ? 'text-right' : 'text-left'}`}>
           {thread.content}
         </p>
 

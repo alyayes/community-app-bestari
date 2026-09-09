@@ -5,9 +5,8 @@ import { successResponse } from '../../utils/response';
 
 const router = Router();
 
-// Bangun URL absolut dari request (protocol + host + path)
-const absUrl = (req: Request, filename: string) =>
-  `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+// Path relatif (/uploads/filename) agar URL gambar tidak rusak saat domain berganti
+const absUrl = (_req: Request, filename: string) => `/uploads/${filename}`;
 
 // ── POST /api/upload (ADMIN) — 1 file ──────────────
 router.post('/', authenticate, authorize('ADMIN'), upload.single('file'), (req: Request, res: Response, next: NextFunction) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavItem, InfoArticle, AgendaEvent, UserProfile, CmsData } from '../../types';
-import { SERVER_BASE } from '../../api/client';
+import { SERVER_BASE, resolveImageUrl } from '../../api/client';
 import {
   ArrowRight,
   Calendar,
@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Image as ImageIcon
 } from 'lucide-react';
-import { getCategoryColor } from '../../utils/agendaUtils';
+import { getCategoryColor, cleanHtmlSummary } from '../../utils/agendaUtils';
 
 interface BerandaViewProps {
   currentUser: UserProfile;
@@ -62,7 +62,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
 
   const activeBannerSlides = cmsData?.landingImages?.length
     ? cmsData.landingImages.map(img => ({
-      url: img.url.startsWith('/uploads/') ? `${SERVER_BASE}${img.url}` : img.url,
+      url: resolveImageUrl(img.url),
       title: img.title,
       desc: img.caption
     }))
@@ -70,17 +70,20 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
 
   // Auto transition banner slides every 5 seconds
   useEffect(() => {
+    if (!activeBannerSlides || activeBannerSlides.length <= 1) return;
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % activeBannerSlides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeBannerSlides.length]);
 
   const handleNextSlide = () => {
+    if (!activeBannerSlides.length) return;
     setActiveSlide((prev) => (prev + 1) % activeBannerSlides.length);
   };
 
   const handlePrevSlide = () => {
+    if (!activeBannerSlides.length) return;
     setActiveSlide((prev) => (prev - 1 + activeBannerSlides.length) % activeBannerSlides.length);
   };
 
@@ -186,7 +189,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                     <div className="relative h-36 rounded-lg overflow-hidden bg-gray-100">
                       {art.image ? (
                         <img
-                          src={art.image}
+                          src={resolveImageUrl(art.image)}
                           alt={art.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -201,11 +204,11 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-[#433A30]/70 font-medium">{art.timeAgo}</span>
-                      <h4 className="font-title font-bold text-sm text-[#2C4219] group-hover:text-[#A8B774] transition-colors line-clamp-2 mt-0.5">
+                      <h4 className="font-title font-bold text-sm text-[#2C4219] group-hover:text-[#A8B774] transition-colors line-clamp-2 mt-0.5 break-words">
                         {art.title}
                       </h4>
-                      <p className="text-xs text-[#433A30] line-clamp-2 mt-1">
-                        {art.summary}
+                      <p className="text-xs text-[#433A30] line-clamp-2 mt-1 break-words">
+                        {cleanHtmlSummary(art.summary)}
                       </p>
                     </div>
                   </div>

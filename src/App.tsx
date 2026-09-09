@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard, ShieldCheck, FileText, MessageCircle, X } from 'lucide-react';
+import { useToast } from './contexts/ToastContext';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, UserProfile, CmsData } from './types';
 import {
   CURRENT_USER,
@@ -43,6 +44,8 @@ import { SemuaNotifikasiModal } from './components/modals/SemuaNotifikasiModal';
 type PageMode = 'landing' | 'login' | 'register' | 'app' | 'admin';
 
 export function App() {
+  const { showToast } = useToast();
+  const [isSyncingScm, setIsSyncingScm] = useState(false);
   const [pageMode, setPageMode] = useState<PageMode>(() => {
     return (sessionStorage.getItem('bestari_pagemode') as PageMode) || 'landing';
   });
@@ -72,8 +75,8 @@ export function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [events, setEvents] = useState<AgendaEvent[]>(INITIAL_EVENTS);
   const [threads, setThreads] = useState<ForumThread[]>([]);
-  const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
-  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [landPlots, setLandPlots] = useState<LandPlot[]>(INITIAL_LAND_PLOTS);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>(INITIAL_HARVEST_RECORDS);
   const [members, setMembers] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number, totalRawMaterialKg?: number }>({ totalUsers: 48 });
   const [cmsData, setCmsData] = useState<CmsData | null>(null);
@@ -92,6 +95,16 @@ export function App() {
       sessionStorage.removeItem('bestari_selectedarticle');
     }
   }, [selectedArticle]);
+
+  // Sinkronisasi otomatis selectedArticle saat articles diperbarui (misal setelah diedit di admin)
+  useEffect(() => {
+    if (selectedArticle && articles.length > 0) {
+      const fresh = articles.find(a => a.id === selectedArticle.id);
+      if (fresh && (fresh.title !== selectedArticle.title || fresh.summary !== selectedArticle.summary || JSON.stringify(fresh.content) !== JSON.stringify(selectedArticle.content))) {
+        setSelectedArticle(fresh);
+      }
+    }
+  }, [articles]);
   // Modals & Drawers
   const [isCreateTopicOpen, setIsCreateTopicOpen] = useState(false);
   const [isMulaiPanenOpen, setIsMulaiPanenOpen] = useState(false);
@@ -158,12 +171,15 @@ export function App() {
           const u = await api<any>('/auth/me');
           if (u) {
             setCurrentUser(u);
+            const isAdminUser = Boolean(u.isAdmin || u.role?.toLowerCase().includes('admin'));
             if (pageMode === 'landing' || pageMode === 'login' || pageMode === 'register') {
-              if (u.isAdmin || u.role?.toLowerCase().includes('admin')) {
+              if (isAdminUser) {
                 setPageMode('admin');
               } else {
                 setPageMode('app');
               }
+            } else if (pageMode === 'admin' && !isAdminUser) {
+              setPageMode('app');
             }
           }
         } catch (err: any) {
@@ -197,8 +213,8 @@ export function App() {
         setAnnouncements(anns.length ? anns : []);
         setEvents(ags.length ? ags : INITIAL_EVENTS);
         setThreads(thrs.length ? thrs : []);
-        setLandPlots(lahan.length ? lahan : []);
-        setHarvestRecords(panen.length ? panen : []);
+        if (lahan.length) setLandPlots(lahan);
+        if (panen.length) setHarvestRecords(panen);
         setMembers(membersRes.length ? membersRes : []);
         if (stats) setDashboardStats(stats);
         if (cmsRes) setCmsData(cmsRes);
@@ -214,24 +230,43 @@ export function App() {
 
 
 
-  useEffect(() => {
-    // Real-time polling khusus untuk Lahan & Panen (tiap 30 detik)
-    const pollSorgumData = async () => {
-      try {
-        const [lahan, panen] = await Promise.all([
-          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
-          api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
-        ]);
-        setLandPlots(lahan);
-        setHarvestRecords(panen);
-      } catch (e) {
-        console.error('[Bestari] Polling Sorgum Data gagal:', e);
+  // Fetch SCM Data (Lahan & Panen) secara real-time dari SCM LivingLabs
+  const fetchSorgumData = useCallback(async (silent = true) => {
+    if (!silent) setIsSyncingScm(true);
+    try {
+      const [lahan, panen] = await Promise.all([
+        api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+        api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
+      ]);
+      if (Array.isArray(lahan) && lahan.length > 0) setLandPlots(lahan);
+      if (Array.isArray(panen) && panen.length > 0) setHarvestRecords(panen);
+      if (!silent) {
+        showToast('Data SCM berhasil disinkronkan langsung dari LivingLabs!', 'success');
       }
-    };
+    } catch (e) {
+      console.error('[Bestari] Sinkronisasi SCM gagal:', e);
+      if (!silent) {
+        showToast('Gagal menyinkronkan data SCM.', 'error');
+      }
+    } finally {
+      if (!silent) setIsSyncingScm(false);
+    }
+  }, [showToast]);
 
-    const interval = setInterval(pollSorgumData, 30000);
+  // 1. Polling interval otomatis (tiap 20 detik)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSorgumData(true);
+    }, 20000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchSorgumData]);
+
+  // 2. Fetch instan saat berpindah ke menu Data Sorgum atau Admin
+  useEffect(() => {
+    if (activeNav === 'dashboard' || pageMode === 'admin') {
+      fetchSorgumData(true);
+    }
+  }, [activeNav, pageMode, fetchSorgumData]);
 
 
   // Page Routing Navigation Handlers
@@ -992,6 +1027,8 @@ export function App() {
                 harvestRecords={harvestRecords}
                 members={members}
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+                onRefresh={() => fetchSorgumData(false)}
+                isRefreshing={isSyncingScm}
               />
             ) : (
               <DashboardDesaView
@@ -1002,6 +1039,8 @@ export function App() {
                 totalUsers={dashboardStats.totalUsers || 48}
                 totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
+                onRefresh={() => fetchSorgumData(false)}
+                isRefreshing={isSyncingScm}
               />
             )
           )}

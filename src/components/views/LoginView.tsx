@@ -17,7 +17,7 @@ import {
 import { UserProfile, CmsData } from '../../types';
 import { ADMIN_USER } from '../../data/mockData';
 import { useToast } from '../../contexts/ToastContext';
-import { SERVER_BASE, BASE_URL } from '../../api/client';
+import { SERVER_BASE, BASE_URL, resolveImageUrl } from '../../api/client';
 interface LoginViewProps {
   cmsData?: CmsData | null;
   onGoToLanding: () => void;
@@ -53,7 +53,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     ? cmsData.loginImages.map(i => i.url)
     : (cmsData?.loginImage ? [cmsData.loginImage] : ["https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1200"]);
 
-  const imgUrl = (u: string) => u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
+  const imgUrl = (u: string) => resolveImageUrl(u);
 
   useEffect(() => {
     if (loginImages.length <= 1) return;

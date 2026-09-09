@@ -2,6 +2,7 @@ import React from 'react';
 import { NavItem, AgendaEvent, UserProfile, InfoArticle } from '../../types';
 import { Calendar, BookOpen, ChevronRight } from 'lucide-react';
 import { getCategoryColor } from '../../utils/agendaUtils';
+import { resolveImageUrl } from '../../api/client';
 
 interface BerandaViewLiteProps {
   currentUser: UserProfile;
@@ -69,7 +70,7 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
                     className="bg-white p-4 rounded-2xl border-2 border-[#E6E1D5] shadow-sm cursor-pointer hover:border-[#607829] hover:shadow-md transition-all flex items-center gap-4 group"
                   >
                     {article.image ? (
-                      <img src={article.image} alt={article.title} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                      <img src={resolveImageUrl(article.image)} alt={article.title} className="w-20 h-20 rounded-xl object-cover shrink-0" />
                     ) : (
                       <div className="w-20 h-20 rounded-xl bg-[#FAF6EE] flex items-center justify-center text-[#A19D94] shrink-0 border border-[#E6E1D5]">
                         <BookOpen className="w-8 h-8" />
@@ -77,8 +78,8 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
                     )}
                     <div className="flex-1 min-w-0">
                       <span className="text-[10px] font-bold text-[#607829] uppercase tracking-wider mb-1 block bg-[#F4F8EC] inline-block px-2 py-0.5 rounded-md">{article.category}</span>
-                      <h4 className="font-bold text-[#2C4219] text-base leading-snug line-clamp-2 group-hover:text-[#607829] transition-colors">{article.title}</h4>
-                      <p className="text-[11px] text-[#433A30]/60 mt-1 font-medium">{article.timeAgo}</p>
+                      <h4 className="font-bold text-[#2C4219] text-base leading-snug line-clamp-2 group-hover:text-[#607829] transition-colors break-words">{article.title}</h4>
+                      <p className="text-[11px] text-[#433A30]/60 mt-1 font-medium break-words">{article.timeAgo}</p>
                     </div>
                   </div>
                 ))}

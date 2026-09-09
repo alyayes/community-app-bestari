@@ -13,7 +13,9 @@ import {
   X,
   RotateCcw,
   ArrowRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ExternalLink,
+  RotateCw
 } from 'lucide-react';
 import { getAvatarUrl, handleAvatarError } from '../../api/client';
 
@@ -22,6 +24,8 @@ interface DashboardDesaViewLiteProps {
   harvestRecords?: HarvestRecord[];
   members?: UserProfile[];
   onOpenMulaiPanen: () => void;
+  onRefresh?: () => Promise<void> | void;
+  isRefreshing?: boolean;
 }
 
 export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
@@ -29,6 +33,8 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   harvestRecords = [],
   members = [],
   onOpenMulaiPanen,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
   const safeLandPlots = Array.isArray(landPlots) ? landPlots : [];
@@ -536,9 +542,27 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
       {/* Compact Responsive Greeting Header */}
       <div className="bg-gradient-to-r from-[#2C4219] to-[#607829] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 text-white shadow-md relative overflow-hidden">
         <div className="relative z-10 space-y-0.5 sm:space-y-1 pr-12 sm:pr-0">
-          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#A8B774] bg-white/10 px-2 py-0.5 rounded-full inline-block">
-            Sistem Rantai Pasok (SCM) Desa
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#A8B774] bg-white/10 px-2.5 py-0.5 rounded-full inline-block">
+              Sistem Rantai Pasok (SCM) Desa
+            </span>
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-200 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Real-Time
+            </span>
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={() => onRefresh()}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-white bg-white/15 hover:bg-white/25 px-2.5 py-0.5 rounded-full border border-white/20 transition-all active:scale-95 disabled:opacity-50"
+                title="Segarkan data SCM sekarang"
+              >
+                <RotateCw className={`w-2.5 h-2.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>{isRefreshing ? 'Menyinkronkan...' : 'Sinkronkan'}</span>
+              </button>
+            )}
+          </div>
           <h2 className="text-lg sm:text-2xl font-black leading-tight">Data Sorgum Terpadu</h2>
           <p className="text-[11px] sm:text-xs text-white/80 font-medium line-clamp-1 sm:line-clamp-none">
             Ketuk salah satu kartu metrik untuk melihat rincian datanya secara terpisah.

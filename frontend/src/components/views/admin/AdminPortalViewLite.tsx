@@ -74,7 +74,7 @@ import {
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
-import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError } from '../../../api/client';
+import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
 import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
@@ -85,6 +85,31 @@ const Font = Quill.import('formats/font') as any;
 const customFonts = ['sans-serif', 'serif', 'monospace', 'arial', 'courier-new', 'georgia', 'trebuchet', 'verdana', 'poppins'];
 Font.whitelist = customFonts;
 Quill.register(Font, true);
+
+const QUILL_MODULES = {
+  toolbar: [
+    [{ 'font': customFonts }, { 'header': [1, 2, 3, 4, 5, 6, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'script': 'sub' }, { 'script': 'super' }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+    [{ 'direction': 'rtl' }],
+    [{ 'align': [] }],
+    ['link', 'image'],
+    ['clean']
+  ],
+};
+
+const QUILL_FORMATS = [
+  'font', 'header',
+  'bold', 'italic', 'underline', 'strike',
+  'color', 'background',
+  'script',
+  'list', 'bullet', 'indent',
+  'direction',
+  'align',
+  'link', 'image'
+];
 
 interface AdminPortalViewProps {
   setAppMode?: (mode: 'lite' | 'pro') => void;
@@ -633,18 +658,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   const [artGallery, setArtGallery] = useState<string[]>([]);
   const [artStatus, setArtStatus] = useState<'Draft' | 'Published'>('Published');
 
-  const quillModules = {
-    toolbar: [
-      [{ 'font': customFonts }, { 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'script': 'sub' }, { 'script': 'super' }],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
-      [{ 'align': [] }],
-      ['clean']
-    ],
-  };
   const [artError, setArtError] = useState('');
 
   // Announcement Modal State
@@ -717,9 +730,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     return res.urls;
   };
 
-  // Normalisasi URL gambar: /uploads/... (relatif) -> URL absolut backend
-  const cmsImgUrl = (u: string) =>
-    u.startsWith('/uploads/') ? `${SERVER_BASE}${u}` : u;
+  // Normalisasi URL gambar agar tahan ganti domain
+  const cmsImgUrl = (u: string) => resolveImageUrl(u);
   const handleSaveCms = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: CmsData = {
@@ -1060,9 +1072,11 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedArtTitle = artTitle.trim();
-    if (!trimmedArtTitle) return;
-
     setArtError('');
+    if (!trimmedArtTitle) {
+      setArtError('Judul informasi artikel wajib diisi.');
+      return;
+    }
     if (isAllLowerCase(trimmedArtTitle)) {
       setArtError('Judul informasi tidak boleh huruf kecil semua. Huruf awal setiap kata harus kapital atau huruf besar semua.');
       return;
@@ -1079,7 +1093,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     const payload = {
       title: formattedArtTitle,
       category: artCategory,
-      summary: artContent ? artContent.substring(0, 150).replace(/<[^>]+>/g, '') + '...' : formattedArtTitle,
+      summary: plainTextContent || formattedArtTitle,
       content: artContent ? [artContent] : [formattedArtTitle],
       image: artImage,
       gallery: artGallery,
@@ -1101,11 +1115,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
       const reloaded = await api<InfoArticle[]>('/artikel/admin');
       setAdminArticles(reloaded);
       onUpdateArticles(reloaded);
+      setIsArticleModalOpen(false);
     } catch (err: any) {
       showToast(err.message || 'Gagal menyimpan artikel');
     }
-
-    setIsArticleModalOpen(false);
   };
 
   const confirmDelete = () => {
@@ -1528,7 +1541,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       <div className="flex items-start gap-4 flex-1">
                         {art.image ? (
                           <img
-                            src={art.image}
+                            src={resolveImageUrl(art.image)}
                             alt={art.title}
                             className="w-16 h-12 rounded-xl object-cover shrink-0 border border-[#E6E1D5]"
                           />
@@ -2062,17 +2075,17 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           )}
 
           {/* ==================== TAB 6: DATA SORGUM (SCM INTEGRATION) ==================== */}
-                    {activeTab === 'datasorgum' && (
-                      <DashboardDesaView
-                        landPlots={landPlots || []}
-                        harvestRecords={harvestRecords || []}
-                        members={members || []}
-                        totalUsers={dashboardStats?.totalUsers ?? 3}
-                        totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
-                        isAdmin={true}
-                        onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
-                      />
-                    )}
+          {activeTab === 'datasorgum' && (
+            <DashboardDesaView
+              landPlots={landPlots || []}
+              harvestRecords={harvestRecords || []}
+              members={members || []}
+              totalUsers={dashboardStats?.totalUsers ?? 3}
+              totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
+              isAdmin={true}
+              onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
+            />
+          )}
 
                     {/* ==================== TAB 7: CMS (Kelola Konten) ==================== */}
           {activeTab === 'cms' && (
@@ -2868,6 +2881,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     const userName = u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Pengguna';
                     const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
                     const isActive = u.isActive !== false;
+                    const isUserAdmin = (u.role || '').toUpperCase() === 'ADMIN' || (u.role || '').toUpperCase() === 'ADMINISTRATOR' || (u.role || '').toLowerCase().includes('admin');
 
                     return (
                       <div key={u.id || u.email} className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col justify-between gap-4 hover:border-[#2C4219] transition-all">
@@ -2889,8 +2903,12 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             <h4 className="font-bold text-sm text-[#2C4219] truncate">{userName}</h4>
                             <p className="text-xs text-[#7A7062] truncate">{u.email}</p>
                             <div className="flex items-center gap-2 pt-0.5">
-                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FAF6EE] text-[#7A7062] border border-[#E6E1D5]">
-                                {u.role || u.position || 'Anggota KWT'}
+                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                isUserAdmin 
+                                  ? 'bg-indigo-50 text-indigo-700 border-indigo-100' 
+                                  : 'bg-[#FAF6EE] text-[#7A7062] border-[#E6E1D5]'
+                              }`}>
+                                {isUserAdmin ? 'Admin Portal' : (u.position || 'Anggota KWT')}
                               </span>
                             </div>
                           </div>
@@ -2929,13 +2947,15 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             >
                               {isActive ? 'Nonaktifkan' : 'Aktifkan'}
                             </button>
-                            <button
-                                                          onClick={() => setDeleteConfirmModal({ id: u.id, title: userName, type: 'pengguna' })}
-                                                          className="p-1.5 rounded-xl text-rose-700 hover:bg-rose-50 transition-colors"
-                                                          title="Hapus Pengguna"
-                                                        >
-                                                          <Trash2 className="w-4 h-4" />
-                                                        </button>
+                            {!isUserAdmin && (
+                              <button
+                                onClick={() => setDeleteConfirmModal({ id: u.id, title: userName, type: 'pengguna' })}
+                                className="p-1.5 rounded-xl text-rose-700 hover:bg-rose-50 transition-colors"
+                                title="Hapus Pengguna"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -3280,7 +3300,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       theme="snow"
                       value={artContent}
                       onChange={setArtContent}
-                      modules={quillModules}
+                      modules={QUILL_MODULES}
+                      formats={QUILL_FORMATS}
                       placeholder="Tuliskan isi artikel Anda di sini..."
                     />
                   </div>

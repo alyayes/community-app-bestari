@@ -67,17 +67,17 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
           </div>
 
           {/* Title */}
-          <h1 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug mb-3">
+          <h1 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] leading-snug mb-3 break-words">
             {ann.title}
           </h1>
 
           {/* Summary */}
-          <p className="text-sm text-[#433A30]/70 leading-relaxed">
+          <p className="text-sm text-[#433A30]/70 leading-relaxed break-words">
             {ann.summary}
           </p>
 
           {/* Meta */}
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#E6E1D5]/60">
+          <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[#E6E1D5]/60">
             <span className="flex items-center gap-1.5 text-xs text-[#433A30]/60">
               <User className="w-3.5 h-3.5" />
               <span>Oleh: <span className="font-semibold text-[#433A30]/80">{ann.postedBy}</span></span>
@@ -93,7 +93,7 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
         <div className="p-6 sm:p-8 space-y-5">
 
           {/* Full Content */}
-          <p className="text-sm text-[#433A30] leading-relaxed">
+          <p className="text-sm sm:text-base text-[#433A30] leading-relaxed whitespace-pre-line break-words">
             {ann.content}
           </p>
 
@@ -103,9 +103,9 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
               <p className="font-bold text-[#2C4219] text-sm">Poin Penting:</p>
               <ul className="space-y-2.5 mt-1">
                 {ann.bulletPoints.map((pt, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-sm text-[#433A30]">
+                  <li key={idx} className="flex items-start gap-2.5 text-sm text-[#433A30] break-words">
                     <span className="w-2 h-2 rounded-full bg-[#2C4219] shrink-0 mt-1.5" />
-                    {pt}
+                    <span className="flex-1 min-w-0">{pt}</span>
                   </li>
                 ))}
               </ul>
@@ -117,18 +117,18 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-[#2C4219]/5 rounded-2xl p-4 flex items-start gap-3">
                 <Calendar className="w-5 h-5 text-[#2C4219] shrink-0 mt-0.5" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold text-[#2C4219]/60 uppercase tracking-wide">Tanggal</p>
-                  <p className="text-sm font-bold text-[#2C4219] mt-0.5">{ann.eventDate}</p>
-                  {ann.eventTime && <p className="text-xs text-[#433A30]/70 mt-0.5">{ann.eventTime}</p>}
+                  <p className="text-sm font-bold text-[#2C4219] mt-0.5 break-words">{ann.eventDate}</p>
+                  {ann.eventTime && <p className="text-xs text-[#433A30]/70 mt-0.5 break-words">{ann.eventTime}</p>}
                 </div>
               </div>
               {ann.location && (
                 <div className="bg-[#2C4219]/5 rounded-2xl p-4 flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-[#2C4219] shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-bold text-[#2C4219]/60 uppercase tracking-wide">Lokasi</p>
-                    <p className="text-sm font-bold text-[#2C4219] mt-0.5">{ann.location}</p>
+                    <p className="text-sm font-bold text-[#2C4219] mt-0.5 break-words">{ann.location}</p>
                   </div>
                 </div>
               )}
@@ -139,18 +139,18 @@ export const AnnouncementDetailView: React.FC<AnnouncementDetailViewProps> = ({
           {ann.targetParticipants && (
             <div className="flex items-start gap-3 bg-[#2C4219]/5 rounded-2xl p-4">
               <Users className="w-5 h-5 text-[#2C4219] shrink-0 mt-0.5" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-[#2C4219]/60 uppercase tracking-wide">Target Peserta</p>
-                <p className="text-sm font-semibold text-[#2C4219] mt-0.5">{ann.targetParticipants}</p>
+                <p className="text-sm font-semibold text-[#2C4219] mt-0.5 break-words">{ann.targetParticipants}</p>
               </div>
             </div>
           )}
 
           {/* Warning Note */}
           {ann.note && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-start gap-3">
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-start gap-3 break-words">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <p>
+              <p className="flex-1 min-w-0">
                 <strong>Catatan:</strong> {ann.note}
               </p>
             </div>

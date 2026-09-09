@@ -43,7 +43,16 @@ export const authorize = (...roles: string[]) => {
       return next(new UnauthorizedError('Silakan login terlebih dahulu'));
     }
 
-    if (!roles.includes(req.user.role)) {
+    const userRole = (req.user.role || '').toUpperCase();
+    const normalizedRoles = roles.map(r => r.toUpperCase());
+
+    const isAllowed = normalizedRoles.some(r => {
+      if (r === userRole) return true;
+      if (r === 'ADMIN' && (userRole === 'ADMINISTRATOR' || userRole.includes('ADMIN'))) return true;
+      return false;
+    });
+
+    if (!isAllowed) {
       return next(new UnauthorizedError('Anda tidak memiliki izin untuk akses ini'));
     }
 

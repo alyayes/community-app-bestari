@@ -711,7 +711,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                           <span className="text-[10px] text-[#433A30]/50 font-medium">{activeThread.timeAgo}</span>
                         </div>
 
-                        <p className="text-xs sm:text-sm text-[#433A30] leading-relaxed whitespace-pre-line">
+                        <p className="text-xs sm:text-sm text-[#433A30] leading-relaxed whitespace-pre-line break-words">
                           {activeThread.content}
                         </p>
 
@@ -1548,7 +1548,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               <div className="px-6 py-4 border-b border-[#E6E1D5] relative">
                 <h4 className="text-[10px] font-bold text-[#433A30]/50 uppercase tracking-wider mb-2">Deskripsi Topik</h4>
                 <div className="relative pr-8">
-                  <p className="text-sm text-[#433A30] font-medium leading-relaxed whitespace-pre-line">
+                  <p className="text-sm text-[#433A30] font-medium leading-relaxed whitespace-pre-line break-words">
                     {activeThread.content}
                   </p>
                   {activeThread.authorName === currentUser.name && (

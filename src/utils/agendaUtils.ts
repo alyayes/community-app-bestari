@@ -54,15 +54,44 @@ export const getPeriodFromTime = (timeStr?: string): 'Pagi' | 'Siang' | 'Sore' |
 
 export const formatEventTimeWithPeriod = (timeStr?: string): string => {
   if (!timeStr) return '';
-  const trimmed = timeStr.trim();
+  let trimmed = timeStr.trim();
+
+  // Normalize format lama: hapus "(Pagi)", "(Siang)", "(Sore)", "(Malam)" di akhir string
+  trimmed = trimmed.replace(/\s*\((pagi|siang|sore|malam|malem)\)\s*$/i, '').trim();
+
+  // Sudah ada label periode inline tanpa kurung (bukan di akhir sebagai suffix)
+  // mis. "08:00 Pagi - 12:00 Siang WIB" → kembalikan apa adanya
   if (/\b(pagi|siang|sore|malam|malem)\b/i.test(trimmed)) {
+    // Pastikan ada WIB di akhir
+    if (!trimmed.toUpperCase().includes('WIB')) {
+      trimmed = trimmed + ' WIB';
+    }
     return trimmed;
   }
-  const period = getPeriodFromTime(trimmed);
-  if (trimmed.includes('WIB')) {
-    return `${trimmed} (${period})`;
+
+  // Hapus "WIB" untuk diproses, akan ditambahkan kembali di akhir
+  const withoutWIB = trimmed.replace(/\s*WIB\s*/gi, '').trim();
+
+  // Cek apakah rentang waktu (mengandung " - " atau "–")
+  const dashMatch = withoutWIB.match(/^(.+?)\s*[-–]\s*(.+)$/);
+  if (dashMatch) {
+    const startRaw = dashMatch[1].trim();
+    const endRaw   = dashMatch[2].trim();
+    const startPeriod = getPeriodFromTime(startRaw);
+    const endPeriod   = getPeriodFromTime(endRaw);
+
+    if (startPeriod === endPeriod) {
+      // Periode sama: tampilkan di akhir saja — "08:00 - 10:30 Pagi WIB"
+      return `${startRaw} - ${endRaw} ${startPeriod} WIB`;
+    } else {
+      // Periode beda: tampilkan setelah masing-masing — "08:00 Pagi - 12:00 Siang WIB"
+      return `${startRaw} ${startPeriod} - ${endRaw} ${endPeriod} WIB`;
+    }
   }
-  return `${trimmed} WIB (${period})`;
+
+  // Waktu tunggal
+  const period = getPeriodFromTime(withoutWIB);
+  return `${withoutWIB} ${period} WIB`;
 };
 
 /**
@@ -83,5 +112,24 @@ export const isAllLowerCase = (str: string): boolean => {
   const letters = str.replace(/[^a-zA-Z]/g, '');
   return letters.length > 0 && letters === letters.toLowerCase();
 };
+
+/**
+ * Membersihkan tag HTML, &nbsp;, dan entitas HTML dari teks ringkasan
+ */
+export const cleanHtmlSummary = (str?: string | null): string => {
+  if (!str) return '';
+  return str
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .replace(/\.{3,}$/g, '')
+    .trim();
+};
+
 
 

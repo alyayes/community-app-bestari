@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Image as ImageIcon
 } from 'lucide-react';
+import { cleanHtmlSummary } from '../../utils/agendaUtils';
+import { resolveImageUrl } from '../../api/client';
 
 interface InformasiViewProps {
   articles: InfoArticle[];
@@ -51,12 +53,12 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
 
   const categories = ['Semua', 'Panen', 'Inovasi', 'Budidaya', 'Pengetahuan'];
 
-  const activeSearch = localSearch || searchQuery;
+  const activeSearch = (localSearch || searchQuery).toLowerCase();
   const filteredArticles = articles.filter(art => {
-    const matchesSearch = art.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
-                          art.summary.toLowerCase().includes(activeSearch.toLowerCase());
+    const matchesSearch = (art.title || '').toLowerCase().includes(activeSearch) ||
+                          (art.summary || '').toLowerCase().includes(activeSearch);
     if (selectedCategory === 'Semua') return matchesSearch;
-    return matchesSearch && art.category?.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && (art.category || '').toLowerCase() === selectedCategory.toLowerCase();
   });
 
   const getCategoryBadgeClass = (category: string) => {
@@ -107,7 +109,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
       yPos += 15;
 
       // Draw Image if exists
-      const imgUrl = selectedArticle.gallery?.[0] || selectedArticle.image;
+      const imgUrl = resolveImageUrl(selectedArticle.gallery?.[0] || selectedArticle.image);
       if (imgUrl) {
          try {
            const img = new Image();
@@ -211,7 +213,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                     }`}
                   >
                     <img
-                      src={imgUrl}
+                      src={resolveImageUrl(imgUrl)}
                       alt={`${selectedArticle.title} ${idx + 1}`}
                       className="w-full h-full object-cover object-center"
                     />
@@ -222,7 +224,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                 <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
                   {selectedArticle.image ? (
                     <img
-                      src={selectedArticle.image}
+                      src={resolveImageUrl(selectedArticle.image)}
                       alt={selectedArticle.title}
                       className="w-full h-full object-cover object-center"
                     />
@@ -274,28 +276,28 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
           )}
         </div>
 
-        {/* Article Body + Sidebar Info Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+        {/* Article Body + Sidebar Info */}
+        <div className="flex flex-col lg:flex-row gap-8 items-start pt-4 w-full">
           {/* Left Column: Detail Informasi */}
-          <div className="lg:col-span-2 print:col-span-3 space-y-4">
+          <div className="flex-1 min-w-0 w-full space-y-4">
             <h2 className="font-title font-bold text-lg sm:text-xl text-[#2C4219] print:hidden">
               Detail Informasi
             </h2>
-            <div className="space-y-4 text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
-              {selectedArticle.content && selectedArticle.content.length > 0 ? (
+            <div className="text-xs sm:text-sm text-[#433A30] leading-relaxed font-normal">
+              {selectedArticle.content && (Array.isArray(selectedArticle.content) ? selectedArticle.content.length > 0 : Boolean(selectedArticle.content)) ? (
                 <div 
-                  className="[&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-4 [&>h1]:text-[#2C4219] [&>h2]:text-xl [&>h2]:font-bold [&>h2]:mb-3 [&>h2]:mt-5 [&>h2]:text-[#2C4219] [&>h3]:text-lg [&>h3]:font-bold [&>h3]:mb-2 [&>h3]:mt-4 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4 [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-4 [&>li]:mb-1 [&>strong]:font-bold [&>em]:italic"
-                  dangerouslySetInnerHTML={{ __html: selectedArticle.content.join('\n') }}
+                  className="article-rich-content text-[#433A30] leading-relaxed text-sm sm:text-base break-words"
+                  dangerouslySetInnerHTML={{ __html: Array.isArray(selectedArticle.content) ? selectedArticle.content.join('\n') : String(selectedArticle.content) }}
                 />
               ) : (
-                <p>{selectedArticle.summary}</p>
+                <p className="article-rich-content text-sm sm:text-base leading-relaxed break-words">{cleanHtmlSummary(selectedArticle.summary)}</p>
               )}
             </div>
           </div>
 
           {/* Right Column: Informasi Utama Card */}
-          <div className="lg:col-span-1 print:hidden">
-            <div className="bg-white/90 p-6 rounded-2xl border border-[#E6E1D5] shadow-2xs space-y-6">
+          <div className="w-full lg:w-80 lg:shrink-0 print:hidden">
+            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E6E1D5] shadow-xs space-y-5 lg:sticky lg:top-6">
               <h3 className="font-title font-bold text-base text-[#2C4219]">
                 Informasi Utama
               </h3>
@@ -435,7 +437,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               <div className="relative h-48 w-full overflow-hidden bg-[#FAF6EE]">
                 {art.image ? (
                   <img
-                    src={art.image}
+                    src={resolveImageUrl(art.image)}
                     alt={art.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -460,10 +462,9 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                   {art.title}
                 </h3>
 
-                <div 
-                  className="text-xs text-[#433A30]/80 line-clamp-3 leading-relaxed font-normal [&>h1]:text-sm [&>h1]:font-bold [&>h1]:text-[#2C4219] [&>h2]:text-sm [&>h2]:font-bold [&>h2]:text-[#2C4219] [&>h3]:text-sm [&>h3]:font-bold [&>p]:mb-1 [&>strong]:font-bold [&>em]:italic"
-                  dangerouslySetInnerHTML={{ __html: (art.content && art.content.length > 0) ? art.content[0] : art.summary }}
-                />
+                <p className="text-xs text-[#433A30]/80 line-clamp-3 leading-relaxed font-normal">
+                  {cleanHtmlSummary(art.summary || (art.content && art.content.length > 0 ? art.content[0] : ''))}
+                </p>
               </div>
             </div>
 

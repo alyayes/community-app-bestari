@@ -2,6 +2,7 @@
 // API Client — menghubungkan frontend ke backend Bestari
 // Base URL: http://localhost:8000/api
 // ────────────────────────────────────────────────────────────
+import type React from 'react';
 
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 export const SERVER_BASE = BASE_URL.replace(/\/api$/, '');
@@ -75,6 +76,34 @@ export async function apiMe() {
 }
 
 /**
+ * Mengubah URL / path gambar menjadi URL valid:
+ * - Menangani URL yang mengarah ke /uploads/ baik relative maupun absolute lama (misal localhost atau domain lama)
+ * - Mengembalikan URL utuh jika external (Unsplash, dll.) atau data: / blob:
+ */
+export function resolveImageUrl(url?: string | null): string {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  // Jika URL mengarah ke folder /uploads/ (termasuk jika tersimpan dengan host localhost atau domain lama)
+  const uploadsIdx = trimmed.indexOf('/uploads/');
+  if (uploadsIdx !== -1) {
+    const relativePath = trimmed.substring(uploadsIdx);
+    return `${SERVER_BASE}${relativePath}`;
+  }
+
+  if (trimmed.startsWith('uploads/')) {
+    return `${SERVER_BASE}/${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+/**
  * Mengubah path avatar menjadi URL valid:
  * - Menambahkan SERVER_BASE jika berupa relative path (/uploads/...)
  * - Mengembalikan URL utuh jika http / https / data: / blob:
@@ -85,19 +114,19 @@ export function getAvatarUrl(avatar?: string | null, name?: string): string {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=A8B774&color=2C4219`;
   }
   const trimmed = avatar.trim();
-  if (
-    trimmed.startsWith('http://') ||
-    trimmed.startsWith('https://') ||
-    trimmed.startsWith('data:') ||
-    trimmed.startsWith('blob:')
-  ) {
+  if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
     return trimmed;
   }
-  if (trimmed.startsWith('/uploads/')) {
-    return `${SERVER_BASE}${trimmed}`;
+  const uploadsIdx = trimmed.indexOf('/uploads/');
+  if (uploadsIdx !== -1) {
+    const relativePath = trimmed.substring(uploadsIdx);
+    return `${SERVER_BASE}${relativePath}`;
   }
   if (trimmed.startsWith('uploads/')) {
     return `${SERVER_BASE}/${trimmed}`;
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
   }
   return `${SERVER_BASE}/${trimmed.replace(/^\//, '')}`;
 }

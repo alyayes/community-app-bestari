@@ -190,3 +190,105 @@ input[type="password"]::-ms-clear {
   max-height: 250px;
   overflow-y: auto;
 }
+
+/* Styling Konten Artikel Rich-Text */
+.article-rich-content {
+  font-family: inherit;
+  color: #433A30;
+  line-height: 1.8;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.article-rich-content p {
+  margin-top: 0 !important;
+  margin-bottom: 1.15rem !important;
+  line-height: 1.8 !important;
+}
+
+.article-rich-content p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.article-rich-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.75rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 1.15rem !important;
+}
+
+.article-rich-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.75rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 1.15rem !important;
+}
+
+.article-rich-content li {
+  display: list-item !important;
+  list-style: inherit !important;
+  margin-bottom: 0.45rem !important;
+  padding-left: 0.35rem !important;
+  line-height: 1.75 !important;
+}
+
+.article-rich-content strong {
+  font-weight: 700 !important;
+  color: #2C4219;
+}
+
+.article-rich-content em {
+  font-style: italic !important;
+}
+
+.article-rich-content u {
+  text-decoration: underline !important;
+}
+
+.article-rich-content s {
+  text-decoration: line-through !important;
+}
+
+.article-rich-content h1 {
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  color: #2C4219 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 1.35 !important;
+}
+
+.article-rich-content h2 {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  color: #2C4219 !important;
+  margin-top: 1.35rem !important;
+  margin-bottom: 0.6rem !important;
+  line-height: 1.4 !important;
+}
+
+.article-rich-content h3 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #2C4219 !important;
+  margin-top: 1.15rem !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.45 !important;
+}
+
+.article-rich-content blockquote {
+  border-left: 4px solid #A8B774 !important;
+  padding-left: 1rem !important;
+  margin: 1.25rem 0 !important;
+  font-style: italic !important;
+  color: #5C5245 !important;
+}
+
+.article-rich-content img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 1rem !important;
+  margin: 1.25rem 0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+

@@ -38,12 +38,12 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
   const [localSearch, setLocalSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'Semua' | 'PENTING' | 'HASIL PANEN' | 'INFORMASI ANGGOTA' | 'MENDESAK'>('Semua');
 
-  const activeSearch = localSearch || searchQuery;
+  const activeSearch = (localSearch || searchQuery).toLowerCase();
   const filteredAnnouncements = announcements.filter((ann) => {
     const matchesTab = activeTab === 'Semua' || ann.category === activeTab;
     const matchesSearch =
-      ann.title.toLowerCase().includes(activeSearch.toLowerCase()) ||
-      ann.summary.toLowerCase().includes(activeSearch.toLowerCase());
+      (ann.title || '').toLowerCase().includes(activeSearch) ||
+      (ann.summary || '').toLowerCase().includes(activeSearch);
     return matchesTab && matchesSearch;
   });
 
@@ -125,21 +125,21 @@ export const PengumumanView: React.FC<PengumumanViewProps> = ({
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] leading-snug mt-3 mb-2 group-hover:text-[#3d5a23] transition-colors">
+                  <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] leading-snug mt-3 mb-2 group-hover:text-[#3d5a23] transition-colors break-words line-clamp-2">
                     {ann.title}
                   </h3>
 
                   {/* Summary */}
-                  <p className="text-sm text-[#433A30]/80 leading-relaxed line-clamp-3 mb-4 flex-1">
+                  <p className="text-sm text-[#433A30]/80 leading-relaxed line-clamp-3 mb-4 flex-1 break-words">
                     {ann.summary}
                   </p>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#E6E1D5]/60 w-full">
-                    <span className="text-xs text-[#433A30]/50">
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-[#E6E1D5]/60 w-full gap-2">
+                    <span className="text-xs text-[#433A30]/50 truncate max-w-[200px]">
                       Oleh: <span className="font-semibold text-[#433A30]/70">{ann.postedBy}</span>
                     </span>
-                    <span className="flex items-center gap-1 text-xs font-bold text-[#2C4219]/50 group-hover:text-[#2C4219] transition-colors">
+                    <span className="flex items-center gap-1 text-xs font-bold text-[#2C4219]/50 group-hover:text-[#2C4219] transition-colors shrink-0">
                       <ChevronRight className="w-4 h-4" />
                     </span>
                   </div>
