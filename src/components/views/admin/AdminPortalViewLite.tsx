@@ -1436,8 +1436,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                   {!isSidebarAdminCollapsed && <span>Kelola Agenda</span>}
                 </button>
 
-                {/* Nav 3: Kelola Sertifikat */}
-                <button
+                {/* Nav 3: Kelola Sertifikat (Hidden as requested) */}
+                {/* <button
                   onClick={() => handleTabChange('sertifikat')}
                   title={isSidebarAdminCollapsed ? 'Kelola Sertifikat' : undefined}
                   className={`w-full items-center py-2.5 rounded-full font-bold text-xs transition-all flex ${activeTab === 'sertifikat'
@@ -1447,7 +1447,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                 >
                   <Award className={`w-4 h-4 ${activeTab === 'sertifikat' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
                   {!isSidebarAdminCollapsed && <span>Kelola Sertifikat</span>}
-                </button>
+                </button> */}
 
                 {/* Nav 4: Kelola Informasi */}
                 <button
@@ -1555,8 +1555,8 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
         </div>
 
         <div className="p-6 sm:p-8 lg:p-10 overflow-y-auto w-full">
-          {/* ==================== TAB: KELOLA SERTIFIKAT ==================== */}
-          {activeTab === 'sertifikat' && (
+          {/* ==================== TAB: KELOLA SERTIFIKAT (Hidden as requested) ==================== */}
+          {/* {activeTab === 'sertifikat' && (
             <CertificateBuilderView
               isLiteMode={true}
               agendas={agendaList}
@@ -1567,7 +1567,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
               showToast={showToast}
               handleCmsUpload={handleCmsUpload}
             />
-          )}
+          )} */}
 
           {/* ==================== TAB 1: KELOLA INFORMASI ==================== */}
           {activeTab === 'informasi' && (

@@ -653,7 +653,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
   return (
     <div className="space-y-6 pb-24 md:pb-12 animate-in fade-in duration-300">
-      {unclaimedCertificates.length > 0 && (
+      {/* Sertifikat Baru Tersedia Banner (Hidden as requested) */}
+      {/* {unclaimedCertificates.length > 0 && (
         <div className="bg-gradient-to-r from-[#D97706] to-[#B45309] rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 text-white">
             <div className="p-2 bg-white/20 rounded-full animate-pulse">
@@ -675,7 +676,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
             Unduh Sertifikat
           </button>
         </div>
-      )}
+      )} */}
 
       {/* UNIFIED TOP CONTROL BAR */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1369,7 +1370,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                         <h4 className="font-title font-bold text-sm text-[#2C4219]">Materi Khusus Peserta</h4>
                         <p className="text-xs text-[#5C5246] leading-relaxed">
                           {isPast
-                            ? 'Materi kegiatan dan sertifikat hanya dapat diakses oleh peserta yang telah terdaftar dan mengikuti agenda ini.'
+                            ? 'Materi kegiatan hanya dapat diakses oleh peserta yang telah terdaftar dan mengikuti agenda ini.'
                             : 'Materi, berkas, dan tautan kegiatan hanya dapat diakses setelah Anda mendaftar dan mengikuti kegiatan ini.'}
                         </p>
                       </div>
@@ -1473,8 +1474,8 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                     </div>
                   )}
                   
-                  {/* Sertifikat Kehadiran */}
-                  {isEventPast(selectedEvent) && isUserRegistered(selectedEvent) && 
+                  {/* Sertifikat Kehadiran (Hidden as requested) */}
+                  {/* {isEventPast(selectedEvent) && isUserRegistered(selectedEvent) && 
                    selectedEvent.certificateTemplate && 
                    selectedEvent.peserta?.some(p => (p.userId === currentUser?.id || String(p.userId) === String(currentUser?.id)) && p.attended) && (
                     <div className="space-y-3 pt-2">
@@ -1512,9 +1513,9 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
+                  )} */}
                   
-                  {(!selectedEvent.materiUrls?.length && !selectedEvent.dokumentasiUrls?.length && !selectedEvent.linkUrls?.length && !isCertificateActive(selectedEvent.certificateTemplate)) && (
+                  {(!selectedEvent.materiUrls?.length && !selectedEvent.dokumentasiUrls?.length && !selectedEvent.linkUrls?.length) && (
                     <div className="bg-[#FAF6EE]/50 p-4 rounded-2xl border border-[#E6E1D5]/50 text-center">
                       <p className="text-[11px] text-[#A19D94] font-medium italic">Belum ada berkas materi, dokumentasi, atau tautan yang diunggah.</p>
                     </div>

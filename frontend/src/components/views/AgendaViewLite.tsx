@@ -147,8 +147,8 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
         </h1>
       </div>
 
-      {/* Banner Sertifikat Belum Diunduh */}
-      {unclaimedCertificates.length > 0 && (
+      {/* Banner Sertifikat Belum Diunduh (Hidden as requested) */}
+      {/* {unclaimedCertificates.length > 0 && (
         <div className="bg-gradient-to-r from-[#D97706] to-[#B45309] rounded-2xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-3 text-white">
             <div className="p-2 bg-white/20 rounded-full animate-pulse">
@@ -172,7 +172,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
             <span>Unduh Sertifikat</span>
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Filters: 2-column dropdown */}
       <div className="grid grid-cols-2 gap-3">
@@ -267,22 +267,10 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 {!isAdmin && (
                   isPast ? (
                     isRegistered ? (
-                      isAttended && ev.certificateTemplate && isCertificateActive(ev.certificateTemplate) ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadCertificate(ev.certificateTemplate!, ev)}
-                          className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-[#D97706] to-[#B45309] text-white shadow-xs flex items-center gap-1 hover:from-[#B45309] hover:to-[#92400E] active:scale-95 transition-all whitespace-nowrap"
-                          title="Unduh Sertifikat Kehadiran"
-                        >
-                          <Award className="w-3.5 h-3.5" />
-                          <span>Unduh Sertifikat</span>
-                        </button>
-                      ) : (
-                        <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Telah Diikuti</span>
-                        </div>
-                      )
+                      <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-xs flex items-center gap-1 cursor-default border border-emerald-400 whitespace-nowrap">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Telah Diikuti</span>
+                      </div>
                     ) : (
                       <div className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold bg-[#E6E1D5]/50 text-[#7A7062] flex items-center gap-1 cursor-default whitespace-nowrap">
                         <span>Selesai</span>
@@ -489,8 +477,8 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
               );
             })()}
 
-            {/* Sertifikat Kehadiran */}
-            {isEventPast(detailEvent) && isUserRegistered(detailEvent) && 
+            {/* Sertifikat Kehadiran (Hidden as requested) */}
+            {/* {isEventPast(detailEvent) && isUserRegistered(detailEvent) && 
              detailEvent.certificateTemplate && 
              isUserAttended(detailEvent) && (
               <div className="space-y-2.5 pt-2 border-t border-[#E6E1D5]">
@@ -522,7 +510,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Daftar / Batal Daftar Button */}
             {!isAdmin && !isEventPast(detailEvent) && (

@@ -427,28 +427,30 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             )}
           </div>
 
-          {/* Certificate Name */}
-          <div className="space-y-1.5">
-            <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5" /> Nama Untuk Sertifikat
-            </span>
-            {isEditPersonal ? (
-              <input
-                type="text"
-                value={certificateName}
-                onChange={(e) => setCertificateName(e.target.value)}
-                placeholder="Contoh: Budi Santoso, S.P."
-                className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold"
-              />
-            ) : (
-              <span className="block text-xs sm:text-sm font-black text-[#2C4219]">
-                {certificateName || '-'}
+          {/* Certificate Name (Hidden as requested) */}
+          {false && (
+            <div className="space-y-1.5">
+              <span className="block text-[10px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5" /> Nama Untuk Sertifikat
               </span>
-            )}
-            {isEditPersonal && (
-              <span className="text-[9px] sm:text-[10px] text-[#A19D94] block font-medium mt-1">Nama ini akan dicetak otomatis di sertifikat kehadiran acara.</span>
-            )}
-          </div>
+              {isEditPersonal ? (
+                <input
+                  type="text"
+                  value={certificateName}
+                  onChange={(e) => setCertificateName(e.target.value)}
+                  placeholder="Contoh: Budi Santoso, S.P."
+                  className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold"
+                />
+              ) : (
+                <span className="block text-xs sm:text-sm font-black text-[#2C4219]">
+                  {certificateName || '-'}
+                </span>
+              )}
+              {isEditPersonal && (
+                <span className="text-[9px] sm:text-[10px] text-[#A19D94] block font-medium mt-1">Nama ini akan dicetak otomatis di sertifikat kehadiran acara.</span>
+              )}
+            </div>
+          )}
 
           {/* User Role */}
           <div className="space-y-1.5">
