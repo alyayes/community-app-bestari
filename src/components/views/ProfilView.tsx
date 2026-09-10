@@ -281,20 +281,6 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             </button>
           </p>
         </div>
-
-        {/* Quick Logout Button in Header Card */}
-        {onLogout && (
-          <button
-            type="button"
-            onClick={() => setShowLogoutConfirm(true)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 px-3.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-[#C53030] text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
-            title="Keluar dari Akun"
-          >
-            <LogOut className="w-3.5 h-3.5 text-[#C53030]" />
-            <span className="hidden sm:inline">Keluar Akun</span>
-            <span className="sm:hidden">Keluar</span>
-          </button>
-        )}
       </div>
 
 
