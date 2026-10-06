@@ -27,7 +27,7 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
     .slice(0, 3); // Cuma nampilin 3 paling dekat
 
   return (
-    <div className="space-y-6 pb-12 w-full animate-in fade-in duration-300 max-w-5xl mx-auto">
+    <div className="space-y-6 pb-12 w-full animate-in fade-in duration-300">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Kolom Kiri: Sapaan dan Informasi */}
         <div className="space-y-8 lg:col-span-2">

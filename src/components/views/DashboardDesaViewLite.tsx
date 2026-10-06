@@ -538,14 +538,12 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-4 pb-16 md:pb-12 animate-in fade-in duration-300 w-full">
+    <div className="space-y-3 sm:space-y-4 pb-16 md:pb-12 animate-in fade-in duration-300 w-full">
       {/* Compact Responsive Greeting Header */}
       <div className="bg-gradient-to-r from-[#2C4219] to-[#607829] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 text-white shadow-md relative overflow-hidden">
         <div className="relative z-10 space-y-0.5 sm:space-y-1 pr-12 sm:pr-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#A8B774] bg-white/10 px-2.5 py-0.5 rounded-full inline-block">
-              Sistem Rantai Pasok (SCM) Desa
-            </span>
+
             <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-200 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Real-Time
