@@ -13,7 +13,8 @@
 
 @layer base {
   html {
-    font-size: 14.5px;
+    font-size: 14.5px; /* default; overridden dynamically by FontSizeContext */
+    transition: font-size 0.2s ease;
   }
   body {
     font-family: 'Poppins', sans-serif;

@@ -226,27 +226,27 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
               <div className="flex-1 space-y-3">
                 {/* Category badge + date */}
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded ${getCategoryColor(ev.category)}`}>
+                  <span className={`text-[11px] font-bold uppercase px-2.5 py-1 rounded ${getCategoryColor(ev.category)}`}>
                     {ev.category}
                   </span>
-                  <span className="text-xs text-[#433A30]/70 font-semibold whitespace-nowrap">
+                  <span className="text-sm text-[#433A30]/70 font-semibold whitespace-nowrap">
                     {`${ev.dayNumber || ''} ${ev.monthAbbr || ''} ${ev.date?.split('-')[0] || '2026'}`.trim()}
                   </span>
                 </div>
 
                 {/* Title — 2 baris max agar semua card tingginya mirip */}
-                <h3 className="font-title font-bold text-base text-[#2C4219] line-clamp-2 leading-snug">
+                <h3 className="font-title font-bold text-lg text-[#2C4219] line-clamp-2 leading-snug">
                   {ev.title}
                 </h3>
 
                 {/* Description preview — plain text, 2 baris */}
-                <p className="text-xs text-[#433A30]/80 leading-relaxed line-clamp-2">
+                <p className="text-sm text-[#433A30]/80 leading-relaxed line-clamp-2">
                   {cleanDesc}
                 </p>
 
                 {/* Waktu */}
                 <div className="pt-2 border-t border-[#E6E1D5]">
-                  <p className="flex items-center gap-2 text-xs text-[#433A30]/80">
+                  <p className="flex items-center gap-2 text-sm text-[#433A30]/80">
                     <Clock className="w-3.5 h-3.5 text-[#2C4219] shrink-0" />
                     <span>{formatEventTimeWithPeriod(ev.time)}</span>
                   </p>
@@ -258,7 +258,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 <button
                   type="button"
                   onClick={() => setDetailEvent(ev)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2C4219] hover:underline whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2C4219] hover:underline whitespace-nowrap"
                 >
                   <FileText className="w-3.5 h-3.5 text-[#2C4219]" />
                   <span>Rincian Kegiatan</span>
@@ -315,14 +315,14 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-4 border-b border-[#E6E1D5]">
               <div>
-                <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded ${getCategoryColor(detailEvent.category)}`}>
+                <span className={`text-[11px] font-bold uppercase px-2.5 py-1 rounded ${getCategoryColor(detailEvent.category)}`}>
                   {detailEvent.category}
                 </span>
                 <h2 className="font-title font-bold text-xl sm:text-2xl text-[#2C4219] mt-2">
                   {detailEvent.title}
                 </h2>
                 {detailEvent.organizer && (
-                  <p className="text-xs text-[#433A30]/80 mt-1">
+                  <p className="text-sm text-[#433A30]/80 mt-1">
                     Penyelenggara: <strong className="text-[#2C4219]">{detailEvent.organizer}</strong>
                   </p>
                 )}
@@ -336,9 +336,9 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
             </div>
 
             {/* Waktu & Tanggal */}
-            <div className="text-xs">
+            <div className="text-sm">
               <div className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-1">
-                <span className="text-[10px] uppercase font-bold text-[#433A30]/60">Waktu & Tanggal</span>
+                <span className="text-[11px] uppercase font-bold text-[#433A30]/60">Waktu & Tanggal</span>
                 <p className="font-bold text-[#2C4219] flex items-center gap-1.5 flex-wrap">
                   <Clock className="w-4 h-4 text-[#2C4219]" />
                   <span>{detailEvent.date}</span>
@@ -354,7 +354,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 <FileText className="w-4 h-4 text-[#2C4219]" />
                 Deskripsi Kegiatan
               </h3>
-              <p className="text-xs text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5] whitespace-pre-line break-words">
+              <p className="text-sm text-[#433A30] leading-relaxed bg-white p-4 rounded-2xl border border-[#E6E1D5] whitespace-pre-line break-words">
                 {detailEvent.description || 'Tidak ada keterangan tambahan.'}
               </p>
             </div>
@@ -369,7 +369,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 <div className="bg-[#FFFBEB] p-4 rounded-2xl border border-[#FDE68A]">
                   <ul className="space-y-1.5">
                     {detailEvent.requirements.map((req, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 text-xs text-[#92400E] font-medium leading-relaxed">
+                      <li key={idx} className="flex items-start gap-2.5 text-sm text-[#92400E] font-medium leading-relaxed">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] mt-1.5 shrink-0" />
                         <span>{req}</span>
                       </li>
@@ -389,7 +389,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 <div className="bg-[#F4F8EC] p-4 rounded-2xl border border-[#D5E5B8]">
                   <ul className="space-y-1.5">
                     {detailEvent.benefits.map((ben, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 text-xs text-[#2C4219] font-medium leading-relaxed">
+                      <li key={idx} className="flex items-start gap-2.5 text-sm text-[#2C4219] font-medium leading-relaxed">
                         <CheckCircle2 className="w-4 h-4 text-[#2C4219] mt-0.5 shrink-0" />
                         <span>{ben}</span>
                       </li>

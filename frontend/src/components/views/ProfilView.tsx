@@ -9,10 +9,13 @@ import {
   Lock,
   Trash2,
   Award,
-  LogOut
+  LogOut,
+  Type,
+  ChevronDown
 } from 'lucide-react';
 
 import { apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
+import { useFontSize, FontSizeOption } from '../../contexts/FontSizeContext';
 
 interface ProfilViewProps {
   currentUser: UserProfile;
@@ -25,6 +28,7 @@ interface ProfilViewProps {
 
 
 export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode, onLogout }) => {
+  const { fontSize, setFontSize } = useFontSize();
   // Logout confirmation modal state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   // Editing states for sections
@@ -558,8 +562,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {/* Mode Tampilan Setting */}
       {setAppMode && (
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E6E1D5] shadow-2xs">
-          <h3 className="font-title font-bold text-lg text-[#2C4219] mb-4">Pengaturan Tampilan</h3>
-          <div className="flex items-center justify-between">
+          <h3 className="font-title font-bold text-lg text-[#2C4219] mb-6">Pengaturan Tampilan</h3>
+
+          {/* Mode Tampilan */}
+          <div className="flex items-center justify-between pb-6 border-b border-[#E6E1D5]">
             <div>
               <p className="font-bold text-[#433A30]">Mode Tampilan</p>
               <p className="text-sm text-[#7A7062] mt-1">
@@ -572,6 +578,34 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
             >
               <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform duration-300 ${appMode === 'lite' ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
+          </div>
+
+          {/* Ukuran Huruf */}
+          <div className="flex items-center justify-between pt-6">
+            <div>
+              <p className="font-bold text-[#433A30] flex items-center gap-1.5">
+                <Type className="w-4 h-4 text-[#2C4219]" />
+                Ukuran Huruf
+              </p>
+              <p className="text-sm text-[#7A7062] mt-1">
+                Atur ukuran teks untuk aplikasi
+              </p>
+            </div>
+            
+            <div className="relative w-36 shrink-0">
+              <select
+                value={fontSize}
+                onChange={(e) => setFontSize(e.target.value as FontSizeOption)}
+                className="w-full appearance-none bg-white border-2 border-[#E6E1D5] hover:border-[#C4C8BB] text-[#2C4219] font-bold text-sm py-2.5 pl-4 pr-10 rounded-xl shadow-xs focus:outline-none focus:border-[#607829] transition-all cursor-pointer"
+              >
+                <option value="kecil">Kecil</option>
+                <option value="sedang">Sedang</option>
+                <option value="besar">Besar</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#2C4219]">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
           </div>
         </div>
       )}

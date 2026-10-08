@@ -4,14 +4,17 @@ import App from './App.tsx';
 import './index.css';
 import 'react-quill-new/dist/quill.snow.css';
 import { ToastProvider } from './contexts/ToastContext';
+import { FontSizeProvider } from './contexts/FontSizeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+      <FontSizeProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </FontSizeProvider>
     </ErrorBoundary>
   </StrictMode>,
 );
