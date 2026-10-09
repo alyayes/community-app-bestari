@@ -237,25 +237,31 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
             </div>
 
             <div className="space-y-3">
-              {upcomingEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  onClick={() => setActiveNav('agenda')}
-                  className="p-3 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center gap-3 cursor-pointer hover:bg-white hover:border-[#2C4219] transition-all"
-                >
-                  <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${getCategoryColor(ev.category)}`}>
-                    <span className="text-xs font-bold leading-none opacity-90">{ev.monthAbbr}</span>
-                    <span className="font-title font-bold text-base leading-none mt-0.5">{ev.dayNumber}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-[#2C4219] uppercase tracking-wider">{ev.category}</span>
-                    <h4 className="font-title font-bold text-xs text-[#2C4219] truncate">{ev.title}</h4>
-                    <div className="flex items-center gap-2 text-[10px] text-[#433A30]/70 mt-0.5">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ev.time}</span>
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    onClick={() => setActiveNav('agenda')}
+                    className="p-3 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center gap-3 cursor-pointer hover:bg-white hover:border-[#2C4219] transition-all"
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${getCategoryColor(ev.category)}`}>
+                      <span className="text-xs font-bold leading-none opacity-90">{ev.monthAbbr}</span>
+                      <span className="font-title font-bold text-base leading-none mt-0.5">{ev.dayNumber}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold text-[#2C4219] uppercase tracking-wider">{ev.category}</span>
+                      <h4 className="font-title font-bold text-xs text-[#2C4219] truncate">{ev.title}</h4>
+                      <div className="flex items-center gap-2 text-[10px] text-[#433A30]/70 mt-0.5">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ev.time}</span>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-xs text-[#7A7062] bg-[#FAF6EE]/50 rounded-xl border border-dashed border-[#E6E1D5]">
+                  Belum ada agenda mendatang
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

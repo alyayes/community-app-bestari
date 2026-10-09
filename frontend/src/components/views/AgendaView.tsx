@@ -1259,6 +1259,13 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               </div>
             ))}
           </div>
+
+          {filteredEvents.length === 0 && (
+            <div className="bg-white p-12 rounded-2xl border border-[#E6E1D5] text-center text-[#7A7062] space-y-2">
+              <CalendarIcon className="w-10 h-10 mx-auto text-[#C4C8BB]" />
+              <p className="font-semibold text-sm">Tidak ada agenda kegiatan untuk saat ini.</p>
+            </div>
+          )}
         </div>
       )}
 

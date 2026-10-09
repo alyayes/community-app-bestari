@@ -30,7 +30,9 @@ export const FontSizeProvider: React.FC<{ children: ReactNode }> = ({ children }
   });
 
   useEffect(() => {
-    document.documentElement.style.fontSize = FONT_SIZE_MAP[fontSize];
+    // Hapus inline style font-size agar layout & padding tidak ikut zoom in/out
+    document.documentElement.style.removeProperty('font-size');
+    document.documentElement.setAttribute('data-font-size', fontSize);
     localStorage.setItem(STORAGE_KEY, fontSize);
   }, [fontSize]);
 

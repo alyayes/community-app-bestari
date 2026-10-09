@@ -19,10 +19,9 @@ router.delete('/clear-data', async (req: Request, res: Response, next: NextFunct
     await prisma.agenda.deleteMany();
     await prisma.pengumuman.deleteMany();
     await prisma.artikel.deleteMany();
-    await prisma.lahan.deleteMany();
-    await prisma.panen.deleteMany();
+    // Data Lahan & Panen tidak dihapus karena bersumber langsung secara real-time dari API SCM LivingLabs
 
-    return successResponse(res, null, 'Semua data berhasil dihapus');
+    return successResponse(res, null, 'Semua data operasional berhasil dihapus (Data SCM Lahan & Panen dipertahankan)');
   } catch (err) {
     next(err);
   }
@@ -86,27 +85,57 @@ router.post('/seed-data', async (req: Request, res: Response, next: NextFunction
           category: e.category,
           description: e.description,
           organizer: e.organizer,
+          rundown: e.rundown || [],
           requirements: e.requirements || [],
           benefits: e.benefits || [],
+          targetParticipants: e.targetParticipants || '',
+          quotaMax: e.quota?.max || 0,
+          quotaRegistered: e.quota?.registered || 0,
+          contactName: e.contactPerson?.name || '',
+          contactPhone: e.contactPerson?.phone || '',
+          certificateTemplate: e.certificateTemplate || null,
           createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
         }))
       });
     }
 
     if (threads && threads.length > 0) {
-      await prisma.thread.createMany({
-        data: threads.map((t: any) => ({
-          title: t.title,
-          authorName: t.authorName,
-          authorAvatar: t.authorAvatar,
-          authorRole: t.authorRole,
-          category: t.category,
-          summary: t.summary,
-          content: t.content,
-          likes: t.likes || 0,
-          createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
-        }))
-      });
+      for (const t of threads) {
+        const createdThread = await prisma.thread.create({
+          data: {
+            title: t.title,
+            authorName: t.authorName,
+            authorAvatar: t.authorAvatar,
+            authorRole: t.authorRole,
+            isTopicStarter: !!t.isTopicStarter,
+            category: t.category,
+            categoryBadgeColor: t.categoryBadgeColor,
+            summary: t.summary,
+            content: t.content,
+            images: t.images || [],
+            joinedMembers: t.joinedMembers || [],
+            likes: t.likes || 0,
+            createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+          }
+        });
+
+        if (t.comments && Array.isArray(t.comments) && t.comments.length > 0) {
+          await prisma.threadComment.createMany({
+            data: t.comments.map((c: any) => ({
+              threadId: createdThread.id,
+              authorName: c.authorName,
+              authorAvatar: c.authorAvatar,
+              authorRole: c.authorRole,
+              isAuthor: !!c.isAuthor,
+              content: c.content,
+              quotedCommentText: c.quotedCommentText || null,
+              quotedCommentAuthor: c.quotedCommentAuthor || null,
+              likes: c.likes || 0,
+              createdAt: c.createdAt ? new Date(c.createdAt) : new Date()
+            }))
+          });
+        }
+      }
     }
 
     return successResponse(res, null, 'Data dummy berhasil dimasukkan');

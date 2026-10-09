@@ -74,7 +74,7 @@ export function App() {
   // Data collections
   const [articles, setArticles] = useState<InfoArticle[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [events, setEvents] = useState<AgendaEvent[]>(INITIAL_EVENTS);
+  const [events, setEvents] = useState<AgendaEvent[]>([]);
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [landPlots, setLandPlots] = useState<LandPlot[]>(INITIAL_LAND_PLOTS);
   const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>(INITIAL_HARVEST_RECORDS);
@@ -212,7 +212,7 @@ export function App() {
         ]);
         setArticles(arts.length ? arts : []);
         setAnnouncements(anns.length ? anns : []);
-        setEvents(ags.length ? ags : INITIAL_EVENTS);
+        setEvents(ags);
         setThreads(thrs.length ? thrs : []);
         if (lahan.length) setLandPlots(lahan);
         if (panen.length) setHarvestRecords(panen);
@@ -734,23 +734,66 @@ export function App() {
   };
 
   const handleRegisterAgenda = async (eventId: string) => {
+    // 1. Optimistic update: langsung ubah status di UI agar tombol langsung berubah jadi 'Terdaftar' dan nama masuk
+    setEvents(prev => prev.map(ev => {
+      if (ev.id !== eventId) return ev;
+      const alreadyReg = ev.peserta?.some(p => p.userId === currentUser.id || String(p.userId) === String(currentUser.id));
+      if (alreadyReg) return ev;
+      const currentPeserta = ev.peserta || [];
+      return {
+        ...ev,
+        isRegistered: true,
+        peserta: [...currentPeserta, { userId: currentUser.id || 'usr_01', userName: currentUser.name || 'Anggota KWT', attended: false }],
+        quota: {
+          ...ev.quota,
+          registered: (ev.quota?.registered ?? currentPeserta.length) + 1,
+          max: ev.quota?.max || 0
+        }
+      };
+    }));
+
+    showToast('Berhasil mendaftar kegiatan!', 'success');
+
     try {
-      await api(`/agenda/${eventId}/daftar`, { method: 'POST' });
-      // Refresh event untuk update isRegistered
-      const ags = await api<AgendaEvent[]>('/agenda');
-      if (ags.length) setEvents(ags);
+      await api(`/agenda/${eventId}/daftar`, {
+        method: 'POST',
+        body: { userId: currentUser.id || 'usr_01', userName: currentUser.name || 'Anggota KWT' }
+      });
+      const ags = await api<AgendaEvent[]>(`/agenda?userId=${currentUser.id || 'usr_01'}&userName=${encodeURIComponent(currentUser.name || '')}`);
+      if (ags && ags.length) setEvents(ags);
     } catch (e) {
-      console.warn('[Bestari] Gagal daftar agenda:', e);
+      console.warn('[Bestari] Gagal daftar agenda di server:', e);
     }
   };
 
   const handleUnregisterAgenda = async (eventId: string) => {
+    // Optimistic update
+    setEvents(prev => prev.map(ev => {
+      if (ev.id !== eventId) return ev;
+      const filteredPeserta = (ev.peserta || []).filter(p => p.userId !== currentUser.id && String(p.userId) !== String(currentUser.id));
+      return {
+        ...ev,
+        isRegistered: false,
+        peserta: filteredPeserta,
+        quota: {
+          ...ev.quota,
+          registered: Math.max(0, ((ev.quota?.registered ?? (ev.peserta?.length || 1))) - 1),
+          max: ev.quota?.max || 0
+        }
+      };
+    }));
+
+    showToast('Pendaftaran kegiatan dibatalkan', 'info');
+
     try {
-      await api(`/agenda/${eventId}/daftar`, { method: 'DELETE' });
-      const ags = await api<AgendaEvent[]>('/agenda');
-      if (ags.length) setEvents(ags);
+      await api(`/agenda/${eventId}/daftar`, {
+        method: 'DELETE',
+        body: { userId: currentUser.id || 'usr_01' }
+      });
+      const ags = await api<AgendaEvent[]>(`/agenda?userId=${currentUser.id || 'usr_01'}&userName=${encodeURIComponent(currentUser.name || '')}`);
+      if (ags && ags.length) setEvents(ags);
     } catch (e) {
-      console.warn('[Bestari] Gagal batal daftar agenda:', e);
+      console.warn('[Bestari] Gagal batal daftar agenda di server:', e);
     }
   };
 
@@ -956,7 +999,7 @@ export function App() {
           {activeNav === 'agenda' && (
             appMode === 'lite' ? (
               <AgendaViewLite
-                events={events && events.length > 0 ? events : INITIAL_EVENTS}
+                events={events}
                 currentUser={currentUser}
                 onRegisterEvent={handleRegisterAgenda}
                 onUnregisterEvent={handleUnregisterAgenda}
@@ -964,7 +1007,7 @@ export function App() {
             ) : (
               <AgendaView
                 appMode={appMode}
-                events={events && events.length > 0 ? events : INITIAL_EVENTS}
+                events={events}
                 currentUser={currentUser}
                 onAddEvent={handleAddEvent}
                 onEditEvent={handleEditEvent}

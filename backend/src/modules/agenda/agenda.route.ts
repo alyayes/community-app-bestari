@@ -81,7 +81,7 @@ function isEventPast(e: { date?: string | null; time?: string | null }): boolean
   return currentTimeStr > endTime;
 }
 
-function toAgenda(a: any, opts: { userId?: string } = {}) {
+function toAgenda(a: any, opts: { userId?: string; userName?: string } = {}) {
   const rundown = typeof a.rundown === 'string' ? JSON.parse(a.rundown) : (a.rundown || []);
   const requirements = typeof a.requirements === 'string' ? JSON.parse(a.requirements) : (a.requirements || []);
   const benefits = typeof a.benefits === 'string' ? JSON.parse(a.benefits) : (a.benefits || []);
@@ -102,6 +102,7 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
   const peserta = Array.isArray(a.peserta) ? a.peserta : [];
   const reminders = Array.isArray(a.reminders) ? a.reminders : [];
   const userId = opts.userId;
+  const userName = opts.userName;
 
   return {
     id: a.id,
@@ -133,7 +134,7 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
       phone: a.contactPhone || '',
     },
     creatorId: a.creatorId,
-    isRegistered: userId ? peserta.some((p: any) => p.userId === userId) : false,
+    isRegistered: userId ? peserta.some((p: any) => p.userId === userId || (userName && p.userName === userName)) : false,
     isReminded: userId ? reminders.some((r: any) => r.userId === userId) : false,
     peserta: peserta.map((p: any) => ({
       userId: p.userId,
@@ -147,6 +148,7 @@ function toAgenda(a: any, opts: { userId?: string } = {}) {
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     let userId = req.query.userId as string | undefined;
+    let userName = req.query.userName as string | undefined;
     
     // Auto detect user from token if not provided in query
     if (!userId && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -155,14 +157,18 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         const decoded = jwt.verify(token, config.jwt.secret) as any;
         if (decoded && decoded.userId) {
           userId = decoded.userId;
+          userName = decoded.name || decoded.nama;
         }
       } catch (e) {
         // Ignore invalid token for public route
       }
     }
 
+    if (!userId) {
+      userId = 'usr_01';
+    }
+
     // Auto-update status to 'Selesai' for past agendas based on date and time
-    // Sinkronisasi status di database agar konsisten (tanggal lampau / lewat jam selesai = Selesai, hari ini sebelum selesai / mendatang = Belum dimulai)
     const allAgendas = await prisma.agenda.findMany();
     for (const a of allAgendas) {
       if (!a.date) continue;
@@ -181,7 +187,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       orderBy: { date: 'asc' },
       include: { peserta: true, reminders: true },
     });
-    return successResponse(res, data.map(a => toAgenda(a, { userId })));
+    return successResponse(res, data.map(a => toAgenda(a, { userId, userName })));
   } catch (err) {
     next(err);
   }
@@ -201,12 +207,34 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// ── POST /api/agenda/:id/daftar (USER) ─────────────
-router.post('/:id/daftar', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+// ── POST /api/agenda/:id/daftar (USER & DEMO) ───────
+router.post('/:id/daftar', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agendaId = String(req.params.id);
     const agenda = await prisma.agenda.findUnique({ where: { id: agendaId }, include: { peserta: true } });
     if (!agenda) throw new NotFoundError('Agenda');
+
+    let userId: string | undefined;
+    let userName: string | undefined;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, config.jwt.secret) as any;
+        if (decoded && decoded.userId) {
+          userId = decoded.userId;
+          userName = decoded.name || decoded.nama;
+        }
+      } catch (e) {
+        // Invalid token
+      }
+    }
+
+    if (!userId) {
+      userId = req.body?.userId || 'usr_01';
+      userName = req.body?.userName || req.body?.name || 'Ibu Hj. Kartini';
+    }
 
     const quotaMax = agenda.quotaMax || 0;
     if (quotaMax > 0 && agenda.peserta.length >= quotaMax) {
@@ -214,9 +242,9 @@ router.post('/:id/daftar', authenticate, async (req: Request, res: Response, nex
     }
 
     await prisma.agendaPeserta.upsert({
-      where: { agendaId_userId: { agendaId, userId: req.user!.userId } },
-      update: {},
-      create: { agendaId, userId: req.user!.userId, userName: req.user!.name || 'Anggota' },
+      where: { agendaId_userId: { agendaId, userId } },
+      update: { userName: userName || 'Anggota KWT' },
+      create: { agendaId, userId, userName: userName || 'Anggota KWT' },
     });
 
     return successResponse(res, { registered: true }, 'Pendaftaran berhasil');
@@ -225,12 +253,31 @@ router.post('/:id/daftar', authenticate, async (req: Request, res: Response, nex
   }
 });
 
-// ── DELETE /api/agenda/:id/daftar (USER) ───────────
-router.delete('/:id/daftar', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+// ── DELETE /api/agenda/:id/daftar (USER & DEMO) ─────
+router.delete('/:id/daftar', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agendaId = String(req.params.id);
+    let userId: string | undefined;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, config.jwt.secret) as any;
+        if (decoded && decoded.userId) {
+          userId = decoded.userId;
+        }
+      } catch (e) {
+        // Invalid token
+      }
+    }
+
+    if (!userId) {
+      userId = (req.query.userId as string) || req.body?.userId || 'usr_01';
+    }
+
     await prisma.agendaPeserta.deleteMany({
-      where: { agendaId, userId: req.user!.userId },
+      where: { agendaId, userId },
     });
     return successResponse(res, { registered: false }, 'Pendaftaran dibatalkan');
   } catch (err) {
