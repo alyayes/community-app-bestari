@@ -7,6 +7,114 @@ import { AppError } from '../../utils/errors';
 
 const router = Router();
 
+// ── DELETE /api/admin/clear-data (Demo/Testing Only) ──
+router.delete('/clear-data', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await prisma.threadCommentLike.deleteMany();
+    await prisma.threadComment.deleteMany();
+    await prisma.threadLike.deleteMany();
+    await prisma.thread.deleteMany();
+    await prisma.agendaPeserta.deleteMany();
+    await prisma.agendaReminder.deleteMany();
+    await prisma.agenda.deleteMany();
+    await prisma.pengumuman.deleteMany();
+    await prisma.artikel.deleteMany();
+    await prisma.lahan.deleteMany();
+    await prisma.panen.deleteMany();
+
+    return successResponse(res, null, 'Semua data berhasil dihapus');
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /api/admin/seed-data (Demo/Testing Only) ──
+router.post('/seed-data', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { articles, announcements, events, threads } = req.body;
+    
+    if (articles && articles.length > 0) {
+      await prisma.artikel.createMany({
+        data: articles.map((a: any) => ({
+          title: a.title,
+          category: a.category,
+          image: a.image,
+          summary: a.summary,
+          content: a.content || [],
+          authorName: a.authorName,
+          authorRole: a.authorRole,
+          authorAvatar: a.authorAvatar,
+          location: a.location,
+          status: a.status || 'Published',
+          createdAt: a.createdAt ? new Date(a.createdAt) : new Date()
+        }))
+      });
+    }
+
+    if (announcements && announcements.length > 0) {
+      await prisma.pengumuman.createMany({
+        data: announcements.map((a: any) => ({
+          title: a.title,
+          category: a.category,
+          badgeColor: a.badgeColor,
+          postedBy: a.postedBy,
+          postedTime: a.postedTime,
+          summary: a.summary,
+          content: a.content,
+          bulletPoints: a.bulletPoints || [],
+          eventDate: a.eventDate,
+          eventTime: a.eventTime,
+          location: a.location,
+          targetParticipants: a.targetParticipants,
+          isUrgent: !!a.isUrgent,
+          createdAt: a.createdAt ? new Date(a.createdAt) : new Date()
+        }))
+      });
+    }
+
+    if (events && events.length > 0) {
+      await prisma.agenda.createMany({
+        data: events.map((e: any) => ({
+          title: e.title,
+          date: e.date,
+          dayNumber: e.dayNumber,
+          monthAbbr: e.monthAbbr,
+          time: e.time,
+          location: e.location,
+          status: e.status,
+          statusType: e.statusType,
+          category: e.category,
+          description: e.description,
+          organizer: e.organizer,
+          requirements: e.requirements || [],
+          benefits: e.benefits || [],
+          createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
+        }))
+      });
+    }
+
+    if (threads && threads.length > 0) {
+      await prisma.thread.createMany({
+        data: threads.map((t: any) => ({
+          title: t.title,
+          authorName: t.authorName,
+          authorAvatar: t.authorAvatar,
+          authorRole: t.authorRole,
+          category: t.category,
+          summary: t.summary,
+          content: t.content,
+          likes: t.likes || 0,
+          createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+        }))
+      });
+    }
+
+    return successResponse(res, null, 'Data dummy berhasil dimasukkan');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ═══ SEMUA ROUTE ADMIN BUTUH TOKEN + ROLE ADMIN ═══
 router.use(authenticate, authorize('ADMIN'));
 
@@ -249,5 +357,7 @@ router.delete('/users/:id', async (req: Request, res: Response, next: NextFuncti
     next(err);
   }
 });
+
+
 
 export default router;

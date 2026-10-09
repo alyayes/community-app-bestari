@@ -11,10 +11,13 @@ import {
   Award,
   LogOut,
   Type,
-  ChevronDown
+  ChevronDown,
+  Database,
+  PlusCircle
 } from 'lucide-react';
 
-import { apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
+import { api, apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
+import { INITIAL_ARTICLES, INITIAL_ANNOUNCEMENTS, INITIAL_EVENTS, INITIAL_THREADS } from '../../data/mockData';
 import { useFontSize, FontSizeOption } from '../../contexts/FontSizeContext';
 
 interface ProfilViewProps {
@@ -54,6 +57,9 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   const [avatar, setAvatar] = useState(currentUser.avatar || '');
 
   // Sinkronisasi state form saat currentUser berubah (misal setelah refresh / load / switch role)
+  const [isDeletingData, setIsDeletingData] = useState(false);
+  const [isSeedingData, setIsSeedingData] = useState(false);
+
   useEffect(() => {
     setFirstName(currentUser.firstName || '');
     setLastName(currentUser.lastName || '');
@@ -84,6 +90,42 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
     setTimeout(() => {
       setShowSuccessToast(false);
     }, 3000);
+  };
+
+  const handleClearData = async () => {
+    if (!window.confirm('Yakin ingin menghapus SEMUA data dari database?')) return;
+    setIsDeletingData(true);
+    try {
+      await api('/admin/clear-data', { method: 'DELETE' });
+      alert('Semua data berhasil dihapus!');
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Gagal menghapus data');
+    } finally {
+      setIsDeletingData(false);
+    }
+  };
+
+  const handleSeedData = async () => {
+    if (!window.confirm('Masukkan data dummy (artikel, pengumuman, agenda, thread)?')) return;
+    setIsSeedingData(true);
+    try {
+      await api('/admin/seed-data', {
+        method: 'POST',
+        body: {
+          articles: INITIAL_ARTICLES,
+          announcements: INITIAL_ANNOUNCEMENTS,
+          events: INITIAL_EVENTS,
+          threads: INITIAL_THREADS
+        }
+      });
+      alert('Data dummy berhasil dimasukkan!');
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Gagal memasukkan data');
+    } finally {
+      setIsSeedingData(false);
+    }
   };
 
   const handleSavePersonal = async (e: React.FormEvent) => {
@@ -591,7 +633,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
                 Atur ukuran teks untuk aplikasi
               </p>
             </div>
-            
+
             <div className="relative w-36 shrink-0">
               <select
                 value={fontSize}
@@ -610,12 +652,43 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         </div>
       )}
 
+      {/* Pengaturan Data Testing (Demo) */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E6E1D5] shadow-2xs">
+        <h3 className="font-title font-bold text-lg text-[#2C4219] mb-4 flex items-center gap-2">
+          <Database className="w-5 h-5 text-[#2C4219]" />
+          Data Testing & Demo
+        </h3>
+        <p className="text-sm text-[#7A7062] mb-6">
+          Fungsi khusus untuk keperluan demo aplikasi. Anda dapat menghapus semua data operasional (bersih total) atau memasukkan data dummy awal untuk keperluan presentasi dan pengujian.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            type="button"
+            onClick={handleClearData}
+            disabled={isDeletingData}
+            className="flex-1 flex items-center justify-center gap-2 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isDeletingData ? 'Menghapus...' : 'Hapus Semua Data'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSeedData}
+            disabled={isSeedingData}
+            className="flex-1 flex items-center justify-center gap-2 bg-[#FAF6EE] text-[#2C4219] hover:bg-[#E6E1D5] border border-[#E6E1D5] py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            {isSeedingData ? 'Memasukkan...' : 'Masukkan Data Dummy'}
+          </button>
+        </div>
+      </div>
+
       {/* Card Logout (Bawah Halaman - Jelas & Mudah Diakses) */}
       {onLogout && (
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-rose-100 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] flex items-center gap-2">
-              <LogOut className="w-4 h-4 text-[#C53030]" />
               <span>Keluar dari Aplikasi</span>
             </h3>
             <p className="text-xs sm:text-sm text-[#7A7062] mt-1">
@@ -625,9 +698,8 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           <button
             type="button"
             onClick={() => setShowLogoutConfirm(true)}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
             <span>Keluar Akun</span>
           </button>
         </div>
@@ -637,7 +709,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-2xl max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+            <div className="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600">
               <LogOut className="w-6 h-6" />
             </div>
             <div>
@@ -662,7 +734,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
                   setShowLogoutConfirm(false);
                   onLogout?.();
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs sm:text-sm font-bold text-white shadow-sm transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs sm:text-sm font-bold text-white shadow-sm transition-colors"
               >
                 Ya, Keluar
               </button>

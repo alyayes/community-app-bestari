@@ -581,7 +581,6 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-rose-100 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="font-title font-bold text-base sm:text-lg text-[#2C4219] flex items-center gap-2">
-              <LogOut className="w-4 h-4 text-[#C53030]" />
               <span>Keluar dari Aplikasi</span>
             </h3>
             <p className="text-xs sm:text-sm text-[#7A7062] mt-1">
@@ -591,9 +590,8 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           <button
             type="button"
             onClick={() => setShowLogoutConfirm(true)}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
             <span>Keluar Akun</span>
           </button>
         </div>
@@ -603,7 +601,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl border border-[#E6E1D5] shadow-2xl max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+            <div className="w-12 h-12 mx-auto rounded-full bg-red-100 flex items-center justify-center text-red-600">
               <LogOut className="w-6 h-6" />
             </div>
             <div>
@@ -628,7 +626,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
                   setShowLogoutConfirm(false);
                   onLogout?.();
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs sm:text-sm font-bold text-white shadow-sm transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-xs sm:text-sm font-bold text-white shadow-sm transition-colors"
               >
                 Ya, Keluar
               </button>
