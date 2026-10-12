@@ -885,44 +885,49 @@ export function App() {
   }
 
   if (pageMode === 'admin') {
-    return (
-      <AdminPortalView
-        currentUser={currentUser}
-        setCurrentUser={setCurrentUser}
-        setAppMode={setAppMode}
-        articles={articles}
-        announcements={announcements}
-        threads={threads}
-        agendas={events}
-        landPlots={landPlots}
-        harvestRecords={harvestRecords}
-        members={members}
-        cmsData={cmsData}
-        dashboardStats={dashboardStats}
-        onUpdateCmsData={handleUpdateCmsData}
-        onUpdateArticles={(list) => setArticles(list.filter(a => (a as any).status !== 'Draft'))}
-        onUpdateAnnouncements={setAnnouncements}
-        onUpdateThreads={setThreads}
-        onUpdateAgendas={setEvents}
-        onLogout={handleLogout}
-        onNavigateToPage={(page) => {
-          if (page === 'beranda') {
-            setPageMode('landing');
-          } else if (page === 'login') {
-            setPageMode('login');
-          } else if (page === 'register') {
-            setPageMode('register');
-          } else {
-            setPageMode('app');
-            setActiveNav(page as any);
-          }
-        }}
-        onSelectArticle={(art) => {
-          setSelectedArticle(art);
+    const adminProps = {
+      currentUser,
+      setCurrentUser,
+      appMode,
+      setAppMode,
+      articles,
+      announcements,
+      threads,
+      agendas: events,
+      landPlots,
+      harvestRecords,
+      members,
+      cmsData,
+      dashboardStats,
+      onUpdateCmsData: handleUpdateCmsData,
+      onUpdateArticles: (list: any[]) => setArticles(list.filter(a => (a as any).status !== 'Draft')),
+      onUpdateAnnouncements: setAnnouncements,
+      onUpdateThreads: setThreads,
+      onUpdateAgendas: setEvents,
+      onLogout: handleLogout,
+      onNavigateToPage: (page: string) => {
+        if (page === 'beranda') {
+          setPageMode('landing');
+        } else if (page === 'login') {
+          setPageMode('login');
+        } else if (page === 'register') {
+          setPageMode('register');
+        } else {
           setPageMode('app');
-          setActiveNav('informasi');
-        }}
-      />
+          setActiveNav(page as any);
+        }
+      },
+      onSelectArticle: (art: any) => {
+        setSelectedArticle(art);
+        setPageMode('app');
+        setActiveNav('informasi');
+      }
+    };
+
+    return appMode === 'lite' ? (
+      <AdminPortalViewLite {...adminProps} />
+    ) : (
+      <AdminPortalView {...adminProps} />
     );
   }
 

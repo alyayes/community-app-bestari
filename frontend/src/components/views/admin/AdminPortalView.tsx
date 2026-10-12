@@ -81,6 +81,7 @@ import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveIma
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
 import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary, isEventPast } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
+import { useFontSize, FontSizeOption } from '../../../contexts/FontSizeContext';
 
 
 
@@ -115,8 +116,10 @@ const QUILL_FORMATS = [
 ];
 
 interface AdminPortalViewProps {
+  appMode?: 'lite' | 'pro';
   setAppMode?: (mode: 'lite' | 'pro') => void;
   currentUser: UserProfile;
+  setCurrentUser?: (user: any) => void;
   articles: InfoArticle[];
   announcements: Announcement[];
   threads: ForumThread[];
@@ -187,8 +190,10 @@ const DEFAULT_USERS_LIST = [
 ];
 
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
+  appMode = 'pro',
   setAppMode,
   currentUser,
+  setCurrentUser,
   articles,
   announcements,
   threads,
@@ -207,6 +212,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onNavigateToPage,
   dashboardStats
 }) => {
+  const { fontSize, setFontSize } = useFontSize();
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     return (sessionStorage.getItem('bestari_admintab') as AdminTab) || 'dashboard';
   });
@@ -1483,11 +1489,34 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <Layers className={`w-4 h-4 ${activeTab === 'cms' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
                 {!isSidebarAdminCollapsed && <span>Kelola Konten</span>}
               </button>
+
+              {/* Nav: Pengaturan (Settings & Ukuran Font) */}
+              <button
+                onClick={() => handleTabChange('settings')}
+                title={isSidebarAdminCollapsed ? 'Pengaturan' : undefined}
+                className={`w-full flex items-center py-2.5 rounded-full font-bold text-xs transition-all ${activeTab === 'settings'
+                  ? 'bg-[#2C4219] text-white shadow-sm border border-[#A8B774]/30'
+                  : 'text-[#433A30] hover:bg-[#FAF6EE] hover:text-[#2C4219]'
+                  } ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'gap-3 px-4'}`}
+              >
+                <Settings className={`w-4 h-4 ${activeTab === 'settings' ? 'text-[#A8B774]' : 'text-[#433A30]/70'} shrink-0`} />
+                {!isSidebarAdminCollapsed && <span>Pengaturan</span>}
+              </button>
             </nav>
           </div>
 
           {/* Bottom Actions */}
           <div className="mt-auto space-y-2 pt-4 border-t border-[#E6E1D5]">
+            {setAppMode && (
+              <button
+                onClick={() => setAppMode('lite')}
+                title={isSidebarAdminCollapsed ? 'Lite Mode' : undefined}
+                className={`w-full flex items-center gap-2.5 py-2.5 rounded-full text-xs font-bold bg-[#E3EBD3] text-[#2C4219] border border-[#A8B774]/40 hover:bg-[#2C4219] hover:text-white transition-all shadow-2xs ${isSidebarAdminCollapsed ? 'justify-center px-0 w-10 h-10 mx-auto' : 'px-4'}`}
+              >
+                <ArrowRightLeft className="w-4 h-4 shrink-0" />
+                {!isSidebarAdminCollapsed && <span>Lite Mode</span>}
+              </button>
+            )}
             <button
               onClick={onLogout}
               title={isSidebarAdminCollapsed ? 'Keluar' : undefined}
@@ -2471,53 +2500,230 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
           {/* ==================== TAB 5: SETTINGS ==================== */}
           {activeTab === 'settings' && (
-            <div className="space-y-6 max-w-2xl">
+            <div className="space-y-6 max-w-4xl">
               <div>
                 <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Pengaturan Admin Portal
                 </h1>
+                <p className="text-xs sm:text-sm text-[#7A7062] mt-1 font-medium">
+                  Atur preferensi tampilan portal kerja admin dan pantau status koneksi sistem operasional.
+                </p>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] space-y-6 text-xs">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={getAvatarUrl(currentUser.avatar, currentUser.name)}
-                    alt={currentUser.name}
-                    onError={(e) => handleAvatarError(e, currentUser.name)}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-[#2C4219]"
-                  />
+              {/* CARD 1: PENGATURAN UKURAN HURUF / TEKS */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#E6E1D5]">
                   <div>
-                    <h3 className="font-title font-bold text-base text-[#2C4219]">{currentUser.name}</h3>
-                    <p className="text-[#7A7062] font-semibold">{currentUser.role}</p>
+                    <h3 className="font-title font-bold text-lg text-[#2C4219] flex items-center gap-2">
+                      <Type className="w-5 h-5 text-[#2C4219]" />
+                      Ukuran Huruf / Teks Aplikasi
+                    </h3>
+                    <p className="text-xs text-[#7A7062] mt-1">
+                      Pilih ukuran font yang paling nyaman untuk Anda saat mengelola data, tabel, dan laporan.
+                    </p>
+                  </div>
+                  <span className="self-start sm:self-auto px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#E3EBD3] text-[#2C4219] border border-[#A8B774]/40">
+                    Aktif: {fontSize}
+                  </span>
+                </div>
+
+                {/* 3 Option Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {([
+                    {
+                      key: 'kecil' as const,
+                      label: 'Kecil',
+                      tag: '13px Base',
+                      desc: 'Teks lebih ringkas & padat. Optimal untuk memantau data tabel, log, dan daftar panjang.',
+                      sample: 'Data & tabel terlihat padat ringkas'
+                    },
+                    {
+                      key: 'sedang' as const,
+                      label: 'Sedang (Standar)',
+                      tag: '14.5px Base',
+                      desc: 'Ukuran proporsional seimbang. Rekomendasi bawaan untuk kenyamanan kerja harian.',
+                      sample: 'Proporsional & nyaman untuk navigasi'
+                    },
+                    {
+                      key: 'besar' as const,
+                      label: 'Besar',
+                      tag: '16.5px Base',
+                      desc: 'Teks ekstra besar & jelas. Sangat nyaman dibaca tanpa membuat mata lelah.',
+                      sample: 'Teks besar, kontras jelas di mata'
+                    }
+                  ]).map((opt) => {
+                    const isSelected = fontSize === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => {
+                          setFontSize(opt.key);
+                          showToast(`Ukuran font diubah ke "${opt.label}"`);
+                        }}
+                        className={`p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                          isSelected
+                            ? 'border-[#2C4219] bg-[#FAF6EE] shadow-md ring-2 ring-[#2C4219]/15'
+                            : 'border-[#E6E1D5] bg-white hover:border-[#A8B774] hover:bg-[#FAF6EE]/50'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-title font-bold text-base text-[#2C4219]">{opt.label}</span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#FAF6EE] border border-[#E6E1D5] text-[#7A7062]">
+                              {opt.tag}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#7A7062] leading-relaxed mb-4">
+                            {opt.desc}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-[#E6E1D5]/60 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-[#433A30]/80 italic">
+                            "{opt.sample}"
+                          </span>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${
+                            isSelected
+                              ? 'bg-[#2C4219] border-[#2C4219] text-white'
+                              : 'border-[#E6E1D5] bg-white'
+                          }`}>
+                            {isSelected && <CheckCircle2 className="w-4 h-4 text-[#A8B774]" />}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CARD 2: MODE TAMPILAN (PRO / LITE) JIKA TERSEDIA */}
+              {setAppMode && (
+                <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-title font-bold text-lg text-[#2C4219] flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-[#2C4219]" />
+                        Mode Antarmuka Portal
+                      </h3>
+                      <p className="text-xs text-[#7A7062] mt-1">
+                        Pilih antara Pro Mode (fitur analitik lengkap) atau Lite Mode (navigasi cepat & ringan).
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 bg-[#FAF6EE] p-1.5 rounded-2xl border border-[#E6E1D5]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppMode('pro');
+                          showToast('Anda sudah di Pro Mode');
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          appMode === 'pro'
+                            ? 'bg-[#2C4219] text-white shadow-xs'
+                            : 'text-[#433A30] hover:text-[#2C4219] hover:bg-white'
+                        }`}
+                      >
+                        Pro Mode
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppMode('lite');
+                          showToast('Beralih ke Lite Mode');
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          appMode === 'lite'
+                            ? 'bg-[#2C4219] text-white shadow-xs'
+                            : 'text-[#433A30] hover:text-[#2C4219] hover:bg-white'
+                        }`}
+                      >
+                        Lite Mode
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CARD 3: STATUS SISTEM & INTEGRASI */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-5">
+                <div className="pb-4 border-b border-[#E6E1D5]">
+                  <h3 className="font-title font-bold text-lg text-[#2C4219] flex items-center gap-2">
+                    <Server className="w-5 h-5 text-[#2C4219]" />
+                    Status Operasional & Integrasi Sistem
+                  </h3>
+                  <p className="text-xs text-[#7A7062] mt-1">
+                    Informasi konektivitas layanan terintegrasi dan modul data portal.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#433A30]">Integrasi SCM Sorgum</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E3EBD3] text-[#2C4219]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#607829] animate-pulse"></span>
+                        Terhubung
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#7A7062] leading-relaxed">
+                      Fetch otomatis data lahan & panen aktif dari API SCM.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#433A30]">Database Server</span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E3EBD3] text-[#2C4219]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#607829]"></span>
+                        Aktif
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#7A7062] leading-relaxed">
+                      Layanan CRUD informasi, agenda, CMS & pengguna siap.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#433A30]">Versi Platform</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#7A7062] border border-[#E6E1D5]">
+                        v1.0.0
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#7A7062] leading-relaxed">
+                      KWT Bestari Community Portal Production.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 4: SESI ADMINISTRATOR */}
+              <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E6E1D5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#2C4219] text-[#A8B774] flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-title font-bold text-sm text-[#2C4219]">Sesi Administrator Aktif</h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E3EBD3] text-[#2C4219]">
+                        {currentUser.role || 'ADMIN'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#7A7062] mt-0.5">
+                      Masuk sebagai <strong className="text-[#2C4219]">{currentUser.name}</strong>
+                    </p>
                   </div>
                 </div>
 
-                <div className="space-y-4 border-t border-[#E6E1D5] pt-4">
-                  <div className="space-y-1">
-                    <label className="font-bold text-[#2C4219]">Nama Administrator</label>
-                    <input
-                      type="text"
-                      defaultValue={currentUser.name}
-                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-[#2C4219]">Email / WhatsApp Contact</label>
-                    <input
-                      type="text"
-                      defaultValue="admin@kwtsorgum.id"
-                      className="w-full p-3 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] font-semibold"
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => showToast('Pengaturan profil berhasil disimpan!')}
-                    className="px-5 py-3 rounded-xl bg-[#2C4219] text-white font-title font-bold text-xs"
-                  >
-                    Simpan Perubahan
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="px-5 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-200 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Keluar Sesi Admin
+                </button>
               </div>
             </div>
           )}
