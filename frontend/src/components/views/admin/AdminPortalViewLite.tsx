@@ -1962,210 +1962,404 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           {/* ==================== TAB 4: DASHBOARD ADMIN OVERVIEW ==================== */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Header Greeting Card */}
-              <div className="bg-[#2C4219] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-md">
-                <div className="relative z-10 space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#A8B774]/20 text-[#A8B774] text-xs font-bold border border-[#A8B774]/30">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Mode Lite Active</span>
+              {/* Header Greeting Banner */}
+              <div className="bg-gradient-to-br from-[#2C4219] via-[#375220] to-[#1F3011] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-[#A8B774]/20">
+                <div className="relative z-10 space-y-2 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A8B774]/20 text-[#A8B774] text-xs font-bold border border-[#A8B774]/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Mode Lite Aktif</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-xs">
+                      <CalendarDays className="w-3.5 h-3.5 text-[#A8B774]" />
+                      <span>Pusat Operasional Desa</span>
+                    </span>
                   </div>
-                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#A8B774]">
-                    Selamat Datang, {currentUser?.firstName || currentUser?.name || 'Admin'}!
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-white">
+                    Selamat Datang, <span className="text-[#A8B774]">{currentUser?.firstName || currentUser?.name || 'Admin'}!</span>
                   </h1>
-                  <p className="text-white/80 font-medium text-xs sm:text-sm max-w-lg">
-                    Kelola kegiatan desa, informasi publik, diskusi, dan data sorgum dengan tampilan yang ringkas dan mudah dipahami.
+                  <p className="text-white/80 font-medium text-xs sm:text-sm leading-relaxed">
+                    Kelola kegiatan warga, distribusi informasi publik, moderasi diskusi, dan pantau integrasi data sorgum secara terpadu & ringkas.
                   </p>
                 </div>
-                <div className="absolute right-4 -bottom-4 opacity-10 pointer-events-none">
-                  <Sprout className="w-48 h-48 text-white" />
+
+                {/* Decorative Sprout Background Watermark */}
+                <div className="absolute right-0 -bottom-6 opacity-10 pointer-events-none">
+                  <Sprout className="w-64 h-64 text-white" />
                 </div>
               </div>
 
-              {/* 5 Primary Summary Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                <div 
+              {/* 5 Primary Summary Cards - Responsive Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                {/* 1. Total Pengguna */}
+                <div
                   onClick={() => handleTabChange('users')}
-                  className="bg-white p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-[#2C4219] transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-[#2C4219] hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#2C4219] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Users className="w-5 h-5" />
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#2C4219] border border-emerald-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Total Pengguna</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {dashboardStats?.totalUsers || members?.length || 12}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Total Pengguna</p>
-                  <p className="font-title font-black text-2xl text-[#2C4219] mt-1">{dashboardStats?.totalUsers || members?.length || 0}</p>
-                  <p className="text-[10px] text-emerald-700 font-medium mt-1">Anggota & Admin Komunitas</p>
+                  <span className="text-[10px] text-emerald-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Warga & Anggota
+                  </span>
                 </div>
 
-                <div 
+                {/* 2. Agenda Mendatang */}
+                <div
                   onClick={() => handleTabChange('agenda')}
-                  className="bg-white p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-amber-600 transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-amber-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Calendar className="w-5 h-5" />
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Agenda Kegiatan</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {agendas?.length || 0}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Agenda Mendatang</p>
-                  <p className="font-title font-black text-2xl text-[#2C4219] mt-1">{agendas?.length || 0}</p>
-                  <p className="text-[10px] text-amber-700 font-medium mt-1">Kegiatan Terjadwal</p>
+                  <span className="text-[10px] text-amber-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Terjadwal di Desa
+                  </span>
                 </div>
 
-                <div 
+                {/* 3. Informasi Aktif */}
+                <div
                   onClick={() => handleTabChange('informasi')}
-                  className="bg-white p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-blue-600 transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-blue-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <FileText className="w-5 h-5" />
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Informasi Publik</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {adminArticles?.length || articles?.length || 0}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Informasi Aktif</p>
-                  <p className="font-title font-black text-2xl text-[#2C4219] mt-1">{adminArticles?.length || articles?.length || 0}</p>
-                  <p className="text-[10px] text-blue-700 font-medium mt-1">Artikel & Berita</p>
+                  <span className="text-[10px] text-blue-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Artikel & Panduan
+                  </span>
                 </div>
 
-                <div 
+                {/* 4. Diskusi Komunitas */}
+                <div
                   onClick={() => handleTabChange('moderation')}
-                  className="bg-white p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-purple-600 transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-purple-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <MessageSquare className="w-5 h-5" />
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Diskusi Komunitas</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {threads?.length || 0}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Diskusi Komunitas</p>
-                  <p className="font-title font-black text-2xl text-[#2C4219] mt-1">{threads?.length || 0}</p>
-                  <p className="text-[10px] text-purple-700 font-medium mt-1">Utas Diskusi Warga</p>
+                  <span className="text-[10px] text-purple-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Utas Forum Warga
+                  </span>
                 </div>
 
-                <div 
+                {/* 5. Data Sorgum SCM */}
+                <div
                   onClick={() => handleTabChange('datasorgum')}
-                  className="bg-white p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-emerald-600 transition-all cursor-pointer group"
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-lime-700 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group col-span-2 sm:col-span-1 flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Sprout className="w-5 h-5" />
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-lime-50 text-lime-800 border border-lime-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Sprout className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Data Sorgum</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {(landPlots?.length || 0) + (harvestRecords?.length || 0) || 'SCM'}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Data Sorgum</p>
-                  <p className="font-title font-black text-2xl text-[#2C4219] mt-1">0</p>
-                  <p className="text-[10px] text-emerald-700 font-medium mt-1">Data Tersimpan</p>
+                  <span className="text-[10px] text-lime-800 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-lime-600" /> Lahan & Catatan Panen
+                  </span>
                 </div>
               </div>
 
-              {/* Quick Action Sections Grid */}
+              {/* Visual Analytics & Charts Section */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Agenda Terbaru */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-lg text-[#2C4219]">Agenda Terdekat</h2>
+                {/* Chart 1: Tren Keterbacaan Informasi (BarChart) */}
+                <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6E1D5]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
+                        <TrendingUp className="w-4 h-4 text-[#A8B774]" />
+                      </div>
+                      <div>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Aktivitas & Informasi</h3>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel dan partisipasi diskusi bulanan</p>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => handleTabChange('agenda')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
-                    >
-                      <span>Lihat Semua</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-3 text-xs font-bold text-[#2C4219]">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Artikel
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Diskusi
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {agendas && agendas.length > 0 ? (
-                      agendas.slice(0, 3).map(ag => (
-                        <div key={ag.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-[#2C4219] text-white flex flex-col items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold uppercase">{ag.monthAbbr || 'OKT'}</span>
-                              <span className="text-sm font-black leading-none">{ag.dayNumber || '10'}</span>
+                  <div className="h-60 sm:h-64 w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
+                        <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
+                        <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
+                          formatter={(value: any, name: any) => [`${value} Aktivitas`, name === 'pembacaArtikel' ? 'Artikel' : 'Diskusi']}
+                        />
+                        <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={18} />
+                        <Bar dataKey="diskusi" name="Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Chart 2: Komposisi Konten Komunitas (Donut Chart) */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 pb-3 border-b border-[#E6E1D5]">
+                      <div className="w-9 h-9 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
+                        <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
+                      </div>
+                      <div>
+                        <h3 className="font-title font-bold text-base text-[#2C4219]">Komposisi Konten Komunitas</h3>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Distribusi konten dan forum sistem</p>
+                      </div>
+                    </div>
+
+                    <div className="h-44 w-full my-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={contentDistributionData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={44}
+                            outerRadius={68}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {contentDistributionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '11px', fontWeight: 'bold' }}
+                            formatter={(val: any) => [`${val} Item`, 'Jumlah']}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-[#E6E1D5]">
+                      {contentDistributionData.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs font-bold text-[#2C4219]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                            <span className="text-[#5C5246] truncate">{item.name}</span>
+                          </div>
+                          <span className="font-bold shrink-0">{item.value} Item</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Activity Feeds Columns - Responsive 1 to 3 Columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
+                
+                {/* 1. Agenda Terdekat */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
+                      <div className="flex items-center gap-2.5">
+                        <Calendar className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base sm:text-lg text-[#2C4219]">Agenda Terdekat</h2>
+                      </div>
+                      <button 
+                        onClick={() => handleTabChange('agenda')}
+                        className="text-xs font-bold text-[#2C4219] hover:text-[#456927] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <span>Lihat Semua</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 mt-3">
+                      {agendas && agendas.length > 0 ? (
+                        agendas.slice(0, 3).map(ag => (
+                          <div key={ag.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#A8B774] transition-all flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-[#2C4219] text-white flex flex-col items-center justify-center shrink-0 shadow-2xs">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#A8B774] leading-tight">{ag.monthAbbr || 'OKT'}</span>
+                              <span className="text-base font-black leading-none">{ag.dayNumber || '10'}</span>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-xs text-[#2C4219] line-clamp-1">{ag.title}</h4>
-                              <p className="text-[11px] text-[#7A7062] flex items-center gap-2 mt-0.5">
-                                <span>{formatEventTimeWithPeriod(ag.time)}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-title font-bold text-xs sm:text-sm text-[#2C4219] truncate">{ag.title}</h4>
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 shrink-0 truncate max-w-[100px]">
+                                  {ag.category}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#7A7062] mt-1 font-medium">
+                                <span className="flex items-center gap-1 shrink-0">
+                                  <Clock className="w-3 h-3 text-[#7A7062]" />
+                                  <span>{formatEventTimeWithPeriod(ag.time)}</span>
+                                </span>
                                 <span>•</span>
-                                <span>{ag.location}</span>
+                                <span className="flex items-center gap-1 truncate max-w-[140px]">
+                                  <MapPin className="w-3 h-3 text-[#7A7062] shrink-0" />
+                                  <span>{ag.location}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 bg-[#FAF6EE]/50 rounded-2xl border border-dashed border-[#E6E1D5]">
+                          <Calendar className="w-8 h-8 text-[#A8B774] mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-semibold text-[#7A7062]">Belum ada agenda mendatang.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenAddAgenda}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-[#2C4219]/30 text-[#2C4219] hover:bg-[#FAF6EE] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Agenda Baru</span>
+                  </button>
+                </div>
+
+                {/* 2. Informasi Terbaru */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
+                      <div className="flex items-center gap-2.5">
+                        <FileText className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base sm:text-lg text-[#2C4219]">Informasi Terbaru</h2>
+                      </div>
+                      <button 
+                        onClick={() => handleTabChange('informasi')}
+                        className="text-xs font-bold text-[#2C4219] hover:text-[#456927] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <span>Lihat Semua</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 mt-3">
+                      {adminArticles && adminArticles.length > 0 ? (
+                        adminArticles.slice(0, 3).map(art => (
+                          <div key={art.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#A8B774] transition-all flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#607829] px-2 py-0.5 rounded-md bg-white border border-[#E6E1D5]">
+                                {art.category}
+                              </span>
+                              <h4 className="font-title font-bold text-xs sm:text-sm text-[#2C4219] truncate mt-1">{art.title}</h4>
+                              <p className="text-[11px] text-[#7A7062] mt-0.5 flex items-center gap-1">
+                                <CalendarDays className="w-3 h-3 text-[#7A7062]" />
+                                <span>{art.date}</span>
                               </p>
                             </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                              art.status === 'Draft' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {art.status || 'Published'}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
-                            {ag.category}
-                          </span>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 bg-[#FAF6EE]/50 rounded-2xl border border-dashed border-[#E6E1D5]">
+                          <FileText className="w-8 h-8 text-[#A8B774] mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-semibold text-[#7A7062]">Belum ada artikel informasi.</p>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-[#7A7062] text-center py-6">Belum ada agenda mendatang.</p>
-                    )}
+                      )}
+                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenAddArticle}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-[#2C4219]/30 text-[#2C4219] hover:bg-[#FAF6EE] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Informasi Baru</span>
+                  </button>
                 </div>
 
-                {/* Informasi Terbaru */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-lg text-[#2C4219]">Informasi Terbaru</h2>
+                {/* 3. Diskusi Terkini */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between md:col-span-2 xl:col-span-1">
+                  <div>
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
+                      <div className="flex items-center gap-2.5">
+                        <MessageSquare className="w-5 h-5 text-[#2C4219]" />
+                        <h2 className="font-title font-bold text-base sm:text-lg text-[#2C4219]">Diskusi Terkini</h2>
+                      </div>
+                      <button 
+                        onClick={() => handleTabChange('moderation')}
+                        className="text-xs font-bold text-[#2C4219] hover:text-[#456927] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <span>Lihat Semua</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => handleTabChange('informasi')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
-                    >
-                      <span>Lihat Semua</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
 
-                  <div className="space-y-3">
-                    {adminArticles && adminArticles.length > 0 ? (
-                      adminArticles.slice(0, 3).map(art => (
-                        <div key={art.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-between gap-3">
-                          <div>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#7A7062]">{art.category}</span>
-                            <h4 className="font-bold text-xs text-[#2C4219] line-clamp-1 mt-0.5">{art.title}</h4>
-                            <p className="text-[11px] text-[#7A7062] mt-0.5">{art.date}</p>
+                    <div className="space-y-3 mt-3">
+                      {threads && threads.length > 0 ? (
+                        threads.slice(0, 3).map(thr => (
+                          <div key={thr.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] hover:border-[#A8B774] transition-all flex items-center justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-[#572E4A] px-2 py-0.5 rounded-md bg-white border border-[#E6E1D5]">
+                                {thr.category}
+                              </span>
+                              <h4 className="font-title font-bold text-xs sm:text-sm text-[#2C4219] truncate mt-1">{thr.title}</h4>
+                              <p className="text-[11px] text-[#7A7062] mt-0.5 flex items-center gap-1">
+                                <Users className="w-3 h-3 text-[#7A7062]" />
+                                <span>Oleh: <strong className="text-[#433A30] font-semibold">{thr.authorName}</strong></span>
+                              </p>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                              thr.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            }`}>
+                              {thr.status || 'Aktif'}
+                            </span>
                           </div>
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                            art.status === 'Draft' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            {art.status || 'Published'}
-                          </span>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 bg-[#FAF6EE]/50 rounded-2xl border border-dashed border-[#E6E1D5]">
+                          <MessageSquare className="w-8 h-8 text-[#A8B774] mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-semibold text-[#7A7062]">Belum ada aktivitas diskusi.</p>
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-[#7A7062] text-center py-6">Belum ada artikel informasi.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Diskusi Terkini */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-5 h-5 text-[#2C4219]" />
-                      <h2 className="font-title font-bold text-lg text-[#2C4219]">Diskusi Terkini</h2>
+                      )}
                     </div>
-                    <button 
-                      onClick={() => handleTabChange('moderation')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
-                    >
-                      <span>Lihat Semua</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
                   </div>
 
-                  <div className="space-y-3">
-                    {threads && threads.length > 0 ? (
-                      threads.slice(0, 3).map(thr => (
-                        <div key={thr.id} className="p-3.5 rounded-2xl bg-[#FAF6EE] border border-[#E6E1D5] flex items-center justify-between gap-3">
-                          <div>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#7A7062]">{thr.category}</span>
-                            <h4 className="font-bold text-xs text-[#2C4219] line-clamp-1 mt-0.5">{thr.title}</h4>
-                            <p className="text-[11px] text-[#7A7062] mt-0.5">Oleh: {thr.authorName}</p>
-                          </div>
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                            thr.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                          }`}>
-                            {thr.status || 'Aktif'}
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-[#7A7062] text-center py-6">Belum ada aktivitas diskusi.</p>
-                    )}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('moderation')}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-[#2C4219]/30 text-[#2C4219] hover:bg-[#FAF6EE] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2"
+                  >
+                    <span>Buka Panel Moderasi</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
               </div>

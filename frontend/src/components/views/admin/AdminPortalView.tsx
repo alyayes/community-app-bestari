@@ -2110,63 +2110,127 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           {/* ==================== TAB 4: DASHBOARD ADMIN OVERVIEW ==================== */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div>
-                <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
-                  Dashboard
-                </h1>
+              {/* Executive Welcome & Analytics Banner */}
+              <div className="bg-gradient-to-br from-[#2C4219] via-[#375220] to-[#1F3011] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg border border-[#A8B774]/20">
+                <div className="relative z-10 space-y-2 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A8B774]/20 text-[#A8B774] text-xs font-bold border border-[#A8B774]/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Mode Pro Aktif</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-semibold backdrop-blur-xs">
+                      <CalendarDays className="w-3.5 h-3.5 text-[#A8B774]" />
+                      <span>Pusat Komando & Analitik</span>
+                    </span>
+                  </div>
+                  <h1 className="font-title font-bold text-2xl sm:text-3xl text-white">
+                    Selamat Datang, <span className="text-[#A8B774]">{currentUser?.name || 'Administrator'}!</span>
+                  </h1>
+                  <p className="text-white/80 font-medium text-xs sm:text-sm leading-relaxed">
+                    Monitoring komprehensif aktivitas warga desa, statistik keterbacaan artikel, koordinasi agenda lapangan, serta integrasi rantai pasok sorgum (SCM).
+                  </p>
+                </div>
+
+                {/* Decorative Sprout Background Watermark */}
+                <div className="absolute right-0 -bottom-6 opacity-10 pointer-events-none">
+                  <Sprout className="w-64 h-64 text-white" />
+                </div>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">TOTAL INFORMASI</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-[#2C4219]" />
+              {/* 5 Primary Summary Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                {/* 1. Total Pengguna */}
+                <div 
+                  onClick={() => handleTabChange('users')}
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-[#2C4219] hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#2C4219] border border-emerald-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Users className="w-5 h-5" />
                     </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Total Pengguna</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {dashboardStats?.totalUsers || stats?.totalUser || members?.length || 12}
+                    </p>
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{articles.length}</p>
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Published & Siap Baca
+                  <span className="text-[10px] text-emerald-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Anggota & Pengurus
                   </span>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">AGENDA BULAN INI</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-[#2C4219]" />
+                {/* 2. Agenda Kegiatan */}
+                <div 
+                  onClick={() => handleTabChange('agenda')}
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-amber-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Calendar className="w-5 h-5" />
                     </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Agenda Kegiatan</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {agendaList?.length || agendas?.length || 0}
+                    </p>
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{agendaList.length}</p>
-                  <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> {agendaList.filter(a => a.status === 'Belum dimulai').length} Belum dimulai
+                  <span className="text-[10px] text-amber-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> {agendaList.filter(a => a.status === 'Belum dimulai').length || 0} Terjadwal
                   </span>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">UTAS DISKUSI</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <MessageSquare className="w-4 h-4 text-[#2C4219]" />
+                {/* 3. Total Informasi */}
+                <div 
+                  onClick={() => handleTabChange('informasi')}
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-blue-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <FileText className="w-5 h-5" />
                     </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Total Informasi</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {articles?.length || 0}
+                    </p>
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{threads.length}</p>
-                  <span className="text-[10px] text-[#2C4219] font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2C4219]" /> Forum Komunitas Warga
+                  <span className="text-[10px] text-blue-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Published & Edukasi
                   </span>
                 </div>
 
-                <div className="bg-white p-5 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-2 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider">ANGGOTA KWT</p>
-                    <div className="w-8 h-8 rounded-xl bg-[#E3EBD3] flex items-center justify-center">
-                      <Users className="w-4 h-4 text-[#2C4219]" />
+                {/* 4. Utas Diskusi */}
+                <div 
+                  onClick={() => handleTabChange('moderation')}
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-purple-600 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <MessageSquare className="w-5 h-5" />
                     </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Utas Diskusi</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {threads?.length || 0}
+                    </p>
                   </div>
-                  <p className="font-title font-black text-3xl text-[#2C4219]">{stats?.totalUser ?? 128}</p>
-                  <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Terverifikasi di Desa
+                  <span className="text-[10px] text-purple-700 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Forum Komunitas Warga
+                  </span>
+                </div>
+
+                {/* 5. Data Sorgum SCM */}
+                <div 
+                  onClick={() => handleTabChange('datasorgum')}
+                  className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E6E1D5] hover:border-lime-700 hover:-translate-y-1 hover:shadow-md transition-all duration-200 cursor-pointer group col-span-2 sm:col-span-1 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-lime-50 text-lime-800 border border-lime-100 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                      <Sprout className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wider">Data Sorgum SCM</p>
+                    <p className="font-title font-black text-2xl sm:text-3xl text-[#2C4219] mt-1 tracking-tight">
+                      {(landPlots?.length || 0) + (harvestRecords?.length || 0) || 'SCM'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-lime-800 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-lime-600" /> Lahan & Catatan Panen
                   </span>
                 </div>
               </div>
@@ -2174,26 +2238,29 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               {/* Analytics Charts Section */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Chart 1: Statistik Pembaca & Informasi Komunitas (Area Chart) */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                {/* Chart 1: Statistik Pembaca & Informasi Komunitas (Bar Chart) */}
+                <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6E1D5]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                         <TrendingUp className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
                         <h3 className="font-title font-bold text-base text-[#2C4219]">Statistik Pembaca & Informasi Komunitas</h3>
-                        <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel pengetahuan</p>
+                        <p className="text-[11px] text-[#7A7062] font-semibold">Tren keterbacaan artikel dan keaktifan forum bulanan</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-xs font-bold text-[#2C4219]">
                       <span className="flex items-center gap-1.5">
                         <span className="w-3 h-3 rounded-sm bg-[#2C4219]" /> Artikel
                       </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm bg-[#A8B774]" /> Diskusi
+                      </span>
                     </div>
                   </div>
 
-                  <div className="h-64 w-full pt-2">
+                  <div className="h-60 sm:h-64 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={informasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
@@ -2201,19 +2268,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold', color: '#2C4219' }}
-                          formatter={(value: any) => [`${value} Konten`, '']}
+                          formatter={(value: any, name: any) => [`${value} Konten`, name === 'pembacaArtikel' ? 'Artikel' : 'Diskusi']}
                         />
-                        <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={24} />
+                        <Bar dataKey="pembacaArtikel" name="Artikel" fill="#2C4219" radius={[4, 4, 0, 0]} barSize={20} />
+                        <Bar dataKey="diskusi" name="Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                {/* Chart 2: Distribusi Konten & Aktivitas Komunitas (Pie/Donut Chart) */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                {/* Chart 2: Distribusi Konten & Aktivitas Komunitas (Donut Chart) */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center gap-2.5 pb-2 border-b border-[#E6E1D5]">
-                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                    <div className="flex items-center gap-3 pb-3 border-b border-[#E6E1D5]">
+                      <div className="w-9 h-9 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                         <PieChartIcon className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
@@ -2222,15 +2290,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="h-48 w-full my-2">
+                    <div className="h-44 w-full my-2">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={contentDistributionData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={48}
-                            outerRadius={72}
+                            innerRadius={44}
+                            outerRadius={68}
                             paddingAngle={5}
                             dataKey="value"
                           >
@@ -2249,9 +2317,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="space-y-2 pt-2 border-t border-[#E6E1D5]">
                       {contentDistributionData.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between text-xs font-bold text-[#2C4219]">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                            <span className="text-[#5C5246] truncate max-w-[140px]">{item.name}</span>
+                            <span className="text-[#5C5246] truncate">{item.name}</span>
                           </div>
                           <span className="font-bold shrink-0">{item.value} Item</span>
                         </div>
@@ -2263,15 +2331,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               {/* Chart 3: Partisipasi Warga & Aktivitas Bulanan (Bar Chart) */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E6E1D5]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E6E1D5]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                       <BarChart2 className="w-4 h-4 text-[#A8B774]" />
                     </div>
                     <div>
                       <h3 className="font-title font-bold text-base text-[#2C4219]">Grafik Partisipasi & Interaksi Warga</h3>
-                      <p className="text-[11px] text-[#433A30]/80 font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
+                      <p className="text-[11px] text-[#7A7062] font-semibold">Keaktifan diskusi, kehadiran agenda, dan pendaftaran anggota baru</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs font-bold text-[#2C4219]">
@@ -2288,13 +2356,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={partisipasiChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6E1D5" />
-                      <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
-                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#433A30', fontWeight: 600 }} />
+                      <XAxis dataKey="bulan" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#7A7062', fontWeight: 600 }} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#FAF6EE', borderRadius: '12px', border: '1px solid #E6E1D5', fontSize: '12px', fontWeight: 'bold' }}
                       />
-                      <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="diskusi" name="Topik Diskusi" fill="#A8B774" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar dataKey="anggotaBaru" name="Anggota Baru" fill="#572E4A" radius={[4, 4, 0, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -2304,11 +2372,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Upcoming Agenda Overview */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                           <Calendar className="w-4 h-4 text-[#A8B774]" />
                         </div>
                         <div>
@@ -2317,8 +2385,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         </div>
                       </div>
                       <button
-                        onClick={() => setActiveTab('agenda')}
-                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                        onClick={() => handleTabChange('agenda')}
+                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <span>Lihat Semua</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -2333,32 +2401,37 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           .slice(0, 3);
 
                         if (upcomingAgendas.length === 0) {
-                          return <p className="text-xs text-[#7A7062] italic">Tidak ada agenda terdekat yang belum selesai.</p>;
+                          return (
+                            <div className="text-center py-8 bg-[#FAF6EE]/50 rounded-2xl border border-dashed border-[#E6E1D5]">
+                              <Calendar className="w-8 h-8 text-[#A8B774] mx-auto mb-2 opacity-50" />
+                              <p className="text-xs text-[#7A7062] font-medium">Tidak ada agenda terdekat yang belum selesai.</p>
+                            </div>
+                          );
                         }
 
                         return upcomingAgendas.map((ag) => (
-                          <div key={ag.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 min-w-0">
-                              <div className="bg-[#2C4219] text-[#A8B774] px-2.5 py-1.5 rounded-xl text-center shrink-0 min-w-[48px]">
-                                <p className="font-black text-xs leading-none">{ag.dayNumber || '10'}</p>
-                                <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider">{ag.monthAbbr || 'OKT'}</p>
+                          <div key={ag.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] hover:border-[#A8B774] transition-all flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                              <div className="bg-[#2C4219] text-[#A8B774] px-2.5 py-1.5 rounded-xl text-center shrink-0 min-w-[48px] shadow-2xs">
+                                <p className="font-black text-sm leading-none text-white">{ag.dayNumber || '10'}</p>
+                                <p className="text-[9px] font-bold uppercase mt-0.5 tracking-wider text-[#A8B774]">{ag.monthAbbr || 'OKT'}</p>
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold text-xs text-[#2C4219] truncate">{ag.title}</p>
-                                <div className="flex items-center gap-3 text-[10px] text-[#7A7062] font-semibold mt-1">
-                                  <span className="flex items-center gap-1 truncate">
-                                    <MapPin className="w-3 h-3 shrink-0" />
-                                    {ag.location || 'Lokasi TBA'}
-                                  </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-title font-bold text-xs sm:text-sm text-[#2C4219] truncate">{ag.title}</p>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#7A7062] font-semibold mt-1">
                                   <span className="flex items-center gap-1 shrink-0">
                                     <Clock className="w-3 h-3 shrink-0" />
-                                    {formatEventTimeWithPeriod(ag.time) || 'Waktu TBA'}
+                                    <span>{formatEventTimeWithPeriod(ag.time) || 'Waktu TBA'}</span>
+                                  </span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1 truncate max-w-[140px]">
+                                    <MapPin className="w-3 h-3 shrink-0" />
+                                    <span>{ag.location || 'Lokasi TBA'}</span>
                                   </span>
                                 </div>
                               </div>
                             </div>
-                            <span className={`shrink-0 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${ag.status === 'Selesai' ? 'bg-gray-100 text-gray-500' : 'bg-[#E3EBD3] text-[#2C4219]'
-                              }`}>
+                            <span className={`shrink-0 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${ag.status === 'Selesai' ? 'bg-gray-100 text-gray-500' : 'bg-[#E3EBD3] text-[#2C4219]'}`}>
                               {ag.status || 'Belum dimulai'}
                             </span>
                           </div>
@@ -2368,20 +2441,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
 
                   <button
-                    onClick={() => setActiveTab('agenda')}
-                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
+                    onClick={() => handleTabChange('agenda')}
+                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
                   >
-                    <Plus className="w-4 h-4" />
                     <span>Kelola Semua Agenda</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Latest Announcements Overview */}
-                <div className="bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
+                {/* Latest Announcements / Information Overview */}
+                <div className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4 flex flex-col justify-between">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                        <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                           <FileText className="w-4 h-4 text-[#A8B774]" />
                         </div>
                         <div>
@@ -2390,8 +2463,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         </div>
                       </div>
                       <button
-                        onClick={() => setActiveTab('informasi')}
-                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                        onClick={() => handleTabChange('informasi')}
+                        className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <span>Lihat Semua</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -2400,14 +2473,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                     <div className="space-y-3">
                       {articles.slice(0, 3).map((art) => (
-                        <div key={art.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] space-y-1.5">
+                        <div key={art.id} className="bg-[#FAF6EE] p-3.5 rounded-2xl border border-[#E6E1D5] hover:border-[#A8B774] transition-all space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#E3EBD3] text-[#2C4219]">
                               {art.category || 'ARTIKEL'}
                             </span>
                             <span className="text-[10px] text-[#7A7062] font-semibold">{art.date}</span>
                           </div>
-                          <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{art.title}</p>
+                          <p className="font-title font-bold text-xs sm:text-sm text-[#2C4219] line-clamp-1">{art.title}</p>
                           <p className="text-[11px] text-[#5C5246] line-clamp-1 font-medium">{art.summary}</p>
                         </div>
                       ))}
@@ -2415,11 +2488,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
 
                   <button
-                    onClick={() => setActiveTab('informasi')}
-                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 mt-2"
+                    onClick={() => handleTabChange('informasi')}
+                    className="w-full py-2.5 rounded-xl bg-[#FAF6EE] border border-[#E6E1D5] hover:bg-[#2C4219] hover:text-white hover:border-[#2C4219] text-xs font-bold text-[#2C4219] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
                   >
-                    <Plus className="w-4 h-4" />
                     <span>Kelola Semua Informasi</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -2429,10 +2502,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Forum Discussions Summary */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-[#E6E1D5] shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E6E1D5]">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white">
+                      <div className="w-8 h-8 rounded-xl bg-[#2C4219] flex items-center justify-center text-white shrink-0">
                         <MessageSquare className="w-4 h-4 text-[#A8B774]" />
                       </div>
                       <div>
@@ -2441,8 +2514,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => setActiveTab('moderation')}
-                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1"
+                      onClick={() => handleTabChange('moderation')}
+                      className="text-xs font-bold text-[#2C4219] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <span>Moderasi</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -2451,7 +2524,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {threads.slice(0, 2).map((thr) => (
-                      <div key={thr.id} className="bg-[#FAF6EE] p-4 rounded-2xl border border-[#E6E1D5] space-y-2 flex flex-col justify-between">
+                      <div key={thr.id} className="bg-[#FAF6EE] p-4 rounded-2xl border border-[#E6E1D5] hover:border-[#A8B774] transition-all space-y-2 flex flex-col justify-between">
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-black uppercase text-[#2C4219] bg-[#E3EBD3] px-2 py-0.5 rounded">
@@ -2459,7 +2532,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </span>
                             <span className="text-[10px] font-semibold text-[#7A7062]">{thr.timeAgo || 'Baru'}</span>
                           </div>
-                          <p className="font-bold text-xs text-[#2C4219] line-clamp-1">{thr.title}</p>
+                          <p className="font-title font-bold text-xs sm:text-sm text-[#2C4219] line-clamp-1">{thr.title}</p>
                           <p className="text-[11px] text-[#5C5246] line-clamp-2">{thr.summary}</p>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-[#E6E1D5]/60 text-[10px] text-[#7A7062] font-bold">
@@ -2472,9 +2545,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
 
                 {/* Status Banner */}
-                <div className="bg-[#2C4219] text-white p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#2C4219] to-[#1E2E11] text-white p-6 rounded-3xl shadow-md flex flex-col justify-between relative overflow-hidden border border-[#A8B774]/20">
                   <div className="absolute -right-4 -bottom-4 text-[#A8B774]/15 pointer-events-none">
-                    <Sprout className="w-32 h-32" />
+                    <Sprout className="w-36 h-36" />
                   </div>
                   <div className="space-y-3 relative z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 text-[10px] font-bold">
@@ -2490,7 +2563,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
 
                   <div className="pt-4 border-t border-white/10 mt-4 flex items-center justify-between text-[11px] text-[#A8B774] font-bold relative z-10">
-                    <span>Versi Admin: 2.4.0</span>
+                    <span>Versi Platform: v1.0.0 Bestari</span>
+                    <span className="text-white/80">KWT Sorgum Mandiri</span>
                   </div>
                 </div>
 
