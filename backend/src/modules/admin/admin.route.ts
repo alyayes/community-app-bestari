@@ -7,6 +7,9 @@ import { AppError } from '../../utils/errors';
 
 const router = Router();
 
+// ═══ SEMUA ROUTE ADMIN BUTUH TOKEN + ROLE ADMIN ═══
+router.use(authenticate, authorize('ADMIN'));
+
 // ── DELETE /api/admin/clear-data (Demo/Testing Only) ──
 router.delete('/clear-data', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -143,9 +146,6 @@ router.post('/seed-data', async (req: Request, res: Response, next: NextFunction
     next(err);
   }
 });
-
-// ═══ SEMUA ROUTE ADMIN BUTUH TOKEN + ROLE ADMIN ═══
-router.use(authenticate, authorize('ADMIN'));
 
 // ── GET /api/admin/dashboard ──────────────────────
 router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction) => {

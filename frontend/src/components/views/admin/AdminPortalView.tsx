@@ -74,7 +74,7 @@ import {
   Package,
   Gift
 } from 'lucide-react';
-import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, CmsData } from '../../../types';
+import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, ProductionBatch, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
@@ -126,6 +126,7 @@ interface AdminPortalViewProps {
   agendas?: AgendaEvent[];
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
+  productionBatches?: ProductionBatch[];
   members: any[];
   onUpdateArticles: (articles: InfoArticle[]) => void;
   onUpdateAnnouncements: (announcements: Announcement[]) => void;
@@ -200,6 +201,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   agendas,
   landPlots,
   harvestRecords,
+  productionBatches = [],
   members,
   onUpdateArticles,
   onUpdateAnnouncements,
@@ -2806,8 +2808,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <DashboardDesaView
               landPlots={landPlots || []}
               harvestRecords={harvestRecords || []}
+              productionBatches={productionBatches}
               members={members || []}
-              totalUsers={dashboardStats?.totalUsers ?? 3}
+              totalUsers={dashboardStats?.totalUsers ?? (members?.length || 0)}
               totalRawMaterialKg={dashboardStats?.totalRawMaterialKg}
               isAdmin={true}
               onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}

@@ -21,12 +21,13 @@ import {
   ExternalLink,
   RotateCw
 } from 'lucide-react';
-import type { LandPlot, HarvestRecord, UserProfile } from '../../types';
+import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
 import { getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface DashboardDesaViewProps {
   landPlots: LandPlot[];
   harvestRecords: HarvestRecord[];
+  productionBatches?: ProductionBatch[];
   members?: UserProfile[];
   totalUsers: number;
   totalRawMaterialKg?: number;
@@ -42,6 +43,7 @@ type MetricCardType = 'ringkasan' | 'panen' | 'lahan' | 'anggota' | 'produksi';
 export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   landPlots = [],
   harvestRecords = [],
+  productionBatches = [],
   members = [],
   totalUsers = 0,
   totalRawMaterialKg,
@@ -54,6 +56,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
   const safeLandPlots = Array.isArray(landPlots) ? landPlots : [];
   const safeMembers = Array.isArray(members) ? members : [];
+  const safeProduction = Array.isArray(productionBatches) ? productionBatches : [];
 
   // State untuk card / tab aktif (default ke ringkasan)
   const [activeCard, setActiveCard] = useState<MetricCardType>('ringkasan');
@@ -73,14 +76,19 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   const totalAreaValue = safeLandPlots.reduce((acc, p) => acc + (parseFloat(p?.areaSize || '0') || 0), 0);
   const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
   const totalMembers = Number(totalUsers) || safeMembers.length || 0;
-  const readyFlourKg = totalRawMaterialKg !== undefined ? Number(totalRawMaterialKg) : totalHarvestKg;
+  const readyFlourKg = safeProduction.reduce((acc, b) => acc + (Number(b?.outputQty) || 0), 0);
+  // Opsi filter mutu / status diambil dari nilai yang benar-benar ada di SCM
+  const qualityOptions = useMemo(() => Array.from(new Set(safeHarvestRecords.map(r => r?.quality).filter(Boolean))), [safeHarvestRecords]);
+  const plotStatusOptions = useMemo(() => Array.from(new Set(safeLandPlots.map(p => p?.status).filter(Boolean))), [safeLandPlots]);
+  const productionStatusOptions = useMemo(() => Array.from(new Set(safeProduction.map(b => b?.status).filter(Boolean))), [safeProduction]);
 
   // Opsi filter blok unik dari data SCM
   const blockOptions = useMemo(() => {
     const fromLahan = safeLandPlots.map(p => p?.blockName).filter(Boolean);
     const fromPanen = safeHarvestRecords.map(r => r?.blockName).filter(Boolean);
-    return ['Semua', ...Array.from(new Set([...fromLahan, ...fromPanen]))];
-  }, [safeLandPlots, safeHarvestRecords]);
+    const fromProd = safeProduction.map(b => b?.blockName).filter(b => b && b !== '-');
+    return ['Semua', ...Array.from(new Set([...fromLahan, ...fromPanen, ...fromProd]))];
+  }, [safeLandPlots, safeHarvestRecords, safeProduction]);
 
   // Opsi filter varietas sorgum unik dari data SCM
   const varietyOptions = useMemo(() => {
@@ -134,7 +142,9 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
     } else if (sortBy === 'weight_asc') {
       result = [...result].sort((a, b) => (Number(a?.weightKg) || 0) - (Number(b?.weightKg) || 0));
     } else if (sortBy === 'oldest') {
-      result = [...result].reverse();
+      result = [...result].sort((a, b) => String(a?.date).localeCompare(String(b?.date)));
+    } else {
+      result = [...result].sort((a, b) => String(b?.date).localeCompare(String(a?.date)));
     }
 
     return result;
@@ -177,10 +187,12 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
 
     if (sortBy === 'progress_asc') {
       result = [...result].sort((a, b) => (Number(a?.growthProgress) || 0) - (Number(b?.growthProgress) || 0));
-    } else if (sortBy === 'progress_desc' || sortBy === 'default') {
+    } else if (sortBy === 'progress_desc') {
       result = [...result].sort((a, b) => (Number(b?.growthProgress) || 0) - (Number(a?.growthProgress) || 0));
     } else if (sortBy === 'area_desc') {
       result = [...result].sort((a, b) => (parseFloat(b?.areaSize || '0') || 0) - (parseFloat(a?.areaSize || '0') || 0));
+    } else {
+      result = [...result].sort((a, b) => String(b?.plantingDate).localeCompare(String(a?.plantingDate)));
     }
 
     return result;
@@ -226,31 +238,22 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
     const fBlock = (filterBlock || 'Semua').toLowerCase();
     const fVariety = (filterVariety || 'Semua').toLowerCase();
 
-    const mapped = safeHarvestRecords.map((rec, idx) => {
-      const inputKg = Number(rec?.weightKg) || 0;
-      const outputKg = Math.round(inputKg * 0.775);
-      const rendemen = '77.5%';
-      const types = ['Tepung Halus Premium', 'Premix Bebas Gluten', 'Tepung Kasar (Grade B)'];
-      const statuses = [
-        { label: 'Terdistribusi', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-        { label: 'Stok Gudang', color: 'bg-amber-50 text-amber-800 border-amber-200' },
-        { label: 'Dalam Proses', color: 'bg-blue-50 text-blue-800 border-blue-200' },
-      ];
-      const statusObj = statuses[idx % statuses.length] || statuses[0];
-      const batchCode = `PRD-2026-${String(idx + 1).padStart(3, '0')}`;
-      const productType = types[idx % types.length] || types[0];
-
-      return {
-        rec,
-        idx,
-        inputKg,
-        outputKg,
-        rendemen,
-        batchCode,
-        productType,
-        statusObj
-      };
-    });
+    const mapped = safeProduction.map((b, idx) => ({
+      rec: { date: b.date, blockName: b.blockName, cropVariety: b.cropVariety },
+      idx,
+      inputKg: Number(b.inputKg) || 0,
+      outputKg: Number(b.outputQty) || 0,
+      unit: b.unit || '',
+      rendemen: b.rendemen || '-',
+      batchCode: b.batchCode,
+      productType: b.productType,
+      statusObj: {
+        label: b.status,
+        color: b.status === 'Lolos QC' ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          : b.status === 'Revisi Batch' ? 'bg-rose-50 text-rose-800 border-rose-200'
+          : 'bg-amber-50 text-amber-800 border-amber-200',
+      },
+    }));
 
     let result = mapped.filter(item => {
       const bName = (item.rec?.blockName || '').toLowerCase();
@@ -292,7 +295,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
     }
 
     return result;
-  }, [safeHarvestRecords, filterBlock, filterVariety, filterStatus, filterProductType, searchQuery, sortBy]);
+  }, [safeProduction, filterBlock, filterVariety, filterStatus, filterProductType, searchQuery, sortBy]);
 
   const hasActiveFilter = (
     searchQuery.trim() !== '' ||
@@ -545,7 +548,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                 </div>
                 <div className="flex items-baseline gap-2">
                   <h3 className="font-title font-bold text-2xl text-[#2C4219]">{readyFlourKg.toLocaleString('id-ID')}</h3>
-                  <span className="text-xs font-bold text-[#A8B774]">kg</span>
+                  <span className="text-xs font-bold text-[#A8B774]">{safeProduction.length} batch</span>
                 </div>
               </div>
               <div className="pt-3 border-t border-[#E6E1D5]/60 mt-2 flex items-center justify-between">
@@ -650,9 +653,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                     className="w-full py-2 px-2.5 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white cursor-pointer"
                   >
                     <option value="Semua">Semua Mutu Kualitas</option>
-                    <option value="Super Premium">Super Premium</option>
-                    <option value="Grade A">Grade A (Standar)</option>
-                    <option value="Grade B">Grade B (Pakan)</option>
+                    {qualityOptions.map(q => <option key={q} value={q}>{q}</option>)}
                   </select>
                 </div>
               )}
@@ -666,26 +667,21 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                     className="w-full py-2 px-2.5 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white cursor-pointer"
                   >
                     <option value="Semua">Semua Status Kesiapan</option>
-                    <option value="Siap Panen">Siap Panen (Masa Panen)</option>
-                    <option value="Generatif">Generatif (Masa Pertumbuhan)</option>
-                    <option value="Vegetatif">Vegetatif (Fase Awal)</option>
-                    <option value="Pasca Panen">Pasca Panen (Bera)</option>
+                    {plotStatusOptions.map(st => <option key={st} value={st}>{st}</option>)}
                   </select>
                 </div>
               )}
 
               {activeCard === 'produksi' && (
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider block">Status Pasok / Gudang</label>
+                  <label className="text-[10px] font-bold text-[#7A7062] uppercase tracking-wider block">Status QC Produksi</label>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="w-full py-2 px-2.5 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] focus:bg-white cursor-pointer"
                   >
-                    <option value="Semua">Semua Status Rantai Pasok</option>
-                    <option value="Terdistribusi">Terdistribusi (Siap Jual)</option>
-                    <option value="Stok Gudang">Stok Gudang SCM</option>
-                    <option value="Dalam Proses">Dalam Pengolahan</option>
+                    <option value="Semua">Semua Status QC</option>
+                    {productionStatusOptions.map(st => <option key={st} value={st}>{st}</option>)}
                   </select>
                 </div>
               )}
@@ -827,13 +823,13 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                       <td className="p-3 text-[#433A30] font-medium">{rec?.cropVariety || '-'}</td>
                       <td className="p-3 font-bold text-[#2C4219] whitespace-nowrap">{(Number(rec?.weightKg) || 0).toLocaleString('id-ID')} kg</td>
                       <td className="p-3 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${rec?.quality === 'Super Premium'
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${rec?.quality?.startsWith('Grade A')
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : rec?.quality === 'Grade A'
+                            : rec?.quality?.startsWith('Grade B')
                               ? 'bg-blue-50 text-blue-800 border-blue-200'
                               : 'bg-amber-50 text-amber-800 border-amber-200'
                           }`}>
-                          {rec?.quality || 'Grade A'}
+                          {rec?.quality || '-'}
                         </span>
                       </td>
                       <td className="p-3 text-[#433A30]/80 whitespace-nowrap">{rec?.recordedBy || '-'}</td>
@@ -891,7 +887,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                     </div>
                     <span className={`
                       px-2.5 py-0.5 rounded-full text-[10px] font-bold border
-                      ${plot.status === 'Siap Panen' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-white text-[#2C4219] border-[#E6E1D5]'}
+                      ${(plot.status === 'Siap Panen' || plot.status === 'Masa Panen') ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-white text-[#2C4219] border-[#E6E1D5]'}
                     `}>
                       {plot.status}
                     </span>
@@ -1016,15 +1012,15 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             <div>
               <h3 className="font-title font-bold text-base text-[#2C4219] flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[#2C4219]" />
-                Data Produksi Tepung &amp; Rantai Pasok SCM
+                Data Produksi Olahan &amp; Rantai Pasok SCM
               </h3>
               <p className="text-xs text-[#7A7062] mt-0.5">
-                Menampilkan <b>{filteredProduction.length}</b> dari {harvestRecords.length} batch pengolahan
+                Menampilkan <b>{filteredProduction.length}</b> dari {safeProduction.length} batch produksi
               </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold bg-[#FAF6EE] text-[#2C4219] border border-[#E6E1D5] px-2.5 py-1 rounded-full">
-                🥣 Output Tepung: {filteredProduction.reduce((s, r) => s + (Number(r?.outputKg) || 0), 0).toLocaleString('id-ID')} Kg
+                📦 Total Hasil: {filteredProduction.reduce((s, r) => s + (Number(r?.outputKg) || 0), 0).toLocaleString('id-ID')}
               </span>
             </div>
           </div>
@@ -1037,11 +1033,11 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                   <th className="p-3">Tanggal Produksi</th>
                   <th className="p-3">Asal Blok Lahan</th>
                   <th className="p-3">Varietas Bahan</th>
-                  <th className="p-3">Volume Input (kg)</th>
-                  <th className="p-3">Output Tepung (kg)</th>
+                  <th className="p-3">Bahan Digunakan (kg)</th>
+                  <th className="p-3">Jumlah Hasil</th>
                   <th className="p-3">Rendemen</th>
                   <th className="p-3">Produk Olahan</th>
-                  <th className="p-3 rounded-r-xl">Status Pasokan</th>
+                  <th className="p-3 rounded-r-xl">Status QC</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6E1D5]">
@@ -1053,12 +1049,12 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                       <td className="p-3 font-semibold text-[#2C4219] whitespace-nowrap">{item.rec?.blockName || '-'}</td>
                       <td className="p-3 text-[#433A30] font-medium whitespace-nowrap">{item.rec?.cropVariety || '-'}</td>
                       <td className="p-3 text-[#433A30] whitespace-nowrap">{(Number(item.inputKg) || 0).toLocaleString('id-ID')} kg</td>
-                      <td className="p-3 font-bold text-[#2C4219] whitespace-nowrap">{(Number(item.outputKg) || 0).toLocaleString('id-ID')} kg</td>
-                      <td className="p-3 text-[#433A30] whitespace-nowrap">{item.rendemen || '77.5%'}</td>
+                      <td className="p-3 font-bold text-[#2C4219] whitespace-nowrap">{(Number(item.outputKg) || 0).toLocaleString('id-ID')} {item.unit}</td>
+                      <td className="p-3 text-[#433A30] whitespace-nowrap">{item.rendemen || '-'}</td>
                       <td className="p-3 text-[#433A30] font-medium whitespace-nowrap">{item.productType || '-'}</td>
                       <td className="p-3 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${item.statusObj?.color || 'bg-blue-50 text-blue-800 border-blue-200'}`}>
-                          {item.statusObj?.label || 'Dalam Proses'}
+                          {item.statusObj?.label || '-'}
                         </span>
                       </td>
                     </tr>
@@ -1089,20 +1085,20 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                 <p className="font-title font-bold text-lg text-[#2C4219]">{filteredProduction.length}</p>
               </div>
               <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
-                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Bahan Baku Input</p>
+                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Bahan Digunakan</p>
                 <p className="font-title font-bold text-lg text-[#2C4219]">
                   {filteredProduction.reduce((s, r) => s + (Number(r?.inputKg) || 0), 0).toLocaleString('id-ID')} kg
                 </p>
               </div>
               <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
-                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Output Tepung SCM</p>
+                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Total Hasil Produksi</p>
                 <p className="font-title font-bold text-lg text-[#2C4219]">
-                  {filteredProduction.reduce((s, r) => s + (Number(r?.outputKg) || 0), 0).toLocaleString('id-ID')} kg
+                  {filteredProduction.reduce((s, r) => s + (Number(r?.outputKg) || 0), 0).toLocaleString('id-ID')}
                 </p>
               </div>
               <div className="bg-[#FAF6EE] rounded-xl p-3 text-center">
-                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Rata-rata Rendemen</p>
-                <p className="font-title font-bold text-lg text-[#A8B774]">77.5%</p>
+                <p className="text-[10px] text-[#433A30]/60 font-semibold uppercase tracking-wide">Lolos QC</p>
+                <p className="font-title font-bold text-lg text-[#A8B774]">{filteredProduction.filter(r => r.statusObj?.label === 'Lolos QC').length} batch</p>
               </div>
             </div>
           )}

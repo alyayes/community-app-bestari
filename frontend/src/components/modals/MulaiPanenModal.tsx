@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HarvestRecord, UserProfile } from '../../types';
+import { HarvestRecord, LandPlot, UserProfile } from '../../types';
 import { Sprout, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
 
 interface MulaiPanenModalProps {
@@ -7,6 +7,7 @@ interface MulaiPanenModalProps {
   onClose: () => void;
   currentUser: UserProfile;
   onAddHarvestRecord: (record: HarvestRecord) => void;
+  landPlots?: LandPlot[]; // lahan dari SCM
 }
 
 export const MulaiPanenModal: React.FC<MulaiPanenModalProps> = ({
@@ -14,11 +15,12 @@ export const MulaiPanenModal: React.FC<MulaiPanenModalProps> = ({
   onClose,
   currentUser,
   onAddHarvestRecord,
+  landPlots = [],
 }) => {
-  const [blockName, setBlockName] = useState('Lahan Blok A (Lahan Utama)');
-  const [cropVariety, setCropVariety] = useState('Bioguma Agritan 1');
+  const [blockName, setBlockName] = useState('');
+  const [cropVariety, setCropVariety] = useState('');
   const [weightKg, setWeightKg] = useState<number>(1500);
-  const [quality, setQuality] = useState<'Super Premium' | 'Grade A' | 'Grade B'>('Super Premium');
+  const [quality, setQuality] = useState<string>('Grade A (Premium)');
   const [notes, setNotes] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -79,13 +81,12 @@ export const MulaiPanenModal: React.FC<MulaiPanenModalProps> = ({
               <label className="block font-bold text-[#2C4219] mb-1">Pilih Lokasi Blok Lahan</label>
               <select
                 value={blockName}
-                onChange={(e) => setBlockName(e.target.value)}
+                onChange={(e) => { setBlockName(e.target.value); const lp = landPlots.find(l => l.blockName === e.target.value); if (lp && lp.cropVariety !== '-') setCropVariety(lp.cropVariety); }}
+                required
                 className="w-full p-2.5 rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] text-[#433A30] font-medium"
               >
-                <option value="Lahan Blok A (Lahan Utama)">Lahan Blok A (Lahan Utama)</option>
-                <option value="Lahan Blok B (Sektor Barat)">Lahan Blok B (Sektor Barat)</option>
-                <option value="Lahan Blok C (Sektor Timur)">Lahan Blok C (Sektor Timur)</option>
-                <option value="Lahan Blok D (Bukit Utara)">Lahan Blok D (Bukit Utara)</option>
+                <option value="">-- Pilih Lahan (SCM) --</option>
+                {landPlots.map(lp => <option key={lp.id} value={lp.blockName}>{lp.blockName}</option>)}
               </select>
             </div>
 
@@ -116,7 +117,7 @@ export const MulaiPanenModal: React.FC<MulaiPanenModalProps> = ({
             <div>
               <label className="block font-bold text-[#2C4219] mb-1">Klasifikasi Mutu / Grade</label>
               <div className="grid grid-cols-3 gap-2">
-                {(['Super Premium', 'Grade A', 'Grade B'] as const).map((g) => (
+                {(['Grade A (Premium)', 'Grade B (Standar)', 'Grade C (Pakan)'] as const).map((g) => (
                   <button
                     key={g}
                     type="button"

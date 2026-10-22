@@ -162,7 +162,7 @@ export interface LandPlot {
   plantingDate: string;
   expectedHarvestDate: string;
   growthProgress: number; // 0 - 100
-  status: 'Vegetatif' | 'Generatif' | 'Siap Panen' | 'Pasca Panen';
+  status: string; // asli SCM: statusTanam (Ditanam/Tumbuh/Siap Panen/Gagal/Dipanen) atau statusKesiapan lahan
   leaderName: string;
   estimatedYieldKg: number;
 }
@@ -173,9 +173,24 @@ export interface HarvestRecord {
   blockName: string;
   cropVariety: string;
   weightKg: number;
-  quality: 'Super Premium' | 'Grade A' | 'Grade B';
+  quality: string; // asli SCM: Grade A (Premium) / Grade B (Standar) / Grade C (Pakan)
   recordedBy: string;
   notes: string;
+}
+
+// Batch olahan dari SCM /production
+export interface ProductionBatch {
+  id: string;
+  batchCode: string;
+  date: string;
+  blockName: string;
+  cropVariety: string;
+  inputKg: number;
+  outputQty: number;
+  unit: string;
+  rendemen: string;
+  productType: string;
+  status: string; // Lolos QC / Pending QC / Revisi Batch
 }
 
 export interface NotificationItem {

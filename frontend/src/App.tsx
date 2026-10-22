@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard, ShieldCheck, FileText, MessageCircle, X } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
-import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, UserProfile, CmsData } from './types';
+import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, ProductionBatch, UserProfile, CmsData } from './types';
 import {
   CURRENT_USER,
   INITIAL_ARTICLES,
   INITIAL_ANNOUNCEMENTS,
   INITIAL_EVENTS,
   INITIAL_THREADS,
-  INITIAL_LAND_PLOTS,
-  INITIAL_HARVEST_RECORDS
 } from './data/mockData';
 import { api, apiLogin, apiRegister, getToken, setToken } from './api/client';
 import { isEventPast } from './utils/agendaUtils';
@@ -76,8 +74,9 @@ export function App() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [events, setEvents] = useState<AgendaEvent[]>([]);
   const [threads, setThreads] = useState<ForumThread[]>([]);
-  const [landPlots, setLandPlots] = useState<LandPlot[]>(INITIAL_LAND_PLOTS);
-  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>(INITIAL_HARVEST_RECORDS);
+  const [landPlots, setLandPlots] = useState<LandPlot[]>([]);
+  const [harvestRecords, setHarvestRecords] = useState<HarvestRecord[]>([]);
+  const [productionBatches, setProductionBatches] = useState<ProductionBatch[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<{ totalUsers?: number, totalRawMaterialKg?: number }>({ totalUsers: 48 });
   const [cmsData, setCmsData] = useState<CmsData | null>(null);
@@ -206,7 +205,7 @@ export function App() {
           api<ForumThread[]>('/thread').catch(() => []),
           api<LandPlot[]>('/dashboard/lahan').catch(() => []),
           api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
-          api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => ({ totalUsers: 48 })),
+          api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => null),
           api<CmsData>('/cms').catch(() => null),
           api<any[]>('/dashboard/members').catch(() => [])
         ]);
@@ -214,8 +213,8 @@ export function App() {
         setAnnouncements(anns.length ? anns : []);
         setEvents(ags);
         setThreads(thrs.length ? thrs : []);
-        if (lahan.length) setLandPlots(lahan);
-        if (panen.length) setHarvestRecords(panen);
+        setLandPlots(Array.isArray(lahan) ? lahan : []);
+        setHarvestRecords(Array.isArray(panen) ? panen : []);
         setMembers(membersRes.length ? membersRes : []);
         if (stats) setDashboardStats(stats);
         if (cmsRes) setCmsData(cmsRes);
@@ -235,12 +234,14 @@ export function App() {
   const fetchSorgumData = useCallback(async (silent = true) => {
     if (!silent) setIsSyncingScm(true);
     try {
-      const [lahan, panen] = await Promise.all([
+      const [lahan, panen, produksi] = await Promise.all([
         api<LandPlot[]>('/dashboard/lahan').catch(() => []),
-        api<HarvestRecord[]>('/dashboard/panen').catch(() => [])
+        api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
+        api<ProductionBatch[]>('/dashboard/production').catch(() => [])
       ]);
-      if (Array.isArray(lahan) && lahan.length > 0) setLandPlots(lahan);
-      if (Array.isArray(panen) && panen.length > 0) setHarvestRecords(panen);
+      if (Array.isArray(lahan)) setLandPlots(lahan);
+      if (Array.isArray(panen)) setHarvestRecords(panen);
+      if (Array.isArray(produksi)) setProductionBatches(produksi);
       if (!silent) {
         showToast('Data SCM berhasil disinkronkan langsung dari LivingLabs!', 'success');
       }
@@ -896,6 +897,7 @@ export function App() {
       agendas: events,
       landPlots,
       harvestRecords,
+      productionBatches,
       members,
       cmsData,
       dashboardStats,
@@ -1079,6 +1081,7 @@ export function App() {
               <DashboardDesaViewLite
                 landPlots={landPlots}
                 harvestRecords={harvestRecords}
+                productionBatches={productionBatches}
                 members={members}
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
                 onRefresh={() => fetchSorgumData(false)}
@@ -1088,9 +1091,10 @@ export function App() {
               <DashboardDesaView
                 landPlots={landPlots}
                 harvestRecords={harvestRecords}
+                productionBatches={productionBatches}
                 members={members}
                 onSimpanPanen={() => setIsMulaiPanenOpen(true)}
-                totalUsers={dashboardStats.totalUsers || 48}
+                totalUsers={dashboardStats.totalUsers ?? members.length}
                 totalRawMaterialKg={dashboardStats.totalRawMaterialKg}
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
                 onRefresh={() => fetchSorgumData(false)}
@@ -1106,6 +1110,8 @@ export function App() {
               appMode={appMode}
               setAppMode={setAppMode}
               onLogout={handleLogout}
+              landOptions={landPlots.map(l => l.blockName)}
+              varietyOptions={Array.from(new Set(landPlots.map(l => l.cropVariety).filter(v => v && v !== '-')))}
             />
           )}
 
@@ -1238,6 +1244,7 @@ export function App() {
         onClose={() => setIsMulaiPanenOpen(false)}
         currentUser={currentUser}
         onAddHarvestRecord={handleAddHarvestRecord}
+        landPlots={landPlots}
       />
 
       <BantuanModal

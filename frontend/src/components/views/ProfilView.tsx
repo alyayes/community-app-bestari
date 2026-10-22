@@ -26,11 +26,13 @@ interface ProfilViewProps {
   appMode?: 'lite' | 'pro';
   setAppMode?: (mode: 'lite' | 'pro') => void;
   onLogout?: () => void;
+  landOptions?: string[];    // nama lahan dari SCM
+  varietyOptions?: string[]; // varietas dari SCM
 }
 
 
 
-export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode, onLogout }) => {
+export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentUser, appMode = 'pro', setAppMode, onLogout, landOptions = [], varietyOptions = [] }) => {
   const { fontSize, setFontSize } = useFontSize();
   // Logout confirmation modal state
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -544,10 +546,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
                 className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold cursor-pointer"
               >
                 <option value="">-- Pilih Lahan Kerja --</option>
-                <option value="Lahan Blok A (Lahan Utama)">Lahan Blok A (Lahan Utama)</option>
-                <option value="Lahan Blok B (Sektor Barat)">Lahan Blok B (Sektor Barat)</option>
-                <option value="Lahan Blok C (Sektor Timur)">Lahan Blok C (Sektor Timur)</option>
-                <option value="Lahan Blok D (Bukit Utara)">Lahan Blok D (Bukit Utara)</option>
+                {Array.from(new Set([...landOptions, lahanLocation].filter(Boolean))).map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             ) : (
               <span className="block text-xs sm:text-sm font-black text-[#2C4219]">
@@ -568,10 +567,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
                 className="w-full bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#2C4219] font-semibold cursor-pointer"
               >
                 <option value="">-- Pilih Varietas Sorgum --</option>
-                <option value="Bioguma Agritan 1">Bioguma Agritan 1</option>
-                <option value="Varietas Numbu">Varietas Numbu</option>
-                <option value="Bioguma Agritan 2">Bioguma Agritan 2</option>
-                <option value="Varietas Super 1">Varietas Super 1</option>
+                {Array.from(new Set([...varietyOptions, sorghumType].filter(Boolean))).map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             ) : (
               <span className="block text-xs sm:text-sm font-black text-[#2C4219]">

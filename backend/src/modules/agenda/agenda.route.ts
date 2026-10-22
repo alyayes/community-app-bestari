@@ -241,10 +241,11 @@ router.post('/:id/daftar', async (req: Request, res: Response, next: NextFunctio
       return res.status(400).json({ success: false, message: 'Kuota kegiatan sudah penuh' });
     }
 
+    const uid: string = userId || 'usr_01';
     await prisma.agendaPeserta.upsert({
-      where: { agendaId_userId: { agendaId, userId } },
+      where: { agendaId_userId: { agendaId, userId: uid } },
       update: { userName: userName || 'Anggota KWT' },
-      create: { agendaId, userId, userName: userName || 'Anggota KWT' },
+      create: { agendaId, userId: uid, userName: userName || 'Anggota KWT' },
     });
 
     return successResponse(res, { registered: true }, 'Pendaftaran berhasil');

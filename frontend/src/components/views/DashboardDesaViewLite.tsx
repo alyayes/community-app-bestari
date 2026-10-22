@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { LandPlot, HarvestRecord, UserProfile } from '../../types';
+import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
 import {
   Package,
   Sprout,
@@ -22,6 +22,7 @@ import { getAvatarUrl, handleAvatarError } from '../../api/client';
 interface DashboardDesaViewLiteProps {
   landPlots?: LandPlot[];
   harvestRecords?: HarvestRecord[];
+  productionBatches?: ProductionBatch[];
   members?: UserProfile[];
   onOpenMulaiPanen: () => void;
   onRefresh?: () => Promise<void> | void;
@@ -31,6 +32,7 @@ interface DashboardDesaViewLiteProps {
 export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   landPlots = [],
   harvestRecords = [],
+  productionBatches = [],
   members = [],
   onOpenMulaiPanen,
   onRefresh,
@@ -39,6 +41,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
   const safeLandPlots = Array.isArray(landPlots) ? landPlots : [];
   const safeMembers = Array.isArray(members) ? members : [];
+  const safeProduction = Array.isArray(productionBatches) ? productionBatches : [];
 
   const [activeTab, setActiveTab] = useState<'ringkasan' | 'panen' | 'lahan' | 'anggota' | 'produksi'>('ringkasan');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -53,7 +56,11 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   const totalPanenKg = safeHarvestRecords.reduce((sum, record) => sum + (Number(record?.yieldKg) || Number(record?.weightKg) || 0), 0);
   const totalAreaValue = safeLandPlots.reduce((acc, p) => acc + (parseFloat(p?.areaSize || '0') || 0), 0);
   const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
-  const totalTepungSorgumKg = safeHarvestRecords.reduce((sum, record) => sum + (Number(record?.processedFlourKg) || Math.round((Number(record?.weightKg) || 0) * 0.775)), 0);
+  const totalTepungSorgumKg = safeProduction.reduce((sum, b) => sum + (Number(b?.outputQty) || 0), 0);
+  // Opsi filter mutu / status dari nilai yang benar-benar ada di SCM
+  const qualityOptions = useMemo(() => Array.from(new Set(safeHarvestRecords.map(r => r?.quality).filter(Boolean))), [safeHarvestRecords]);
+  const plotStatusOptions = useMemo(() => Array.from(new Set(safeLandPlots.map(p => p?.status).filter(Boolean))), [safeLandPlots]);
+  const productionStatusOptions = useMemo(() => Array.from(new Set(safeProduction.map(b => b?.status).filter(Boolean))), [safeProduction]);
 
   // Opsi filter blok unik dari data SCM
   const blockOptions = useMemo(() => {
@@ -145,7 +152,9 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
     } else if (sortBy === 'weight_asc') {
       result = [...result].sort((a, b) => (Number(a?.weightKg) || 0) - (Number(b?.weightKg) || 0));
     } else if (sortBy === 'oldest') {
-      result = [...result].reverse();
+      result = [...result].sort((a, b) => String(a?.date).localeCompare(String(b?.date)));
+    } else {
+      result = [...result].sort((a, b) => String(b?.date).localeCompare(String(a?.date)));
     }
 
     return result;
@@ -188,10 +197,12 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
 
     if (sortBy === 'progress_asc') {
       result = [...result].sort((a, b) => (Number(a?.growthProgress) || 0) - (Number(b?.growthProgress) || 0));
-    } else if (sortBy === 'progress_desc' || sortBy === 'default') {
+    } else if (sortBy === 'progress_desc') {
       result = [...result].sort((a, b) => (Number(b?.growthProgress) || 0) - (Number(a?.growthProgress) || 0));
     } else if (sortBy === 'area_desc') {
       result = [...result].sort((a, b) => (parseFloat(b?.areaSize || '0') || 0) - (parseFloat(a?.areaSize || '0') || 0));
+    } else {
+      result = [...result].sort((a, b) => String(b?.plantingDate).localeCompare(String(a?.plantingDate)));
     }
 
     return result;
@@ -237,18 +248,22 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
     const fBlock = (filterBlock || 'Semua').toLowerCase();
     const fVariety = (filterVariety || 'Semua').toLowerCase();
 
-    const mapped = safeHarvestRecords.map((rec, idx) => {
-      const inputKg = Number(rec?.weightKg) || 0;
-      const outputKg = Math.round(inputKg * 0.775);
-      const statuses = [
-        { label: 'Terdistribusi', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-        { label: 'Stok Gudang', color: 'bg-amber-50 text-amber-800 border-amber-200' },
-        { label: 'Dalam Proses', color: 'bg-blue-50 text-blue-800 border-blue-200' },
-      ];
-      const statusObj = statuses[idx % statuses.length] || statuses[0];
-      const batchCode = `PRD-2026-${String(idx + 1).padStart(3, '0')}`;
-      return { rec, idx, inputKg, outputKg, statusObj, batchCode };
-    });
+    const mapped = safeProduction.map((b, idx) => ({
+      rec: { date: b.date, blockName: b.blockName, cropVariety: b.cropVariety },
+      idx,
+      inputKg: Number(b.inputKg) || 0,
+      outputKg: Number(b.outputQty) || 0,
+      unit: b.unit || '',
+      rendemen: b.rendemen || '-',
+      productType: b.productType || '-',
+      batchCode: b.batchCode,
+      statusObj: {
+        label: b.status,
+        color: b.status === 'Lolos QC' ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+          : b.status === 'Revisi Batch' ? 'bg-rose-50 text-rose-800 border-rose-200'
+          : 'bg-amber-50 text-amber-800 border-amber-200',
+      },
+    }));
 
     let result = mapped.filter(item => {
       const bName = (item.rec?.blockName || '').toLowerCase();
@@ -287,7 +302,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
     }
 
     return result;
-  }, [safeHarvestRecords, filterBlock, filterVariety, filterStatus, searchQuery, sortBy]);
+  }, [safeProduction, filterBlock, filterVariety, filterStatus, searchQuery, sortBy]);
 
   const activeFilterCount = (
     (filterBlock !== 'Semua' ? 1 : 0) +
@@ -391,9 +406,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                 className="w-full py-1.5 px-2 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] cursor-pointer"
               >
                 <option value="Semua">Semua Mutu</option>
-                <option value="Super Premium">Super Premium</option>
-                <option value="Grade A">Grade A (Standar)</option>
-                <option value="Grade B">Grade B (Pakan)</option>
+                {qualityOptions.map(q => <option key={q} value={q}>{q}</option>)}
               </select>
             </div>
           )}
@@ -409,10 +422,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                 className="w-full py-1.5 px-2 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] cursor-pointer"
               >
                 <option value="Semua">Semua Status</option>
-                <option value="Siap Panen">Siap Panen</option>
-                <option value="Generatif">Generatif (Tumbuh)</option>
-                <option value="Vegetatif">Vegetatif (Awal)</option>
-                <option value="Pasca Panen">Pasca Panen (Bera)</option>
+                {plotStatusOptions.map(st => <option key={st} value={st}>{st}</option>)}
               </select>
             </div>
           )}
@@ -420,17 +430,15 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
           {activeTab === 'produksi' && (
             <div className="space-y-1">
               <label className="text-[9px] sm:text-[10px] font-bold text-[#7A7062] uppercase tracking-wider block">
-                Status Pasok SCM
+                Status QC Produksi
               </label>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="w-full py-1.5 px-2 bg-[#FAF6EE] border border-[#E6E1D5] rounded-xl text-xs font-semibold text-[#2C4219] focus:outline-none focus:border-[#2C4219] cursor-pointer"
               >
-                <option value="Semua">Semua Status</option>
-                <option value="Terdistribusi">Terdistribusi (Siap Jual)</option>
-                <option value="Stok Gudang">Stok Gudang SCM</option>
-                <option value="Dalam Proses">Dalam Pengolahan</option>
+                <option value="Semua">Semua Status QC</option>
+                {productionStatusOptions.map(st => <option key={st} value={st}>{st}</option>)}
               </select>
             </div>
           )}
@@ -749,11 +757,11 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                   </span>
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wide">Produksi Tepung SCM</p>
+                  <p className="text-[10px] sm:text-[11px] font-bold text-[#7A7062] uppercase tracking-wide">Produksi Olahan SCM</p>
                   <h3 className="text-2xl sm:text-3xl font-black text-[#2C4219] mt-0.5">
-                    {totalTepungSorgumKg.toLocaleString('id-ID')} <span className="text-xs sm:text-sm font-bold">Kg</span>
+                    {totalTepungSorgumKg.toLocaleString('id-ID')} <span className="text-xs sm:text-sm font-bold">hasil</span>
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-[#7A7062] mt-0.5">Rantai pasok pengolahan tepung siap distribusi</p>
+                  <p className="text-[10px] sm:text-[11px] text-[#7A7062] mt-0.5">{safeProduction.length} batch produksi tercatat di SCM</p>
                 </div>
               </div>
             </div>
@@ -785,7 +793,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] sm:text-xs font-bold text-[#7A7062]">{record.date}</span>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black ${
-                      record.quality === 'Super Premium' 
+                      record.quality?.startsWith('Grade A')
                         ? 'bg-amber-100 text-amber-900 border border-amber-300' 
                         : 'bg-[#A8B774]/20 text-[#2C4219] border border-[#A8B774]/30'
                     }`}>
@@ -864,9 +872,10 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                       </p>
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-bold shrink-0 ${
-                      plot.status === 'Siap Panen' ? 'bg-[#A8B774] text-[#2C4219]' :
-                      plot.status === 'Generatif' ? 'bg-amber-100 text-amber-800' :
-                      plot.status === 'Pasca Panen' ? 'bg-purple-100 text-purple-800' :
+                      (plot.status === 'Siap Panen' || plot.status === 'Masa Panen') ? 'bg-[#A8B774] text-[#2C4219]' :
+                      (plot.status === 'Tumbuh' || plot.status === 'Masa Pertumbuhan') ? 'bg-amber-100 text-amber-800' :
+                      (plot.status === 'Dipanen' || plot.status === 'Bera (Istirahat)') ? 'bg-purple-100 text-purple-800' :
+                      plot.status === 'Gagal' ? 'bg-rose-100 text-rose-800' :
                       'bg-[#FAF6EE] text-[#433A30] border border-[#E6E1D5]'
                     }`}>
                       {plot.status}
@@ -931,7 +940,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                   Data Produksi &amp; Rantai Pasok (SCM)
                 </h3>
                 <p className="text-[10px] sm:text-xs text-[#7A7062]">
-                  Menampilkan {filteredProduction.length} batch pengolahan tepung
+                  Menampilkan {filteredProduction.length} dari {safeProduction.length} batch produksi
                 </p>
               </div>
             </div>
@@ -961,21 +970,21 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                   
                   <div className="bg-[#FAF6EE] rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 flex items-center justify-between border border-[#E6E1D5]">
                     <div className="text-center flex-1">
-                      <p className="text-[9px] sm:text-[10px] font-bold uppercase text-[#7A7062] mb-0.5">Input Biji</p>
+                      <p className="text-[9px] sm:text-[10px] font-bold uppercase text-[#7A7062] mb-0.5">Bahan Digunakan</p>
                       <p className="font-black text-[#D97706] text-lg sm:text-xl">{item.inputKg} <span className="text-[10px] sm:text-xs">kg</span></p>
                     </div>
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white flex items-center justify-center shadow-2xs shrink-0 border border-[#E6E1D5]">
                       <ChevronRight className="w-4 h-4 text-[#2C4219]" />
                     </div>
                     <div className="text-center flex-1">
-                      <p className="text-[9px] sm:text-[10px] font-bold uppercase text-[#7A7062] mb-0.5">Output Tepung</p>
-                      <p className="font-black text-[#2C4219] text-xl sm:text-2xl">{item.outputKg} <span className="text-[10px] sm:text-xs">kg</span></p>
+                      <p className="text-[9px] sm:text-[10px] font-bold uppercase text-[#7A7062] mb-0.5">Jumlah Hasil</p>
+                      <p className="font-black text-[#2C4219] text-xl sm:text-2xl">{item.outputKg} <span className="text-[10px] sm:text-xs">{item.unit}</span></p>
                     </div>
                   </div>
                   
                   <div className="mt-2.5 flex items-center justify-between text-[10px] sm:text-xs text-[#433A30] bg-[#F4F8EC] p-2 sm:p-2.5 rounded-xl border border-[#A8B774]/30">
-                    <p className="font-bold text-[#2C4219]">Rendemen: 77.5%</p>
-                    <span className="font-bold text-[#607829]">Tepung Bebas Gluten ✨</span>
+                    <p className="font-bold text-[#2C4219]">Rendemen: {item.rendemen}</p>
+                    <span className="font-bold text-[#607829]">{item.productType}</span>
                   </div>
                 </div>
               )) : (

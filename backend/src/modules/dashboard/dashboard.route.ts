@@ -13,52 +13,72 @@ router.use((_req, res, next) => {
 });
 
 const EXTERNAL_API_BASE = process.env.EXTERNAL_SCM_API_BASE || 'https://scm.livinglabs.id/api';
-const EXTERNAL_API_KEY = process.env.EXTERNAL_SCM_API_KEY || 'sk-0d54af2d5009f7a7fc106c1ed229e5f87a3783fd6cead55f';
+const EXTERNAL_API_KEY = process.env.EXTERNAL_SCM_API_KEY || '';
 
-// Mapping Lahan (External SCM) -> LandPlot frontend
-function toLandPlot(l: any) {
-  let status = 'Vegetatif';
-  if (l.statusKesiapan === 'Masa Pertumbuhan') status = 'Generatif';
-  else if (l.statusKesiapan === 'Masa Panen' || l.statusKesiapan === 'Siap Panen') status = 'Siap Panen';
-  else if (l.statusKesiapan === 'Bera (Istirahat)' || l.statusKesiapan === 'Pasca Panen') status = 'Pasca Panen';
-  else if (l.statusKesiapan === 'Siap Tanam') status = 'Vegetatif';
+// Mapping Lahan (External SCM) -> LandPlot frontend.
+// `pl` = penanaman terbaru di lahan tsb (SCM /plantings) -> sumber varietas, tgl tanam, estimasi panen.
+function toLandPlot(l: any, pl?: any) {
+  // Status asli SCM: status tanam (Ditanam/Tumbuh/Siap Panen/Gagal/Dipanen) bila ada penanaman,
+  // selain itu status kesiapan lahan (Siap Tanam/Masa Pertumbuhan/Masa Panen/Bera (Istirahat)).
+  const status = pl?.statusTanam || l.statusKesiapan || '-';
 
-  let progress = 15;
-  if (status === 'Generatif') progress = 50;
-  else if (status === 'Siap Panen') progress = 90;
-  else if (status === 'Pasca Panen') progress = 100;
-  else if (l.statusKesiapan === 'Siap Tanam') progress = 10;
+  const plantingDate = pl?.tanggalTanam || '-';
+  const expectedHarvestDate = pl?.estimasiPanen || '-';
+
+  // Progress dari rentang tanam -> estimasi panen (SCM); tanpa penanaman = 0.
+  let progress = 0;
+  const t0 = Date.parse(plantingDate), t1 = Date.parse(expectedHarvestDate);
+  if (!isNaN(t0) && !isNaN(t1) && t1 > t0) {
+    progress = Math.max(0, Math.min(100, Math.round(((Date.now() - t0) / (t1 - t0)) * 100)));
+  }
+  if (pl?.statusTanam === 'Dipanen') progress = 100;
 
   return {
     id: String(l.id),
     blockName: l.namaLahan || 'Tanpa Nama',
-    cropVariety: l.varietasSorgum || 'Merah',
-    areaSize: l.luasHektar ? `${l.luasHektar} Ha` : (l.luasLahan ? `${l.luasLahan} Ha` : '-'),
-    plantingDate: l.createdAt?.split('T')[0] || '-',
-    expectedHarvestDate: '-',
+    cropVariety: pl?.varietas || l.varietasSorgum || '-',
+    areaSize: l.luasHektar != null ? `${l.luasHektar} Ha` : '-',
+    plantingDate,
+    expectedHarvestDate,
     growthProgress: progress,
-    status: status,
-    leaderName: l.pemilikKelompokTani || l.petugas || '-',
-    estimatedYieldKg: l.panenLaluTon ? Math.round(l.panenLaluTon * 1000) : (l.jumlahLubang ? Math.round(l.jumlahLubang * 0.1) : 0),
+    status,
+    leaderName: pl?.petugas || l.pemilikKelompokTani || '-',
+    estimatedYieldKg: l.panenLaluTon ? Math.round(l.panenLaluTon * 1000) : 0,
   };
 }
 
 // Mapping Panen (External SCM) -> HarvestRecord frontend
 function toHarvestRecord(p: any) {
-  let quality = 'Grade A';
-  if (p.kualitasGrade?.includes('Super') || p.kualitasGrade?.includes('Premium')) quality = 'Super Premium';
-  else if (p.kualitasGrade?.includes('Standar') || p.kualitasGrade?.includes('Grade A')) quality = 'Grade A';
-  else if (p.kualitasGrade?.includes('Pakan') || p.kualitasGrade?.includes('Grade B')) quality = 'Grade B';
-
   return {
     id: String(p.id),
     date: p.tanggalPanen || p.createdAt?.split('T')[0] || '-',
-    blockName: p.namaLahan || p.lahan?.namaLahan || 'Blok Lahan',
-    cropVariety: p.varietas || p.planting?.varietas || 'Merah',
-    weightKg: Number(p.jumlahHasilKg) || Number(p.sudahMasukKg) || 0,
-    quality: quality,
+    blockName: p.namaLahan || p.lahan?.namaLahan || '-',
+    cropVariety: p.varietas || p.planting?.varietas || '-',
+    weightKg: Number(p.jumlahHasilKg) || 0,
+    quality: p.kualitasGrade || '-', // asli SCM: Grade A (Premium) / Grade B (Standar) / Grade C (Pakan)
     recordedBy: p.petaniPenanggungJawab || p.planting?.petugas || '-',
     notes: p.catatan || (p.kodePanen ? `Kode: ${p.kodePanen}` : ''),
+  };
+}
+
+// Mapping Batch Produksi (External SCM /production) -> ProductionBatch frontend
+function toProduction(b: any) {
+  const inputKg = Number(b.bahanDigunakan) || 0;
+  const outputQty = Number(b.jumlahHasil) || 0;
+  const unit = String(b.satuan || '').trim();
+  const isKg = /^kg$/i.test(unit);
+  return {
+    id: String(b.id),
+    batchCode: b.kodeBatch || '-',
+    date: b.tanggalProduksi || '-',
+    blockName: b.lahan?.namaLahan || '-',
+    cropVariety: b.planting?.varietas || '-',
+    inputKg,
+    outputQty,
+    unit,
+    rendemen: isKg && inputKg > 0 ? `${((outputQty / inputKg) * 100).toFixed(1)}%` : '-',
+    productType: b.namaProduk || '-',
+    status: b.statusQC || '-', // Lolos QC / Pending QC / Revisi Batch
   };
 }
 
@@ -70,9 +90,6 @@ async function safeFetchJson(url: string, headers: Record<string, string> = {}):
     const response = await fetch(url, { headers, signal: controller.signal });
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      return null;
-    }
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       return null;
@@ -85,12 +102,22 @@ async function safeFetchJson(url: string, headers: Record<string, string> = {}):
 
 // ── GET /api/lahan ─────────────────────────────────
 router.get('/lahan', async (_req: Request, res: Response) => {
-  const result = await safeFetchJson(`${EXTERNAL_API_BASE}/land?limit=100`, {
-    'x-api-key': EXTERNAL_API_KEY
-  });
+  const headers = { 'x-api-key': EXTERNAL_API_KEY };
+  const [result, plantings] = await Promise.all([
+    safeFetchJson(`${EXTERNAL_API_BASE}/land?limit=100`, headers),
+    safeFetchJson(`${EXTERNAL_API_BASE}/plantings?limit=100`, headers),
+  ]);
   if (result && result.success && Array.isArray(result.data)) {
-    return successResponse(res, result.data.map(toLandPlot));
+    // penanaman terbaru per lahanId
+    const latest = new Map<string, any>();
+    for (const p of (plantings?.data || [])) {
+      const k = String(p.lahanId);
+      const cur = latest.get(k);
+      if (!cur || String(p.tanggalTanam) > String(cur.tanggalTanam)) latest.set(k, p);
+    }
+    return successResponse(res, result.data.map((l: any) => toLandPlot(l, latest.get(String(l.id)))));
   }
+  console.error('[SCM] /land gagal:', result?.message || 'tidak ada respons');
   return successResponse(res, []);
 });
 
@@ -102,6 +129,7 @@ router.get('/panen', async (_req: Request, res: Response) => {
   if (result && result.success && Array.isArray(result.data)) {
     return successResponse(res, result.data.map(toHarvestRecord));
   }
+  console.error('[SCM] /harvest gagal:', result?.message || 'tidak ada respons');
   return successResponse(res, []);
 });
 
@@ -127,7 +155,7 @@ router.get('/equipment', async (_req: Request, res: Response, next: NextFunction
 router.get('/production', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await fetchSCM('production');
-    return successResponse(res, data);
+    return successResponse(res, data.map(toProduction));
   } catch (err) { next(err); }
 });
 
