@@ -76,6 +76,7 @@ import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandP
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
 import { CreateTopicModal } from '../../modals/CreateTopicModal';
+import { AutofillBar } from '../../AutofillBar';
 import { ARTICLE_SAMPLES, AGENDA_SAMPLES, pickUnused, dateFromNow } from '../../../data/autofillSamples';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
@@ -1151,6 +1152,10 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     setArtContent(pick.content);
     setArtError('');
   };
+
+  // Hapus Isian: kosongkan form (pakai reset yang sama dengan buka form baru), modal tetap terbuka
+  const handleClearArticleForm = () => { handleOpenAddArticle(); setArtError(''); };
+  const handleClearAgendaForm = () => { handleOpenAddAgenda(); };
 
   const handleAutofillAgenda = () => {
     const pick = pickUnused(AGENDA_SAMPLES, agendaList.map(a => a.title));
@@ -3770,13 +3775,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             </div>
 
             {!editingArticle && (
-              <button
-                type="button"
-                onClick={handleAutofillArticle}
-                className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
-              >
-                ✨ Isi Otomatis (informasi nyata seputar sorgum) — cek lalu klik simpan
-              </button>
+              <AutofillBar label="informasi nyata seputar sorgum" onFill={handleAutofillArticle} onClear={handleClearArticleForm} />
             )}
 
             {artError && (
@@ -4042,13 +4041,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             </div>
 
             {!editingAgenda && (
-              <button
-                type="button"
-                onClick={handleAutofillAgenda}
-                className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
-              >
-                ✨ Isi Otomatis (contoh agenda) — cek lalu klik simpan
-              </button>
+              <AutofillBar label="agenda kegiatan KWT" onFill={handleAutofillAgenda} onClear={handleClearAgendaForm} />
             )}
 
             {inputModeAgenda === 'voice' && (

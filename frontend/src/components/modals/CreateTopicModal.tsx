@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ForumThread, UserProfile } from '../../types';
 import { pickUnused, THREAD_SAMPLES } from '../../data/autofillSamples';
+import { AutofillBar } from '../AutofillBar';
 import { MessageSquare, AlertCircle, X, ShieldCheck, Users, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 
 interface CreateTopicModalProps {
@@ -30,6 +31,18 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen) return null;
+
+  const handleClear = () => {
+    setCategory('Produksi & Pengolahan');
+    setTitle('');
+    setDescription('');
+    setGroupAvatarPreview(null);
+    setImagePreviews([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+    setAllowMemberMessages(true);
+    setErrorMsg('');
+  };
 
   const handleAutofill = () => {
     const pick = pickUnused(THREAD_SAMPLES, autofillExistingTitles || []);
@@ -197,13 +210,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
         )}
 
         {autofillExistingTitles && (
-          <button
-            type="button"
-            onClick={handleAutofill}
-            className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
-          >
-            ✨ Isi Otomatis (contoh data) — cek lalu klik simpan
-          </button>
+          <AutofillBar label="topik diskusi" onFill={handleAutofill} onClear={handleClear} />
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
