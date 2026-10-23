@@ -77,6 +77,8 @@ import {
 import { UserProfile, InfoArticle, Announcement, ForumThread, AgendaEvent, LandPlot, HarvestRecord, ProductionBatch, CmsData } from '../../../types';
 import { DashboardDesaView } from '../DashboardDesaView';
 import { ArticleDetailModal } from '../../modals/ArticleDetailModal';
+import { CreateTopicModal } from '../../modals/CreateTopicModal';
+import { ARTICLE_SAMPLES, AGENDA_SAMPLES, pickUnused, dateFromNow } from '../../../data/autofillSamples';
 import { api, SERVER_BASE, BASE_URL, getAvatarUrl, handleAvatarError, resolveImageUrl } from '../../../api/client';
 import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker';
 import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary, isEventPast } from '../../../utils/agendaUtils';
@@ -1113,6 +1115,54 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setIsArticleModalOpen(true);
   };
 
+  // Isi Otomatis: isi form dengan 1 contoh yang judulnya belum ada; admin cek lalu simpan sendiri
+  const handleAutofillArticle = () => {
+    const pick = pickUnused(ARTICLE_SAMPLES, adminArticles.map(a => a.title));
+    if (!pick) { setArtError('Semua contoh informasi sudah ada. Silakan isi manual.'); return; }
+    setArtTitle(pick.title);
+    setArtCategory(pick.category);
+    setArtContent(pick.content);
+    setArtError('');
+  };
+
+  const handleAutofillAgenda = () => {
+    const pick = pickUnused(AGENDA_SAMPLES, agendaList.map(a => a.title));
+    if (!pick) { showToast('Semua contoh agenda sudah ada. Silakan isi manual.', 'error'); return; }
+    setAgTitle(pick.title);
+    setAgCategory(pick.category);
+    setAgDate(dateFromNow(pick.daysFromNow));
+    setAgStartTime(pick.start);
+    setAgEndTime(pick.end);
+    setAgTime(`${pick.start} - ${pick.end} WIB`);
+    setAgLocation(pick.location);
+    setAgOrganizer(pick.organizer);
+    setAgDescription(pick.description);
+    setAgTargetParticipants(pick.target);
+    setAgContactName(pick.contactName);
+    setAgContactPhone(pick.contactPhone);
+    setAgRequirements(pick.requirements);
+    setAgBenefits(pick.benefits);
+    setAgQuotaMax(pick.quota);
+    setInputModeAgenda('manual');
+  };
+
+  const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
+  const handleAdminAddThread = async (t: ForumThread) => {
+    try {
+      const created = await api<ForumThread>('/thread', {
+        method: 'POST',
+        body: {
+          title: t.title, category: t.category, content: t.content, summary: t.summary,
+          images: t.images || [], groupAvatar: t.groupAvatar, allowMemberMessages: t.allowMemberMessages !== false,
+        },
+      });
+      onUpdateThreads([created, ...threads]);
+      showToast(`Diskusi "${t.title}" berhasil dibuat.`);
+    } catch (err: any) {
+      showToast(err.message || 'Gagal membuat diskusi', 'error');
+    }
+  };
+
   const handleOpenEditArticle = (art: InfoArticle) => {
     setEditingArticle(art);
     setArtTitle(art.title);
@@ -2035,10 +2085,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="space-y-6">
 
               {/* Header Title */}
-              <div>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <h1 className="font-title font-bold text-2xl sm:text-3xl text-[#2C4219]">
                   Kelola Diskusi
                 </h1>
+                <button
+                  type="button"
+                  onClick={() => setIsTopicModalOpen(true)}
+                  className="px-4 py-2.5 rounded-full bg-[#2C4219] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#1F3011] transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Tambah Diskusi
+                </button>
               </div>
 
               {/* Moderation Cards Grid */}
@@ -3831,6 +3888,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       )}
 
       {/* MODAL: Tambah / Edit Informasi */}
+      <CreateTopicModal
+        isOpen={isTopicModalOpen}
+        onClose={() => setIsTopicModalOpen(false)}
+        currentUser={currentUser}
+        onSubmit={handleAdminAddThread}
+        autofillExistingTitles={threads.map(t => t.title)}
+      />
+
       {isArticleModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-5xl w-full p-8 space-y-5 border border-[#E6E1D5] shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -3845,6 +3910,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {!editingArticle && (
+              <button
+                type="button"
+                onClick={handleAutofillArticle}
+                className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
+              >
+                ✨ Isi Otomatis (informasi nyata seputar sorgum) — cek lalu klik simpan
+              </button>
+            )}
 
             {artError && (
               <div className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
@@ -4107,6 +4182,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 🎙️ Asisten Suara
               </button>
             </div>
+
+            {!editingAgenda && (
+              <button
+                type="button"
+                onClick={handleAutofillAgenda}
+                className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
+              >
+                ✨ Isi Otomatis (contoh agenda) — cek lalu klik simpan
+              </button>
+            )}
 
             {inputModeAgenda === 'voice' && (
               <div className="bg-[#FAF6EE] border border-[#A8B774] rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">

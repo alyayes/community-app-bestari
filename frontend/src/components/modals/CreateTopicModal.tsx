@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ForumThread, UserProfile } from '../../types';
+import { pickUnused, THREAD_SAMPLES } from '../../data/autofillSamples';
 import { MessageSquare, AlertCircle, X, ShieldCheck, Users, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 
 interface CreateTopicModalProps {
@@ -7,6 +8,8 @@ interface CreateTopicModalProps {
   onClose: () => void;
   currentUser: UserProfile;
   onSubmit: (newThread: ForumThread) => void;
+  /** Jika diisi, tampil tombol "Isi Otomatis" (judul yang sudah ada tidak dipakai lagi). */
+  autofillExistingTitles?: string[];
 }
 
 export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
@@ -14,6 +17,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
   onClose,
   currentUser,
   onSubmit,
+  autofillExistingTitles,
 }) => {
   const [category, setCategory] = useState<string>('Produksi & Pengolahan');
   const [title, setTitle] = useState('');
@@ -26,6 +30,15 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen) return null;
+
+  const handleAutofill = () => {
+    const pick = pickUnused(THREAD_SAMPLES, autofillExistingTitles || []);
+    if (!pick) { setErrorMsg('Semua contoh diskusi sudah ada. Silakan isi manual.'); return; }
+    setCategory(pick.category);
+    setTitle(pick.title);
+    setDescription(pick.content);
+    setErrorMsg('');
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -181,6 +194,16 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
+        )}
+
+        {autofillExistingTitles && (
+          <button
+            type="button"
+            onClick={handleAutofill}
+            className="w-full py-2.5 rounded-xl border-2 border-dashed border-[#A8B774] bg-[#FAF6EE] text-[#2C4219] text-xs font-bold hover:bg-[#F0EDE4] transition-colors"
+          >
+            ✨ Isi Otomatis (contoh data) — cek lalu klik simpan
+          </button>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
