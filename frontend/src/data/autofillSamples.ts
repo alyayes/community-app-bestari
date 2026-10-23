@@ -4,7 +4,8 @@
 
 export type ArtCategory = 'Budidaya' | 'Inovasi' | 'Pengetahuan' | 'Panen';
 
-export interface ArticleSample { title: string; category: ArtCategory; content: string }
+// image = file statis di frontend/public/autofill (foto asli dari sumber, kredit dicantumkan di isi)
+export interface ArticleSample { title: string; category: ArtCategory; image: string; content: string }
 export interface AgendaSample {
   title: string; category: string; daysFromNow: number; start: string; end: string;
   location: string; organizer: string; description: string; target: string;
@@ -21,12 +22,16 @@ const P = (t: string) => `<p>${t}</p>`;
 const H = (t: string) => `<h3>${t}</h3>`;
 const UL = (items: string[]) => `<ul>${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
 const art = (...parts: string[]) => parts.join('');
+const IMG = (file: string) => `/autofill/${file}`;
+const credit = (t: string) => `<p><em>Foto: ${t}</em></p>`;
 
 export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Kampung Sorgum Bojongmanggu, Penghasil Sorgum Ratusan Ton Di Kabupaten Bandung',
     category: 'Panen',
+    image: IMG('kampung-sorgum-kompas.jpg'),
     content: art(
+      credit('Kompas.com/M. Elgana Mubarokah'),
       P('Ketika pemerintah mulai gencar mendorong penanaman sorgum sebagai pengganti gandum pada pertengahan 2022, banyak orang mengira sorgum hanya cocok ditanam di wilayah kering seperti Nusa Tenggara Timur (NTT). Kenyataannya, di Kabupaten Bandung sudah lama ada sebuah kampung yang hidup dari sorgum dan mampu menghasilkan hingga ratusan ton.'),
       P('Kampung tersebut berada di Jalan Bojongkoneng No. 2, Desa Bojongmanggu, Kecamatan Pameungpeuk, Kabupaten Bandung, Jawa Barat. Masyarakat mengenalnya sebagai <strong>Kampung Sorgum</strong>.'),
       H('Berawal dari Tanaman di Pinggir Sungai'),
@@ -49,7 +54,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Sejarah KWT Melati Dan Abah Sorgum Di Desa Bojongmanggu',
     category: 'Pengetahuan',
+    image: IMG('kwt-melati-pelatihan.jpg'),
     content: art(
+      credit('Dokumentasi PKM Telkom University (Kompasiana)'),
       P('Kelompok Wanita Tani (KWT) Melati tidak lahir begitu saja. Keberadaannya berakar dari perjalanan panjang budidaya sorgum di Desa Bojongmanggu, Kecamatan Pameungpeuk, Kabupaten Bandung, yang dirintis lebih dari dua dekade lalu.'),
       H('Perintis: H. Supardi (Abah Sorgum)'),
       P('Kampung Sorgum didirikan oleh <strong>H. Supardi</strong>, yang dikenal masyarakat sebagai <strong>Abah Sorgum</strong>, sejak tahun 1999. Berawal dari menemukan tanaman sorgum di pinggir sungai, beliau mulai membudidayakannya hingga Bojongmanggu dikenal sebagai salah satu sentra sorgum di Jawa Barat dengan hasil panen mencapai ratusan ton.'),
@@ -74,7 +81,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Redesain Kemasan Sistik Dan Pop Sorgum Untuk Katalog Digital',
     category: 'Inovasi',
+    image: IMG('kemasan-pop-sorgum.jpg'),
     content: art(
+      credit('Dokumentasi PKM Telkom University (Kompasiana)'),
       P('Desain kemasan memegang peran penting dalam memperkuat merek usaha mikro, kecil, dan menengah (UMKM), terlebih di tengah persaingan pasar yang semakin ketat. Kemasan yang kurang menarik masih menjadi masalah umum bagi sebagian besar UMKM di Indonesia, termasuk produsen olahan pangan lokal.'),
       H('Latar Belakang'),
       P('KWT Melati Desa Bojongmanggu telah berhasil membudidayakan dan mengolah sorgum menjadi produk konsumsi yang sehat dan bernilai ekonomi tinggi. Namun, beberapa produk olahan seperti <strong>sistik</strong> dan <strong>pop sorgum</strong> masih dikemas secara sederhana dan belum memiliki katalog digital untuk pemasaran.'),
@@ -100,7 +109,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Sorgum-AI Smart Toolkit: Simulasi Resep Olahan Sorgum Lewat Smartphone',
     category: 'Inovasi',
+    image: IMG('sorgum-ai-toolkit.jpg'),
     content: art(
+      credit('Dokumentasi Tim Abdimas Telkom University (Kompasiana)'),
       P('Pengembangan sorgum di Indonesia kini menempati posisi strategis sebagai alternatif pangan pokok sekaligus bahan baku industri yang ramah lingkungan. Di tingkat lokal, KWT Melati Kampung Sorgum di Desa Bojongmanggu, Kabupaten Bandung, berperan sebagai agen perubahan yang fokus meningkatkan kesejahteraan wanita tani melalui budidaya hingga pengolahan sorgum.'),
       H('Tantangan yang Dihadapi'),
       P('Meski bahan baku melimpah, KWT Melati masih menghadapi tantangan saat beralih dari pertanian konvensional ke kewirausahaan berbasis teknologi:'),
@@ -127,7 +138,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Buku Edukasi Dan Buku Resep Olahan Sorgum Untuk Ekowisata Bojongmanggu',
     category: 'Pengetahuan',
+    image: IMG('buku-resep-sorgum.jpg'),
     content: art(
+      credit('Sampul Buku Resep Olahan Sorgum, Research Alliance Ko+Lab (Kompasiana)'),
       P('Desa Bojongmanggu di Kabupaten Bandung kini menjadi sorotan berkat potensinya dalam pengembangan ekowisata berbasis sorgum. Dikenal dengan nama <strong>Kampung Sorgum</strong>, desa ini memanfaatkan sorgum untuk mendorong pariwisata sekaligus pemberdayaan ekonomi lokal.'),
       H('Sorgum sebagai Pangan Alternatif'),
       P('Sorgum adalah tanaman serealia serbaguna yang kaya protein dan mampu beradaptasi di berbagai kondisi lingkungan. Tanaman ini dipandang sebagai solusi strategis untuk diversifikasi pangan nasional. Di Bojongmanggu, sorgum tidak hanya dimanfaatkan sebagai bahan pangan, tetapi juga diolah menjadi tepung, camilan, dan sirup.'),
@@ -154,7 +167,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Pelatihan Digital Marketing Meta Ads Untuk Promosi Ekowisata Kampung Sorgum',
     category: 'Inovasi',
+    image: IMG('instagram-kampung-sorgum.jpg'),
     content: art(
+      credit('Akun Instagram @kampungsorgum.bojongmanggu (Kompasiana)'),
       P('Desa Bojongmanggu menawarkan pengalaman wisata edukasi berbasis pertanian sorgum. Desa ini berada pada ketinggian 600–700 meter di atas permukaan laut dengan suhu rata-rata 21–30°C, dan dihuni sekitar 9.000 jiwa yang tersebar di 10 RW dan 40 RT.'),
       H('Permasalahan'),
       P('Produk sorgum Bojongmanggu sebenarnya sudah memiliki private label, tetapi visibilitasnya di pasar masih terbatas. Upaya membangun citra desa ekowisata yang sedang dirintis juga masih memerlukan penguatan.'),
@@ -181,7 +196,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Peluncuran Sorgumology Container Lab Di Telkom University',
     category: 'Inovasi',
+    image: IMG('sorgumology-container-lab.jpg'),
     content: art(
+      credit('Blog mangpeci.blogspot.com'),
       P('Kolaborasi antara perguruan tinggi dan komunitas petani terus memperkuat ekosistem pangan berbasis sorgum di Jawa Barat. Pada Juni 2025, Telkom University bersama KWT Melati Kampung Sorgum meluncurkan <strong>Sorgumology Container Lab</strong> dan <strong>Showcase</strong> di lingkungan kampus.'),
       H('Apa itu Sorgumology?'),
       P('Sorgumology adalah inisiatif yang menghubungkan riset kampus dengan produk olahan sorgum dari masyarakat. Container Lab berfungsi sebagai ruang pamer (<em>showcase</em>) sekaligus wadah pengembangan produk sorgum, sehingga civitas akademika dan masyarakat umum dapat mengenal lebih dekat produk dari Kampung Sorgum Bojongmanggu.'),
@@ -208,7 +225,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Private Label Produk Sorgum Untuk Perluas Pasar KWT Melati',
     category: 'Panen',
+    image: IMG('private-label-foto-bersama.jpg'),
     content: art(
+      credit('Dokumentasi PKM Bina Desa Kampung Sorgum (Kompasiana)'),
       P('Desa Bojongmanggu di Kabupaten Bandung dikenal sebagai salah satu penghasil sorgum terbesar di Jawa Barat, dengan hasil panen mencapai ratusan ton setiap tahun. Sorgum dari desa ini kaya protein, karbohidrat, dan mineral seperti zat besi (Fe), sehingga dinilai berpotensi membantu mengatasi masalah stunting.'),
       H('Tantangan Pemasaran'),
       P('Di balik potensi besar tersebut, produk olahan sorgum KWT Melati menghadapi beberapa kendala:'),
@@ -240,7 +259,9 @@ export const ARTICLE_SAMPLES: ArticleSample[] = [
   {
     title: 'Pemberdayaan Wanita Tani Lewat Budidaya Sorgum Berbasis Aset',
     category: 'Budidaya',
+    image: IMG('lahan-kampung-sorgum.jpg'),
     content: art(
+      credit('Blog mangpeci.blogspot.com'),
       P('Budidaya sorgum belum menjadi pilihan umum bagi kebanyakan petani di Indonesia. Namun, Kelompok Wanita Tani (KWT) Melati di Kampung Sorgum, Desa Bojongmanggu, Kecamatan Pameungpeuk, Kabupaten Bandung, berhasil menjadikannya sumber penghidupan baru bagi kaum perempuan.'),
       H('Pendekatan Asset Based Community Development (ABCD)'),
       P('Sebuah penelitian dari UIN Sunan Gunung Djati Bandung (2025) mengkaji pemberdayaan KWT Melati menggunakan pendekatan <strong>Asset Based Community Development (ABCD)</strong>. Berbeda dengan pendekatan yang berangkat dari masalah, ABCD memulai pengembangan dari <strong>kekuatan dan aset</strong> yang sudah dimiliki masyarakat.'),
