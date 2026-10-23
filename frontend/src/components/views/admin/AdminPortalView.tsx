@@ -1124,6 +1124,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setArtCategory(pick.category);
     setArtContent(pick.content);
     setArtImage(pick.image);
+    setArtGallery(pick.gallery);
     setArtError('');
   };
 

@@ -1151,6 +1151,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
     setArtCategory(pick.category);
     setArtContent(pick.content);
     setArtImage(pick.image);
+    setArtGallery(pick.gallery);
     setArtError('');
   };
 
