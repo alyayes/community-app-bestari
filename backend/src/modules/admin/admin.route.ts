@@ -7,11 +7,11 @@ import { AppError } from '../../utils/errors';
 
 const router = Router();
 
-// ═══ SEMUA ROUTE ADMIN BUTUH TOKEN + ROLE ADMIN ═══
-router.use(authenticate, authorize('ADMIN'));
+// ── DEMO/TESTING: cukup login (semua role: ADMIN & USER) ──
+// Catatan: dua endpoint ini menghapus/mengisi seluruh data operasional.
 
 // ── DELETE /api/admin/clear-data (Demo/Testing Only) ──
-router.delete('/clear-data', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/clear-data', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     await prisma.threadCommentLike.deleteMany();
     await prisma.threadComment.deleteMany();
@@ -31,7 +31,7 @@ router.delete('/clear-data', async (req: Request, res: Response, next: NextFunct
 });
 
 // ── POST /api/admin/seed-data (Demo/Testing Only) ──
-router.post('/seed-data', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/seed-data', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { articles, announcements, events, threads } = req.body;
     
@@ -146,6 +146,9 @@ router.post('/seed-data', async (req: Request, res: Response, next: NextFunction
     next(err);
   }
 });
+
+// ═══ SEMUA ROUTE ADMIN DI BAWAH INI BUTUH TOKEN + ROLE ADMIN ═══
+router.use(authenticate, authorize('ADMIN'));
 
 // ── GET /api/admin/dashboard ──────────────────────
 router.get('/dashboard', async (_req: Request, res: Response, next: NextFunction) => {
