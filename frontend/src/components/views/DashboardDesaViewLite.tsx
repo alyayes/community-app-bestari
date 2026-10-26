@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { ScmSourceToggle, type ScmSource } from '../ScmSourceToggle';
 import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
 import {
   Package,
@@ -27,6 +28,8 @@ interface DashboardDesaViewLiteProps {
   onOpenMulaiPanen: () => void;
   onRefresh?: () => Promise<void> | void;
   isRefreshing?: boolean;
+  scmSource?: ScmSource;
+  onChangeScmSource?: (v: ScmSource) => void;
 }
 
 export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
@@ -37,6 +40,8 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   onOpenMulaiPanen,
   onRefresh,
   isRefreshing = false,
+  scmSource,
+  onChangeScmSource,
 }) => {
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
   const safeLandPlots = Array.isArray(landPlots) ? landPlots : [];
@@ -552,10 +557,18 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
         <div className="relative z-10 space-y-0.5 sm:space-y-1 pr-12 sm:pr-0">
           <div className="flex flex-wrap items-center gap-2">
 
-            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-200 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Real-Time
-            </span>
+            {scmSource === 'demo' ? (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-200 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Data Dummy
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-200 bg-black/20 px-2 py-0.5 rounded-full border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Real-Time
+              </span>
+            )}
+            {onChangeScmSource && <ScmSourceToggle value={scmSource || 'real'} onChange={onChangeScmSource} dark />}
             {onRefresh && (
               <button
                 type="button"
