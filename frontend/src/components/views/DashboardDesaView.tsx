@@ -23,6 +23,7 @@ import {
   RotateCw
 } from 'lucide-react';
 import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
+import { formatLandLocation, landMapsUrl } from '../../types';
 import { getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface DashboardDesaViewProps {
@@ -167,6 +168,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
       const cVariety = (plot.cropVariety || '').toLowerCase();
       const lName = (plot.leaderName || '').toLowerCase();
       const pStatus = (plot.status || '').toLowerCase();
+      const pLoc = formatLandLocation(plot).toLowerCase();
 
       const matchBlock = filterBlock === 'Semua' ||
         plot.blockName === filterBlock ||
@@ -184,7 +186,8 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
         bName.includes(sQuery) ||
         cVariety.includes(sQuery) ||
         lName.includes(sQuery) ||
-        pStatus.includes(sQuery)
+        pStatus.includes(sQuery) ||
+        pLoc.includes(sQuery)
       );
 
       return matchBlock && matchVariety && matchStatus && matchSearch;
@@ -905,6 +908,26 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                       {plot.status}
                     </span>
                   </div>
+
+                  {(formatLandLocation(plot) || landMapsUrl(plot)) && (
+                    <div className="flex items-center justify-between gap-2 text-[11px] text-[#433A30] bg-white/70 border border-[#E6E1D5] rounded-lg px-2.5 py-1.5">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="shrink-0">📍</span>
+                        <span className="truncate"><span className="text-[#433A30]/70">Lokasi:</span> <b>{formatLandLocation(plot) || '-'}</b></span>
+                      </span>
+                      {landMapsUrl(plot) && (
+                        <a
+                          href={landMapsUrl(plot)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 font-bold text-[#2C4219] hover:underline"
+                          title={`Koordinat: ${plot.latitude}, ${plot.longitude}`}
+                        >
+                          Lihat Peta ↗
+                        </a>
+                      )}
+                    </div>
+                  )}
 
                   {/* Progress Bar */}
                   <div className="space-y-1">

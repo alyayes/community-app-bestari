@@ -95,11 +95,11 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
   };
 
   const handleClearData = async () => {
-    if (!window.confirm('Yakin ingin menghapus SEMUA data dari database?')) return;
+    if (!window.confirm('Yakin ingin menghapus SEMUA data dari database?\n\nData akan dibackup otomatis sebelum dihapus.')) return;
     setIsDeletingData(true);
     try {
-      await api('/admin/clear-data', { method: 'DELETE' });
-      alert('Semua data berhasil dihapus!');
+      const r = await api<{ backup?: { file: string } }>('/admin/clear-data', { method: 'DELETE' });
+      alert('Semua data berhasil dihapus!' + (r?.backup?.file ? `\n\nBackup otomatis tersimpan: ${r.backup.file}` : ''));
       window.location.reload();
     } catch (err: any) {
       alert(err.message || 'Gagal menghapus data');
@@ -112,7 +112,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
     if (!window.confirm('Masukkan data dummy (artikel, pengumuman, agenda, thread)?')) return;
     setIsSeedingData(true);
     try {
-      await api('/admin/seed-data', {
+      const r = await api<{ backup?: { file: string }; added?: Record<string, number> }>('/admin/seed-data', {
         method: 'POST',
         body: {
           articles: INITIAL_ARTICLES,
@@ -121,7 +121,9 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
           threads: INITIAL_THREADS
         }
       });
-      alert('Data dummy berhasil dimasukkan!');
+      const total = r?.added ? Object.values(r.added).reduce((a, b) => a + b, 0) : null;
+      alert((total === 0 ? 'Data dummy sudah ada semua, tidak ada yang ditambahkan (mencegah data dobel).' : 'Data dummy berhasil dimasukkan!')
+        + (r?.backup?.file ? `\n\nBackup otomatis tersimpan: ${r.backup.file}` : ''));
       window.location.reload();
     } catch (err: any) {
       alert(err.message || 'Gagal memasukkan data');

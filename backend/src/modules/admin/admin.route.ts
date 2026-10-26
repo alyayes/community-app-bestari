@@ -4,6 +4,7 @@ import prisma from '../../config/database';
 import { authenticate, authorize } from '../../middleware/auth';
 import { successResponse } from '../../utils/response';
 import { AppError } from '../../utils/errors';
+import { backupOperationalData } from '../../utils/backup';
 
 const router = Router();
 
@@ -13,6 +14,8 @@ const router = Router();
 // ── DELETE /api/admin/clear-data (Demo/Testing Only) ──
 router.delete('/clear-data', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Backup otomatis dulu; jika gagal, penghapusan dibatalkan (error dilempar)
+    const backup = await backupOperationalData('clear', req.user);
     await prisma.threadCommentLike.deleteMany();
     await prisma.threadComment.deleteMany();
     await prisma.threadLike.deleteMany();
@@ -24,7 +27,7 @@ router.delete('/clear-data', authenticate, async (req: Request, res: Response, n
     await prisma.artikel.deleteMany();
     // Data Lahan & Panen tidak dihapus karena bersumber langsung secara real-time dari API SCM LivingLabs
 
-    return successResponse(res, null, 'Semua data operasional berhasil dihapus (Data SCM Lahan & Panen dipertahankan)');
+    return successResponse(res, { backup }, `Semua data operasional berhasil dihapus (Data SCM dipertahankan). Backup otomatis: ${backup.file}`);
   } catch (err) {
     next(err);
   }
@@ -33,7 +36,32 @@ router.delete('/clear-data', authenticate, async (req: Request, res: Response, n
 // ── POST /api/admin/seed-data (Demo/Testing Only) ──
 router.post('/seed-data', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { articles, announcements, events, threads } = req.body;
+    // Backup otomatis sebelum data dummy dimasukkan; jika gagal, seed dibatalkan
+    const backup = await backupOperationalData('seed', req.user);
+
+    // Cegah data dobel: lewati item yang judulnya sudah ada (tidak peka huruf besar/kecil & spasi)
+    const norm = (t: any) => String(t || '').trim().toLowerCase();
+    const [exArt, exAnn, exAg, exTh] = await Promise.all([
+      prisma.artikel.findMany({ select: { title: true } }),
+      prisma.pengumuman.findMany({ select: { title: true } }),
+      prisma.agenda.findMany({ select: { title: true } }),
+      prisma.thread.findMany({ select: { title: true } }),
+    ]);
+    const onlyNew = (items: any, existing: { title: string }[]) => {
+      const seen = new Set(existing.map(e => norm(e.title)));
+      return (Array.isArray(items) ? items : []).filter((x: any) => {
+        const k = norm(x?.title);
+        if (!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    const articles = onlyNew(req.body.articles, exArt);
+    const announcements = onlyNew(req.body.announcements, exAnn);
+    const events = onlyNew(req.body.events, exAg);
+    const threads = onlyNew(req.body.threads, exTh);
+    const added = { artikel: articles.length, pengumuman: announcements.length, agenda: events.length, diskusi: threads.length };
+    const totalAdded = articles.length + announcements.length + events.length + threads.length;
     
     if (articles && articles.length > 0) {
       await prisma.artikel.createMany({
@@ -141,7 +169,10 @@ router.post('/seed-data', authenticate, async (req: Request, res: Response, next
       }
     }
 
-    return successResponse(res, null, 'Data dummy berhasil dimasukkan');
+    const msg = totalAdded === 0
+      ? `Data dummy sudah ada semua, tidak ada yang ditambahkan (mencegah data dobel). Backup otomatis: ${backup.file}`
+      : `Data dummy berhasil dimasukkan (${added.artikel} artikel, ${added.pengumuman} pengumuman, ${added.agenda} agenda, ${added.diskusi} diskusi). Backup otomatis: ${backup.file}`;
+    return successResponse(res, { backup, added }, msg);
   } catch (err) {
     next(err);
   }

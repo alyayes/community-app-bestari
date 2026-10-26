@@ -165,6 +165,27 @@ export interface LandPlot {
   status: string; // asli SCM: statusTanam (Ditanam/Tumbuh/Siap Panen/Gagal/Dipanen) atau statusKesiapan lahan
   leaderName: string;
   estimatedYieldKg: number;
+  // Lokasi dari SCM
+  village?: string;
+  district?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/** Teks lokasi lahan: "Desa X, Kec. Y" (tanpa duplikasi bila desa = kecamatan). */
+export function formatLandLocation(p: Pick<LandPlot, 'village' | 'district'>): string {
+  const v = (p.village || '').trim();
+  const d = (p.district || '').trim();
+  if (v && d && v.toLowerCase() !== d.toLowerCase()) return `Desa ${v}, Kec. ${d}`;
+  if (v) return `Desa ${v}`;
+  if (d) return `Kec. ${d}`;
+  return '';
+}
+
+/** Link Google Maps dari koordinat SCM (null bila koordinat tidak ada). */
+export function landMapsUrl(p: Pick<LandPlot, 'latitude' | 'longitude'>): string | null {
+  if (p.latitude == null || p.longitude == null) return null;
+  return `https://www.google.com/maps?q=${p.latitude},${p.longitude}`;
 }
 
 export interface HarvestRecord {

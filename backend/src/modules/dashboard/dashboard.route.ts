@@ -53,6 +53,11 @@ function toLandPlot(l: any, pl?: any) {
     status,
     leaderName: pl?.petugas || l.pemilikKelompokTani || '-',
     estimatedYieldKg: l.panenLaluTon ? Math.round(l.panenLaluTon * 1000) : 0,
+    // Lokasi asli SCM
+    village: l.lokasiDesa || '',
+    district: l.kecamatan || '',
+    latitude: Number.isFinite(Number(l.latitude)) && l.latitude !== null && l.latitude !== '' ? Number(l.latitude) : null,
+    longitude: Number.isFinite(Number(l.longitude)) && l.longitude !== null && l.longitude !== '' ? Number(l.longitude) : null,
   };
 }
 

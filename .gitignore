@@ -10,3 +10,6 @@ frontend/.env
 frontend/.env.production
 
 backend/models/*.bin
+
+# backup otomatis clear/seed data
+backend/backups/

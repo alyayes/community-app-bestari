@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ScmSourceToggle, type ScmSource } from '../ScmSourceToggle';
 import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
+import { formatLandLocation, landMapsUrl } from '../../types';
 import {
   Package,
   Sprout,
@@ -177,6 +178,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
       const cVariety = (plot.cropVariety || '').toLowerCase();
       const lName = (plot.leaderName || '').toLowerCase();
       const pStatus = (plot.status || '').toLowerCase();
+      const pLoc = formatLandLocation(plot).toLowerCase();
 
       const matchBlock = filterBlock === 'Semua' || 
         plot.blockName === filterBlock || 
@@ -194,7 +196,8 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
         bName.includes(sQuery) ||
         cVariety.includes(sQuery) ||
         lName.includes(sQuery) ||
-        pStatus.includes(sQuery)
+        pStatus.includes(sQuery) ||
+        pLoc.includes(sQuery)
       );
 
       return matchBlock && matchVariety && matchStatus && matchSearch;
@@ -900,7 +903,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                       🌾 {plot.cropVariety}
                     </span>
                     <span className="bg-[#FAF6EE] px-2 py-0.5 rounded-md border border-[#E6E1D5] text-[10px] sm:text-xs font-bold">
-                      📍 {plot.areaSize}
+                      📐 {plot.areaSize}
                     </span>
                     {plot.estimatedYieldKg ? (
                       <span className="text-[10px] sm:text-xs text-[#607829] font-bold">
@@ -909,6 +912,26 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                     ) : null}
                   </div>
                   
+                  {(formatLandLocation(plot) || landMapsUrl(plot)) && (
+                    <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs text-[#433A30] bg-[#FAF6EE] border border-[#E6E1D5] rounded-lg px-2.5 py-1.5 mb-2 sm:mb-3">
+                      <span className="flex items-center gap-1.5 min-w-0 font-bold">
+                        <MapPin className="w-3.5 h-3.5 shrink-0 text-[#607829]" />
+                        <span className="truncate">{formatLandLocation(plot) || 'Lokasi di peta'}</span>
+                      </span>
+                      {landMapsUrl(plot) && (
+                        <a
+                          href={landMapsUrl(plot)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 px-2 py-0.5 rounded-md bg-[#2C4219] text-white font-bold hover:bg-[#1F3011]"
+                          title={`Koordinat: ${plot.latitude}, ${plot.longitude}`}
+                        >
+                          Peta ↗
+                        </a>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-1">
                     <div className="flex justify-between text-[10px] sm:text-[11px] font-bold text-[#433A30] uppercase">
                       <span>Progres Pertumbuhan</span>
