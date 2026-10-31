@@ -22,7 +22,7 @@ import {
   RotateCw
 } from 'lucide-react';
 import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
-import { formatLandLocation, landMapsUrl } from '../../types';
+import { formatLandLocation, landMapsUrl, plotAreaHa, formatTotalLuas } from '../../types';
 import { getAvatarUrl, handleAvatarError } from '../../api/client';
 
 interface DashboardDesaViewProps {
@@ -74,8 +74,8 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
 
   // Perhitungan metrik utama dengan proteksi nilai NaN/undefined
   const totalHarvestKg = safeHarvestRecords.reduce((acc, r) => acc + (Number(r?.weightKg) || 0), 0);
-  const totalAreaValue = safeLandPlots.reduce((acc, p) => acc + (parseFloat(p?.areaSize || '0') || 0), 0);
-  const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
+  // Total luas mengikuti satuan & rumus SCM (mis. m²)
+  const totalAreaHa = formatTotalLuas(safeLandPlots);
   const totalMembers = Number(totalUsers) || safeMembers.length || 0;
   const readyFlourKg = safeProduction.reduce((acc, b) => acc + (Number(b?.outputQty) || 0), 0);
   // Opsi filter mutu / status diambil dari nilai yang benar-benar ada di SCM
@@ -193,7 +193,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
     } else if (sortBy === 'progress_desc') {
       result = [...result].sort((a, b) => (Number(b?.growthProgress) || 0) - (Number(a?.growthProgress) || 0));
     } else if (sortBy === 'area_desc') {
-      result = [...result].sort((a, b) => (parseFloat(b?.areaSize || '0') || 0) - (parseFloat(a?.areaSize || '0') || 0));
+      result = [...result].sort((a, b) => plotAreaHa(b) - plotAreaHa(a));
     } else {
       result = [...result].sort((a, b) => String(b?.plantingDate).localeCompare(String(a?.plantingDate)));
     }
@@ -724,7 +724,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                     <>
                       <option value="progress_desc">Progres Tertinggi (%)</option>
                       <option value="progress_asc">Progres Terendah (%)</option>
-                      <option value="area_desc">Luas Terbesar (Ha)</option>
+                      <option value="area_desc">Luas Terbesar</option>
                     </>
                   )}
                   {activeCard === 'produksi' && (
@@ -874,7 +874,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold bg-[#FAF6EE] text-[#2C4219] border border-[#E6E1D5] px-2.5 py-1 rounded-full">
-                📍 Total Luas: {filteredPlots.reduce((acc, p) => acc + (parseFloat(p?.areaSize || '0') || 0), 0).toFixed(1)} Ha
+                📐 Total Luas: {formatTotalLuas(filteredPlots)}
               </span>
             </div>
           </div>

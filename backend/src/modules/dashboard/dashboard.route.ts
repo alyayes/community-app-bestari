@@ -18,9 +18,29 @@ const SCM_REAL = {
   key: process.env.EXTERNAL_SCM_API_KEY || '',
 };
 
+// ── Satuan luas mengikuti pengaturan SCM (GET /cms/settings/app_units), sama seperti UI SCM ──
+// SCM menyimpan luas dalam hektar; tampilan dikonversi ke satuan pilihan admin SCM.
+type LuasUnit = 'hektar' | 'm2' | 'are' | 'km2';
+const LUAS_KE_HEKTAR: Record<LuasUnit, number> = { hektar: 1, m2: 0.0001, are: 0.01, km2: 100 };
+const LUAS_LABEL: Record<LuasUnit, string> = { hektar: 'Hektar', m2: 'm²', are: 'Are', km2: 'Km²' };
+function formatLuas(hektar: number, unit: LuasUnit): string {
+  const val = Math.round(((Number(hektar) || 0) / LUAS_KE_HEKTAR[unit]) * 100) / 100;
+  const txt = Number.isInteger(val) ? val.toLocaleString('id-ID') : val.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  return `${txt} ${LUAS_LABEL[unit]}`;
+}
+let unitCache: { at: number; luas: LuasUnit } | null = null;
+async function getLuasUnit(): Promise<LuasUnit> {
+  if (unitCache && Date.now() - unitCache.at < 60_000) return unitCache.luas;
+  const r = await safeFetchJson(`${SCM_REAL.base}/cms/settings/app_units`, { 'x-api-key': SCM_REAL.key });
+  const u = r?.data?.luas;
+  const luas: LuasUnit = u && u in LUAS_KE_HEKTAR ? u : (unitCache?.luas || 'hektar');
+  unitCache = { at: Date.now(), luas };
+  return luas;
+}
+
 // Mapping Lahan (External SCM) -> LandPlot frontend.
 // `pl` = penanaman terbaru di lahan tsb (SCM /plantings) -> sumber varietas, tgl tanam, estimasi panen.
-function toLandPlot(l: any, pl?: any) {
+function toLandPlot(l: any, pl: any, luasUnit: LuasUnit) {
   // Status asli SCM: status tanam (Ditanam/Tumbuh/Siap Panen/Gagal/Dipanen) bila ada penanaman,
   // selain itu status kesiapan lahan (Siap Tanam/Masa Pertumbuhan/Masa Panen/Bera (Istirahat)).
   const status = pl?.statusTanam || l.statusKesiapan || '-';
@@ -40,7 +60,9 @@ function toLandPlot(l: any, pl?: any) {
     id: String(l.id),
     blockName: l.namaLahan || 'Tanpa Nama',
     cropVariety: pl?.varietas || l.varietasSorgum || '-',
-    areaSize: l.luasHektar != null ? `${l.luasHektar} Ha` : '-',
+    areaSize: l.luasHektar != null ? formatLuas(Number(l.luasHektar), luasUnit) : '-',
+    areaHa: Number(l.luasHektar) || 0, // nilai asli SCM (hektar), untuk total & urutan
+    areaUnit: luasUnit,
     plantingDate,
     expectedHarvestDate,
     growthProgress: progress,
@@ -112,9 +134,10 @@ async function safeFetchJson(url: string, headers: Record<string, string> = {}):
 router.get('/lahan', async (_req: Request, res: Response) => {
   const scm = SCM_REAL;
   const headers = { 'x-api-key': scm.key };
-  const [result, plantings] = await Promise.all([
+  const [result, plantings, luasUnit] = await Promise.all([
     safeFetchJson(`${scm.base}/land?limit=100`, headers),
     safeFetchJson(`${scm.base}/plantings?limit=100`, headers),
+    getLuasUnit(),
   ]);
   if (result && result.success && Array.isArray(result.data)) {
     // penanaman terbaru per lahanId
@@ -124,7 +147,7 @@ router.get('/lahan', async (_req: Request, res: Response) => {
       const cur = latest.get(k);
       if (!cur || String(p.tanggalTanam) > String(cur.tanggalTanam)) latest.set(k, p);
     }
-    return successResponse(res, result.data.map((l: any) => toLandPlot(l, latest.get(String(l.id)))));
+    return successResponse(res, result.data.map((l: any) => toLandPlot(l, latest.get(String(l.id)), luasUnit)));
   }
   console.error('[SCM] /land gagal:', result?.message || 'tidak ada respons');
   return successResponse(res, []);

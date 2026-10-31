@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { LandPlot, HarvestRecord, ProductionBatch, UserProfile } from '../../types';
-import { formatLandLocation, landMapsUrl } from '../../types';
+import { formatLandLocation, landMapsUrl, plotAreaHa, formatTotalLuas } from '../../types';
 import {
   Package,
   Sprout,
@@ -55,8 +55,8 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
 
   const totalPanenKg = safeHarvestRecords.reduce((sum, record) => sum + (Number(record?.yieldKg) || Number(record?.weightKg) || 0), 0);
-  const totalAreaValue = safeLandPlots.reduce((acc, p) => acc + (parseFloat(p?.areaSize || '0') || 0), 0);
-  const totalAreaHa = `${totalAreaValue.toFixed(1)} Ha`;
+  // Total luas mengikuti satuan & rumus SCM (mis. m²)
+  const totalAreaHa = formatTotalLuas(safeLandPlots);
   const totalTepungSorgumKg = safeProduction.reduce((sum, b) => sum + (Number(b?.outputQty) || 0), 0);
   // Opsi filter mutu / status dari nilai yang benar-benar ada di SCM
   const qualityOptions = useMemo(() => Array.from(new Set(safeHarvestRecords.map(r => r?.quality).filter(Boolean))), [safeHarvestRecords]);
@@ -203,7 +203,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
     } else if (sortBy === 'progress_desc') {
       result = [...result].sort((a, b) => (Number(b?.growthProgress) || 0) - (Number(a?.growthProgress) || 0));
     } else if (sortBy === 'area_desc') {
-      result = [...result].sort((a, b) => (parseFloat(b?.areaSize || '0') || 0) - (parseFloat(a?.areaSize || '0') || 0));
+      result = [...result].sort((a, b) => plotAreaHa(b) - plotAreaHa(a));
     } else {
       result = [...result].sort((a, b) => String(b?.plantingDate).localeCompare(String(a?.plantingDate)));
     }
@@ -485,7 +485,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
                 <>
                   <option value="progress_desc">Progres Tertinggi (%)</option>
                   <option value="progress_asc">Progres Terendah (%)</option>
-                  <option value="area_desc">Luas Terbesar (Ha)</option>
+                  <option value="area_desc">Luas Terbesar</option>
                 </>
               )}
               {activeTab === 'produksi' && (

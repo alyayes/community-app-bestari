@@ -165,11 +165,38 @@ export interface LandPlot {
   status: string; // asli SCM: statusTanam (Ditanam/Tumbuh/Siap Panen/Gagal/Dipanen) atau statusKesiapan lahan
   leaderName: string;
   estimatedYieldKg: number;
+  // Luas asli SCM (hektar) + satuan tampilan dari pengaturan SCM
+  areaHa?: number;
+  areaUnit?: string;
   // Lokasi dari SCM
   village?: string;
   district?: string;
   latitude?: number | null;
   longitude?: number | null;
+}
+
+// Satuan luas: sama dengan pengaturan & rumus di aplikasi SCM
+const LUAS_KE_HEKTAR: Record<string, number> = { hektar: 1, m2: 0.0001, are: 0.01, km2: 100 };
+const LUAS_LABEL: Record<string, string> = { hektar: 'Hektar', m2: 'm²', are: 'Are', km2: 'Km²' };
+
+/** Luas lahan dalam hektar (pakai nilai asli SCM; fallback parse teks lama "1.2 Ha"). */
+export function plotAreaHa(p: Pick<LandPlot, 'areaHa' | 'areaSize'>): number {
+  if (typeof p.areaHa === 'number') return p.areaHa;
+  return parseFloat(p.areaSize || '0') || 0;
+}
+
+/** Format luas (hektar) ke satuan SCM, mis. 0.09 ha + 'm2' -> "900 m²". */
+export function formatLuas(hektar: number, unit?: string): string {
+  const u = unit && LUAS_KE_HEKTAR[unit] ? unit : 'hektar';
+  const val = Math.round(((Number(hektar) || 0) / LUAS_KE_HEKTAR[u]) * 100) / 100;
+  const txt = Number.isInteger(val) ? val.toLocaleString('id-ID') : val.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+  return `${txt} ${LUAS_LABEL[u]}`;
+}
+
+/** Total luas sekumpulan lahan, dalam satuan SCM. */
+export function formatTotalLuas(plots: Pick<LandPlot, 'areaHa' | 'areaSize' | 'areaUnit'>[]): string {
+  const total = plots.reduce((acc, p) => acc + plotAreaHa(p), 0);
+  return formatLuas(total, plots.find(p => p.areaUnit)?.areaUnit);
 }
 
 /** Teks lokasi lahan: "Desa X, Kec. Y" (tanpa duplikasi bila desa = kecamatan). */
