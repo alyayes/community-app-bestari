@@ -45,8 +45,8 @@ interface AgendaViewProps {
   onAddEvent: (event: AgendaEvent) => void;
   onEditEvent?: (event: AgendaEvent) => void;
   onDeleteEvent?: (eventId: string) => void;
-  onRegisterEvent?: (eventId: string) => void;
-  onUnregisterEvent?: (eventId: string) => void;
+  onRegisterEvent?: (eventId: string) => void | Promise<boolean>;
+  onUnregisterEvent?: (eventId: string) => void | Promise<boolean>;
   onUpdateAttendance?: (eventId: string, status: 'Hadir' | 'Tidak Hadir') => void;
   searchQuery?: string;
 }
@@ -398,7 +398,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
 
   const [popupData, setPopupData] = useState<{ show: boolean, type: 'register' | 'unregister' | 'creator_error', eventName: string }>({ show: false, type: 'register', eventName: '' });
 
-  const toggleRegistration = (eventId: string) => {
+  const toggleRegistration = async (eventId: string) => {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
@@ -407,10 +407,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         setPopupData({ show: true, type: 'creator_error', eventName: event.title });
         return;
       }
-      if (onUnregisterEvent) onUnregisterEvent(eventId);
+      if (onUnregisterEvent && (await onUnregisterEvent(eventId)) === false) return; // gagal: toast error dari App
       setPopupData({ show: true, type: 'unregister', eventName: event.title });
     } else {
-      if (onRegisterEvent) onRegisterEvent(eventId);
+      if (onRegisterEvent && (await onRegisterEvent(eventId)) === false) return; // gagal: toast error dari App
       setPopupData({ show: true, type: 'register', eventName: event.title });
     }
   };
@@ -705,7 +705,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               `}
             >
               <List className="w-4 h-4 text-[#2C4219]" />
-              <span>Daftar</span>
+              <span>Semua Agenda</span>
             </button>
           </div>
         )}

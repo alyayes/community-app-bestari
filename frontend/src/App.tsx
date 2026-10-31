@@ -756,7 +756,9 @@ export function App() {
     setEvents(prev => prev.filter(ev => ev.id !== eventId));
   };
 
-  const handleRegisterAgenda = async (eventId: string) => {
+  // Hasil true = server sukses. Gagal: UI dikembalikan + pesan server (mis. "Kuota kegiatan sudah penuh").
+  const handleRegisterAgenda = async (eventId: string): Promise<boolean> => {
+    const snapshot = events;
     // 1. Optimistic update: langsung ubah status di UI agar tombol langsung berubah jadi 'Terdaftar' dan nama masuk
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
@@ -775,21 +777,27 @@ export function App() {
       };
     }));
 
-    showToast('Berhasil mendaftar kegiatan!', 'success');
-
     try {
       await api(`/agenda/${eventId}/daftar`, {
         method: 'POST',
         body: { userId: currentUser.id || 'usr_01', userName: currentUser.name || 'Anggota KWT' }
       });
+    } catch (e: any) {
+      console.warn('[Bestari] Gagal daftar agenda di server:', e);
+      setEvents(snapshot);
+      showToast(`Gagal mendaftar: ${e?.message || 'periksa koneksi internet'}`, 'error');
+      return false;
+    }
+    showToast('Berhasil mendaftar kegiatan!', 'success');
+    try {
       const ags = await api<AgendaEvent[]>(`/agenda?userId=${currentUser.id || 'usr_01'}&userName=${encodeURIComponent(currentUser.name || '')}`);
       if (ags && ags.length) setEvents(ags);
-    } catch (e) {
-      console.warn('[Bestari] Gagal daftar agenda di server:', e);
-    }
+    } catch { /* refresh gagal tidak membatalkan pendaftaran */ }
+    return true;
   };
 
-  const handleUnregisterAgenda = async (eventId: string) => {
+  const handleUnregisterAgenda = async (eventId: string): Promise<boolean> => {
+    const snapshot = events;
     // Optimistic update
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
@@ -806,18 +814,23 @@ export function App() {
       };
     }));
 
-    showToast('Pendaftaran kegiatan dibatalkan', 'info');
-
     try {
       await api(`/agenda/${eventId}/daftar`, {
         method: 'DELETE',
         body: { userId: currentUser.id || 'usr_01' }
       });
+    } catch (e: any) {
+      console.warn('[Bestari] Gagal batal daftar agenda di server:', e);
+      setEvents(snapshot);
+      showToast(`Gagal membatalkan: ${e?.message || 'periksa koneksi internet'}`, 'error');
+      return false;
+    }
+    showToast('Pendaftaran kegiatan dibatalkan', 'info');
+    try {
       const ags = await api<AgendaEvent[]>(`/agenda?userId=${currentUser.id || 'usr_01'}&userName=${encodeURIComponent(currentUser.name || '')}`);
       if (ags && ags.length) setEvents(ags);
-    } catch (e) {
-      console.warn('[Bestari] Gagal batal daftar agenda di server:', e);
-    }
+    } catch { /* refresh gagal tidak membatalkan aksi */ }
+    return true;
   };
 
   // ── CMS: update konten landing/login/register ──

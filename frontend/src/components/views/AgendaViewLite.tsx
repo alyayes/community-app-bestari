@@ -11,8 +11,8 @@ const stripHtml = (html: string): string => (html || '').replace(/<[^>]*>/g, '')
 interface AgendaViewLiteProps {
   events: AgendaEvent[];
   currentUser: UserProfile;
-  onRegisterEvent?: (eventId: string) => void;
-  onUnregisterEvent?: (eventId: string) => void;
+  onRegisterEvent?: (eventId: string) => void | Promise<boolean>;
+  onUnregisterEvent?: (eventId: string) => void | Promise<boolean>;
 }
 
 export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
@@ -104,6 +104,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
 
   const toggleRegistration = (ev: AgendaEvent) => {
     if (isUserRegistered(ev)) {
+      if (!window.confirm(`Batalkan pendaftaran kegiatan "${ev.title}"?`)) return;
       onUnregisterEvent?.(ev.id);
     } else {
       onRegisterEvent?.(ev.id);
@@ -518,7 +519,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                 {isUserRegistered(detailEvent) ? (
                   <button
                     type="button"
-                    onClick={() => { onUnregisterEvent?.(detailEvent.id); setDetailEvent(null); }}
+                    onClick={() => { if (!window.confirm(`Batalkan pendaftaran kegiatan "${detailEvent.title}"?`)) return; onUnregisterEvent?.(detailEvent.id); setDetailEvent(null); }}
                     className="w-full py-2.5 sm:py-3 rounded-xl bg-red-50 text-red-600 font-bold text-xs sm:text-sm border border-red-200 hover:bg-red-100 transition-all shadow-2xs active:scale-95"
                   >
                     Batal Ikut Kegiatan
