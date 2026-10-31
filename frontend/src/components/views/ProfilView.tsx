@@ -19,6 +19,7 @@ import {
 import { api, apiUpdateProfile, getAvatarUrl, handleAvatarError } from '../../api/client';
 import { INITIAL_ARTICLES, INITIAL_ANNOUNCEMENTS, INITIAL_EVENTS, INITIAL_THREADS } from '../../data/mockData';
 import { useFontSize, FontSizeOption } from '../../contexts/FontSizeContext';
+import { compressImage } from '../../utils/imageCompress';
 
 interface ProfilViewProps {
   currentUser: UserProfile;
@@ -181,7 +182,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
         alert(err.message || 'Gagal menyimpan foto profil');
       }
     };
-    reader.readAsDataURL(file);
+    compressImage(file).then(f => reader.readAsDataURL(f));
   };
 
   const handleDeleteAvatar = async (e: React.MouseEvent) => {
@@ -273,7 +274,7 @@ export const ProfilView: React.FC<ProfilViewProps> = ({ currentUser, setCurrentU
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E6E1D5] shadow-2xs flex items-center gap-6 relative">
         {/* Avatar Area */}
         <div className="relative shrink-0 group">
-          <img
+          <img loading="lazy" decoding="async"
             src={getAvatarUrl(avatar, currentUser.name)}
             alt={currentUser.name}
             onError={(e) => handleAvatarError(e, currentUser.name)}

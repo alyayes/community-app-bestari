@@ -236,7 +236,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-2 pl-2 border-l border-[#E6E1D5] hover:opacity-80 active:scale-95 transition-all text-left focus:outline-none cursor-pointer"
             title="Lihat Profil Saya"
           >
-            <img
+            <img loading="lazy" decoding="async"
               src={getAvatarUrl(currentUser.avatar, currentUser.name)}
               alt={currentUser.name}
               onError={(e) => handleAvatarError(e, currentUser.name)}

@@ -455,7 +455,7 @@ export const AgendaViewLite: React.FC<AgendaViewLiteProps> = ({
                               return (
                                 <a key={idx} href={resolvedUrl} target="_blank" rel="noopener noreferrer"
                                   className="group block rounded-xl border border-[#E6E1D5] overflow-hidden aspect-[4/3] relative bg-[#FAF6EE] hover:border-[#A8B774] transition-all">
-                                  <img src={resolvedUrl} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                  <img loading="lazy" decoding="async" src={resolvedUrl} alt={`Dokumentasi ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                 </a>
                               );
                             })}

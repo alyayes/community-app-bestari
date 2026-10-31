@@ -125,7 +125,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             className="flex items-center gap-3.5 cursor-pointer group"
           >
             {cmsData?.webLogo ? (
-              <img src={resolveImageUrl(cmsData.webLogo)} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30" />
+              <img loading="lazy" decoding="async" src={resolveImageUrl(cmsData.webLogo)} alt="Logo" className="w-11 h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30" />
             ) : (
               <div className="w-11 h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform border border-amber-300/30">
                 <Sprout className="w-7 h-7" />
@@ -158,7 +158,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
                 }`}
             >
-              <img
+              <img loading="lazy" decoding="async"
                 src={imgUrl(img.url)}
                 alt={img.title}
                 className="w-full h-full object-cover object-center"

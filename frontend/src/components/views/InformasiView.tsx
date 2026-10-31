@@ -115,7 +115,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
                       idx === activeImageIdx ? 'opacity-100 z-0 print:opacity-100 print:z-10' : 'opacity-0 -z-10 print:hidden'
                     }`}
                   >
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={resolveImageUrl(imgUrl)}
                       alt={`${selectedArticle.title} ${idx + 1}`}
                       className="w-full h-full object-cover object-center"
@@ -126,7 +126,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
             ) : (
                 <div className="absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out opacity-100 z-0 print:opacity-100 print:z-10">
                   {selectedArticle.image ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={resolveImageUrl(selectedArticle.image)}
                       alt={selectedArticle.title}
                       className="w-full h-full object-cover object-center"
@@ -340,7 +340,7 @@ export const InformasiView: React.FC<InformasiViewProps> = ({
               {/* Image Header */}
               <div className="relative h-48 w-full overflow-hidden bg-[#FAF6EE]">
                 {art.image ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={resolveImageUrl(art.image)}
                     alt={art.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

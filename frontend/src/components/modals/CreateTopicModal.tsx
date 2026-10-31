@@ -3,6 +3,7 @@ import { ForumThread, UserProfile } from '../../types';
 import { pickUnused, THREAD_SAMPLES } from '../../data/autofillSamples';
 import { AutofillBar } from '../AutofillBar';
 import { MessageSquare, AlertCircle, X, ShieldCheck, Users, Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { compressImage } from '../../utils/imageCompress';
 
 interface CreateTopicModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
       reader.onloadend = () => {
         setGroupAvatarPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      compressImage(file).then(f => reader.readAsDataURL(f));
     }
   };
 
@@ -101,7 +102,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
             setImagePreviews(prev => [...prev, ...newPreviews]);
           }
         };
-        reader.readAsDataURL(file);
+        compressImage(file).then(f => reader.readAsDataURL(f));
       });
     }
   };
@@ -248,7 +249,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
               >
                 {groupAvatarPreview ? (
                   <>
-                    <img 
+                    <img loading="lazy" decoding="async" 
                       src={groupAvatarPreview} 
                       alt="Grup Avatar" 
                       className="w-full h-full object-cover" 
@@ -325,7 +326,7 @@ export const CreateTopicModal: React.FC<CreateTopicModalProps> = ({
                 <div className="grid grid-cols-4 gap-2">
                   {imagePreviews.map((img, index) => (
                     <div key={index} className="relative group rounded-xl border border-[#E6E1D5] bg-[#FAF6EE] overflow-hidden aspect-square">
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={img}
                         alt={`Lampiran ${index + 1}`}
                         className="w-full h-full object-cover"

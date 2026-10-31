@@ -83,6 +83,7 @@ import { IndonesianTimePicker, to12HourPeriod } from '../../IndonesianTimePicker
 import { formatEventTimeWithPeriod, autoCapitalizeFirst, isAllLowerCase, cleanHtmlSummary, isEventPast } from '../../../utils/agendaUtils';
 import { CertificateBuilderView } from './CertificateBuilderView';
 import { useFontSize, FontSizeOption } from '../../../contexts/FontSizeContext';
+import { compressImage, compressImages } from '../../../utils/imageCompress';
 
 
 
@@ -750,7 +751,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   // Upload 1 file -> kembalikan URL /uploads/xxx
   const handleCmsUpload = async (file: File): Promise<string> => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', await compressImage(file));
     const res = await api<{ url: string }>('/upload', { method: 'POST', body: formData, isFormData: true });
     return res.url;
   };
@@ -758,7 +759,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   // Upload banyak file -> kembalikan array URL
   const handleCmsUploadMany = async (files: FileList | File[]): Promise<string[]> => {
     const formData = new FormData();
-    Array.from(files).forEach(f => formData.append('files', f));
+    (await compressImages(files)).forEach(f => formData.append('files', f));
     const res = await api<{ urls: string[] }>('/upload/many', { method: 'POST', body: formData, isFormData: true });
     return res.urls;
   };
@@ -1462,7 +1463,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             {/* Admin Portal Brand Header */}
             <div className={`flex items-center gap-3 px-2 py-1 ${isSidebarAdminCollapsed ? 'justify-center px-0' : ''}`}>
               {cmsWebLogo ? (
-                <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5] shrink-0" />
+                <img loading="lazy" decoding="async" src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-md border border-[#E6E1D5] shrink-0" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-[#2C4219] text-[#A8B774] flex items-center justify-center font-bold shadow-md shrink-0">
                   <Sprout className="w-5 h-5" />
@@ -1701,7 +1702,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     <div key={art.id} className="bg-white p-4 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
                         {art.image ? (
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={resolveImageUrl(art.image)}
                             alt={art.title}
                             className="w-16 h-12 rounded-xl object-cover shrink-0 border border-[#E6E1D5]"
@@ -1969,7 +1970,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       {/* Header: Author & Category */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={thr.authorAvatar ? ((thr.authorAvatar.startsWith('http') || thr.authorAvatar.startsWith('data:')) ? thr.authorAvatar : SERVER_BASE + thr.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(thr.authorName || 'User')}&background=FAF6EE&color=2C4219`}
                             alt={thr.authorName}
                             className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
@@ -2560,7 +2561,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                         {cmsWebLogo && (
                           <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-2 border-[#A8B774]/60 bg-white p-2 shadow-sm mb-3">
-                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain" />
+                            <img loading="lazy" decoding="async" src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-full h-full object-contain" />
                             <button
                               type="button"
                               onClick={() => setCmsWebLogo('')}
@@ -2663,7 +2664,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                               <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
                                 <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
-                                    <img src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={cmsImgUrl(url)} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
@@ -2792,7 +2793,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                               <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
                                 <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
-                                    <img src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={cmsImgUrl(url)} alt={`Login Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
@@ -2920,7 +2921,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                               <div key={idx} className="space-y-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#E6E1D5]">
                                 <div className="relative h-28 rounded-lg overflow-hidden border border-[#A8B774]/60 bg-white">
                                   {url ? (
-                                    <img src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <img loading="lazy" decoding="async" src={cmsImgUrl(url)} alt={`Register Slide ${idx + 1}`} className="w-full h-full object-cover" />
                                   ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-[#433A30]/40">
                                       <ImageIcon className="w-6 h-6 mb-1" />
@@ -3060,7 +3061,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     {cmsActivePage === 'identitas' && (
                       <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-lg bg-white p-8 flex flex-col items-center justify-center text-center h-[300px]">
                         {cmsWebLogo ? (
-                          <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
+                          <img loading="lazy" decoding="async" src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-20 h-20 object-contain rounded-2xl bg-white p-2 shadow-md border border-white/20" />
                         ) : (
                           <div className="w-20 h-20 rounded-2xl bg-[#FAF6EE] flex items-center justify-center border-2 border-dashed border-[#E6E1D5]">
                             <ImageIcon className="w-8 h-8 text-[#D1C9B8]" />
@@ -3075,7 +3076,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
 
                         <div className="mt-8 pt-6 border-t border-[#E6E1D5] w-full flex items-center gap-3 justify-center">
                           {cmsWebLogo ? (
-                            <img src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
+                            <img loading="lazy" decoding="async" src={cmsImgUrl(cmsWebLogo)} alt="Logo" className="w-8 h-8 object-contain rounded-lg shrink-0" />
                           ) : (
                             <div className="w-8 h-8 rounded-lg bg-[#FAF6EE] shrink-0" />
                           )}
@@ -3094,7 +3095,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                         <div className="relative p-6 sm:p-8 flex flex-col items-center text-center justify-center min-h-[380px] overflow-hidden">
                           {/* Background Image Layer */}
                           {cmsLandingImages[0] ? (
-                            <img
+                            <img loading="lazy" decoding="async"
                               src={cmsImgUrl(cmsLandingImages[0])}
                               alt="Hero Preview"
                               className="absolute inset-0 w-full h-full object-cover opacity-35"
@@ -3139,7 +3140,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             <span className="text-[11px] text-gray-400 font-medium shrink-0 mr-1">Slide:</span>
                             {cmsLandingImages.map((img, i) => (
                               <div key={i} className="relative w-14 h-9 shrink-0 rounded-lg overflow-hidden border border-white/20 group">
-                                <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                <img loading="lazy" decoding="async" src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                                 <span className="absolute bottom-0.5 right-1 text-[9px] font-bold text-white bg-black/60 px-1 rounded">
                                   #{i + 1}
                                 </span>
@@ -3155,7 +3156,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-xl bg-white flex flex-col font-['Poppins']">
                         <div className="relative min-h-[220px] p-6 flex flex-col justify-end bg-[#2C4219] overflow-hidden">
                           {cmsLoginImages[0] && (
-                            <img src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                            <img loading="lazy" decoding="async" src={cmsImgUrl(cmsLoginImages[0])} alt="Login" className="absolute inset-0 w-full h-full object-cover opacity-40" />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] via-[#1E2E11]/60 to-transparent" />
                           <div className="relative z-10">
@@ -3187,7 +3188,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                               <span className="text-[10px] text-[#7A7062] font-semibold shrink-0">Gambar:</span>
                               {cmsLoginImages.map((img, i) => (
                                 <div key={i} className="w-12 h-8 shrink-0 rounded-lg overflow-hidden border border-[#E6E1D5]">
-                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                  <img loading="lazy" decoding="async" src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                               ))}
                             </div>
@@ -3201,7 +3202,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       <div className="rounded-3xl overflow-hidden border border-[#E6E1D5] shadow-xl bg-white flex flex-col font-['Poppins']">
                         <div className="relative min-h-[220px] p-6 flex flex-col justify-end bg-[#2C4219] overflow-hidden">
                           {cmsRegImages[0] && (
-                            <img src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                            <img loading="lazy" decoding="async" src={cmsImgUrl(cmsRegImages[0])} alt="Register" className="absolute inset-0 w-full h-full object-cover opacity-40" />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-[#1E2E11] via-[#1E2E11]/60 to-transparent" />
                           <div className="relative z-10">
@@ -3233,7 +3234,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                               <span className="text-[10px] text-[#7A7062] font-semibold shrink-0">Gambar:</span>
                               {cmsRegImages.map((img, i) => (
                                 <div key={i} className="w-12 h-8 shrink-0 rounded-lg overflow-hidden border border-[#E6E1D5]">
-                                  <img src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                                  <img loading="lazy" decoding="async" src={cmsImgUrl(img)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
                                 </div>
                               ))}
                             </div>
@@ -3332,7 +3333,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                       <div key={u.id || u.email} className="bg-white p-5 rounded-2xl border border-[#E6E1D5] shadow-xs flex flex-col justify-between gap-4 hover:border-[#2C4219] transition-all">
                         <div className="flex items-start gap-3">
                           {u.avatar ? (
-                            <img 
+                            <img loading="lazy" decoding="async" 
                               src={getAvatarUrl(u.avatar, userName)} 
                               alt={userName}
                               onError={(e) => handleAvatarError(e, userName)}
@@ -3874,7 +3875,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                   ) : (
                     <div className="relative w-full h-32 sm:h-40 rounded-2xl border border-[#E6E1D5] overflow-hidden group">
                       {artImage ? (
-                        <img src={artImage} alt="Preview" className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={artImage} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full bg-[#FAF6EE] flex items-center justify-center text-[#A8B774] font-bold">
                           Tanpa Foto
@@ -3929,7 +3930,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     {/* Existing gallery thumbnails */}
                     {artGallery.map((img, idx) => (
                       <div key={idx} className="relative group aspect-square rounded-2xl overflow-hidden border border-[#E6E1D5] shadow-xs">
-                        <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button
                             type="button"
@@ -4724,7 +4725,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
             <div className="p-4 sm:p-6 overflow-y-auto space-y-6 bg-white">
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={selectedThreadDetail.authorAvatar ? ((selectedThreadDetail.authorAvatar.startsWith('http') || selectedThreadDetail.authorAvatar.startsWith('data:')) ? selectedThreadDetail.authorAvatar : SERVER_BASE + selectedThreadDetail.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedThreadDetail.authorName || 'User')}&background=FAF6EE&color=2C4219`}
                     alt="avatar"
                     className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-[#E6E1D5]"
@@ -4754,7 +4755,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                     {selectedThreadDetail.comments.map(comment => (
                       <div key={comment.id} className="bg-[#FAF6EE] p-4 rounded-2xl border border-[#E6E1D5] space-y-3">
                         <div className="flex items-center gap-2.5">
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={comment.authorAvatar ? ((comment.authorAvatar.startsWith('http') || comment.authorAvatar.startsWith('data:')) ? comment.authorAvatar : SERVER_BASE + comment.authorAvatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.authorName || 'User')}&background=E3EBD3&color=2C4219`}
                             alt="avatar"
                             className="w-8 h-8 rounded-full object-cover border border-[#E6E1D5]"
@@ -4774,7 +4775,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
                             <div className="mt-2 flex flex-wrap gap-2">
                               {comment.imageAttachments.map((img, i) => (
                                 <button key={i} type="button" onClick={() => setSelectedImageDetail(img.startsWith('http') || img.startsWith('data:') ? img : SERVER_BASE + img)} className="block relative group overflow-hidden rounded-lg border border-[#E6E1D5]">
-                                  <img src={img.startsWith('http') || img.startsWith('data:') ? img : SERVER_BASE + img} alt="attachment" className="h-20 w-auto object-cover" />
+                                  <img loading="lazy" decoding="async" src={img.startsWith('http') || img.startsWith('data:') ? img : SERVER_BASE + img} alt="attachment" className="h-20 w-auto object-cover" />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <Eye className="w-5 h-5 text-white" />
                                   </div>
@@ -4822,7 +4823,7 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
           >
             <X className="w-6 h-6" />
           </button>
-          <img src={selectedImageDetail} alt="Full detail" className="max-w-full max-h-[90vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+          <img loading="lazy" decoding="async" src={selectedImageDetail} alt="Full detail" className="max-w-full max-h-[90vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 

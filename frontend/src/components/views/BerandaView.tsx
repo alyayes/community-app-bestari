@@ -114,7 +114,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
             className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === activeSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10'
               }`}
           >
-            <img
+            <img loading="lazy" decoding="async"
               src={slide.url || undefined}
               alt={slide.title}
               className="w-full h-full object-cover object-center"
@@ -185,7 +185,7 @@ export const BerandaView: React.FC<BerandaViewProps> = ({
                   <div className="space-y-3">
                     <div className="relative h-36 rounded-lg overflow-hidden bg-gray-100">
                       {art.image ? (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={resolveImageUrl(art.image)}
                           alt={art.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

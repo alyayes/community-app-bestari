@@ -30,8 +30,9 @@ import { ProfilView } from './components/views/ProfilView';
 import { LandingView } from './components/views/LandingView';
 import { LoginView } from './components/views/LoginView';
 import { RegisterView } from './components/views/RegisterView';
-import { AdminPortalView } from './components/views/admin/AdminPortalView';
-import { AdminPortalViewLite } from './components/views/admin/AdminPortalViewLite';
+// Halaman admin dimuat terpisah (code splitting): anggota biasa tidak ikut mengunduh kode admin
+const AdminPortalView = React.lazy(() => import('./components/views/admin/AdminPortalView').then(m => ({ default: m.AdminPortalView })));
+const AdminPortalViewLite = React.lazy(() => import('./components/views/admin/AdminPortalViewLite').then(m => ({ default: m.AdminPortalViewLite })));
 
 // Modals
 import { CreateTopicModal } from './components/modals/CreateTopicModal';
@@ -39,6 +40,8 @@ import { MulaiPanenModal } from './components/modals/MulaiPanenModal';
 import { BantuanModal } from './components/modals/BantuanModal';
 import { ArticleDetailModal } from './components/modals/ArticleDetailModal';
 import { SemuaNotifikasiModal } from './components/modals/SemuaNotifikasiModal';
+import { AppSkeleton } from './components/AppSkeleton';
+import { LOAD_STATUS_EVENT, RETRY_EVENT } from './components/RetryBanner';
 
 type PageMode = 'landing' | 'login' | 'register' | 'app' | 'admin';
 
@@ -163,6 +166,47 @@ export function App() {
   // Unread counts
   const unreadNotificationsCount = combinedNotifications.filter(n => !n.isRead).length;
 
+  // ── LOAD DATA PUBLIK (dipakai saat app dibuka & tombol "Coba Lagi") ──
+  // Data inti (kecil) ditunggu; Diskusi & anggota dimuat di latar belakang agar app cepat tampil.
+  // Bila ada yang gagal, banner "Coba Lagi" muncul (bukan diam-diam kosong).
+  const loadPublicData = useCallback(async () => {
+    const failed: string[] = [];
+    const get = <T,>(path: string, label: string, fallback: T): Promise<T> =>
+      api<T>(path).catch(() => { failed.push(label); return fallback; });
+    const report = () => window.dispatchEvent(new CustomEvent(LOAD_STATUS_EVENT, { detail: { failed: [...failed] } }));
+
+    const background = Promise.all([
+      get<ForumThread[]>('/thread', 'diskusi', []).then(thrs => setThreads(Array.isArray(thrs) ? thrs : [])),
+      get<any[]>('/dashboard/members', 'anggota', []).then(m => setMembers(Array.isArray(m) ? m : [])),
+    ]);
+
+    const [arts, anns, ags, lahan, panen, stats, cmsRes] = await Promise.all([
+      get<InfoArticle[]>('/artikel', 'informasi', []),
+      get<Announcement[]>('/pengumuman', 'pengumuman', []),
+      get<AgendaEvent[]>('/agenda', 'agenda', []),
+      get<LandPlot[]>('/dashboard/lahan', 'data lahan', []),
+      get<HarvestRecord[]>('/dashboard/panen', 'data panen', []),
+      get<{ totalUsers: number, totalRawMaterialKg?: number } | null>('/dashboard/stats', 'statistik', null),
+      get<CmsData | null>('/cms', 'tampilan', null),
+    ]);
+    setArticles(Array.isArray(arts) ? arts : []);
+    setAnnouncements(Array.isArray(anns) ? anns : []);
+    setEvents(Array.isArray(ags) ? ags : []);
+    setLandPlots(Array.isArray(lahan) ? lahan : []);
+    setHarvestRecords(Array.isArray(panen) ? panen : []);
+    if (stats) setDashboardStats(stats);
+    if (cmsRes) setCmsData(cmsRes);
+    report();
+    background.then(report);
+  }, []);
+
+  // Tombol "Coba Lagi" di banner -> muat ulang data tanpa refresh halaman
+  useEffect(() => {
+    const onRetry = () => { loadPublicData(); };
+    window.addEventListener(RETRY_EVENT, onRetry);
+    return () => window.removeEventListener(RETRY_EVENT, onRetry);
+  }, [loadPublicData]);
+
   // ── LOAD DATA REAL DARI BACKEND SAAT APP DIBUKA ──
   useEffect(() => {
     const initApp = async () => {
@@ -199,31 +243,7 @@ export function App() {
       }
 
       // Load semua data publik dari backend
-      try {
-        const [arts, anns, ags, thrs, lahan, panen, stats, cmsRes, membersRes] = await Promise.all([
-          api<InfoArticle[]>('/artikel').catch(() => []),
-          api<Announcement[]>('/pengumuman').catch(() => []),
-          api<AgendaEvent[]>('/agenda').catch(() => []),
-          api<ForumThread[]>('/thread').catch(() => []),
-          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
-          api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
-          api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => null),
-          api<CmsData>('/cms').catch(() => null),
-          api<any[]>('/dashboard/members').catch(() => [])
-        ]);
-        setArticles(arts.length ? arts : []);
-        setAnnouncements(anns.length ? anns : []);
-        setEvents(ags);
-        setThreads(thrs.length ? thrs : []);
-        setLandPlots(Array.isArray(lahan) ? lahan : []);
-        setHarvestRecords(Array.isArray(panen) ? panen : []);
-        setMembers(membersRes.length ? membersRes : []);
-        if (stats) setDashboardStats(stats);
-        if (cmsRes) setCmsData(cmsRes);
-      } catch (e) {
-        // Fallback ke mock data jika backend mati
-        console.warn('[Bestari] Backend tidak terjangkau, pakai mock data:', e);
-      }
+      await loadPublicData();
       setIsInitialLoad(false);
     };
 
@@ -829,11 +849,7 @@ export function App() {
   };
 
   if (isInitialLoad) {
-    return (
-      <div className="min-h-screen bg-[#FAF6EE] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2C4219] border-t-transparent"></div>
-      </div>
-    );
+    return <AppSkeleton />;
   }
 
   // Render Page Modes
@@ -930,10 +946,14 @@ export function App() {
       }
     };
 
-    return appMode === 'lite' ? (
-      <AdminPortalViewLite {...adminProps} />
-    ) : (
-      <AdminPortalView {...adminProps} />
+    return (
+      <React.Suspense fallback={<AppSkeleton />}>
+        {appMode === 'lite' ? (
+          <AdminPortalViewLite {...adminProps} />
+        ) : (
+          <AdminPortalView {...adminProps} />
+        )}
+      </React.Suspense>
     );
   }
 

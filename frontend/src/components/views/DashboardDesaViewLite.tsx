@@ -1044,7 +1044,7 @@ export const DashboardDesaViewLite: React.FC<DashboardDesaViewLiteProps> = ({
             <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E6E1D5] sm:border-2 shadow-2xs overflow-hidden divide-y divide-[#E6E1D5]">
               {filteredMembers.length > 0 ? filteredMembers.map((member, idx) => (
                 <div key={idx} className="p-3 sm:p-4 flex items-center gap-3 hover:bg-[#FAF6EE] transition-colors">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={getAvatarUrl(member.avatar, member.name)}
                     alt={member.name}
                     onError={(e) => handleAvatarError(e, member.name)}

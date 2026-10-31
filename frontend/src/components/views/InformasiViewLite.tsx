@@ -96,7 +96,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
           <div className="relative mb-6 group overflow-hidden rounded-2xl shadow-xs bg-[#E6E1D5]/30">
             <div className="relative w-full h-48 sm:h-64 md:h-80">
               {selectedArticle.gallery.map((imgUrl, idx) => (
-                <img
+                <img loading="lazy" decoding="async"
                   key={idx}
                   src={resolveImageUrl(imgUrl)}
                   alt={`${selectedArticle.title} ${idx + 1}`}
@@ -124,7 +124,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
             )}
           </div>
         ) : selectedArticle.image && (
-          <img 
+          <img loading="lazy" decoding="async" 
             src={resolveImageUrl(selectedArticle.image)} 
             alt={selectedArticle.title}
             className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-2xl mb-6 shadow-xs"
@@ -158,7 +158,7 @@ export const InformasiViewLite: React.FC<InformasiViewLiteProps> = ({
             >
               <div className="w-full h-40 sm:h-44 rounded-xl overflow-hidden shrink-0 bg-[#FAF6EE] flex items-center justify-center">
                 {art.image ? (
-                  <img src={resolveImageUrl(art.image)} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img loading="lazy" decoding="async" src={resolveImageUrl(art.image)} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <ImageIcon className="w-10 h-10 text-[#2C4219]/30" />
                 )}

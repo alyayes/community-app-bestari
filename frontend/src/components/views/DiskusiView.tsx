@@ -27,6 +27,7 @@ import {
   Camera
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { compressImage } from '../../utils/imageCompress';
 
 interface DiskusiViewProps {
   threads: ForumThread[];
@@ -358,7 +359,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
       reader.onloadend = () => {
         setEditGroupAvatar(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      compressImage(file).then(f => reader.readAsDataURL(f));
     }
   };
 
@@ -488,7 +489,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                       }`}
                   >
                     {thread.groupAvatar ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={getAvatarUrl(thread.groupAvatar, thread.title)}
                         alt={thread.title}
                         onError={(e) => handleAvatarError(e, thread.title)}
@@ -566,7 +567,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                     title="Lihat Detail Komunitas"
                   >
                     {activeThread.groupAvatar ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
                         alt={activeThread.title}
                         onError={(e) => handleAvatarError(e, activeThread.title)}
@@ -619,7 +620,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                 <div className="flex-1 flex flex-col items-center justify-center bg-[#FAF6EE]/40 p-8 sm:p-12 text-center space-y-6 animate-in fade-in duration-300">
                   <div className="w-24 h-24 rounded-3xl bg-[#2C4219]/10 text-[#2C4219] flex items-center justify-center shadow-md border border-[#2C4219]/15 shrink-0">
                     {activeThread.groupAvatar ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
                         alt={activeThread.title}
                         onError={(e) => handleAvatarError(e, activeThread.title)}
@@ -679,7 +680,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                               {(() => {
                                 const stAvatar = getAuthorAvatar(activeThread.authorName, activeThread.authorAvatar);
                                 return stAvatar ? (
-                                  <img
+                                  <img loading="lazy" decoding="async"
                                     src={getAvatarUrl(stAvatar, activeThread.authorName)}
                                     alt={activeThread.authorName}
                                     onError={(e) => {
@@ -718,7 +719,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                         {activeThread.images && activeThread.images.length > 0 && (
                           <div className={`grid ${activeThread.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 pt-1`}>
                             {activeThread.images.map((img, idx) => (
-                              <img
+                              <img loading="lazy" decoding="async"
                                 key={idx}
                                 src={img}
                                 alt="Lampiran"
@@ -893,7 +894,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                     {(() => {
                                       const cAvatar = getAuthorAvatar(comment.authorName, comment.authorAvatar);
                                       return cAvatar ? (
-                                        <img
+                                        <img loading="lazy" decoding="async"
                                           src={getAvatarUrl(cAvatar, comment.authorName)}
                                           alt={comment.authorName}
                                           onError={(e) => {
@@ -973,7 +974,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                   {comment.imageAttachments && comment.imageAttachments.length > 0 && (
                                     <div className="mb-1.5 grid grid-cols-2 gap-1.5">
                                       {comment.imageAttachments.map((img, idx) => (
-                                        <img key={idx} src={img} alt="Attachment" onClick={() => setZoomedImage(img)} className="rounded-lg max-h-48 w-full object-cover border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity" />
+                                        <img loading="lazy" decoding="async" key={idx} src={img} alt="Attachment" onClick={() => setZoomedImage(img)} className="rounded-lg max-h-48 w-full object-cover border border-[#E6E1D5] cursor-pointer hover:opacity-90 transition-opacity" />
                                       ))}
                                     </div>
                                   )}
@@ -1065,7 +1066,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                         <div className="p-2 px-4 bg-white border-t border-[#E6E1D5] flex gap-2 shrink-0 overflow-x-auto">
                           {attachmentPreviews.map((preview, idx) => (
                             <div key={idx} className="relative group shrink-0">
-                              <img src={preview} alt="Preview" className="w-12 h-12 object-cover rounded shadow-2xs border border-[#E6E1D5]" />
+                              <img loading="lazy" decoding="async" src={preview} alt="Preview" className="w-12 h-12 object-cover rounded shadow-2xs border border-[#E6E1D5]" />
                               <button
                                 onClick={() => {
                                   setAttachmentPreviews(prev => prev.filter((_, i) => i !== idx));
@@ -1150,7 +1151,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                   reader.onloadend = () => {
                                     setAttachmentPreviews(prev => [...prev, reader.result as string]);
                                   };
-                                  reader.readAsDataURL(file);
+                                  compressImage(file).then(f => reader.readAsDataURL(f));
                                 });
                                 showToast(`${validFiles.length} gambar siap dilampirkan.`, 'success');
                               }
@@ -1170,7 +1171,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                                   reader.onloadend = () => {
                                     setDocumentAttachments(prev => [...prev, { url: reader.result as string, name: file.name }]);
                                   };
-                                  reader.readAsDataURL(file);
+                                  compressImage(file).then(f => reader.readAsDataURL(f));
                                 });
                                 showToast(`${files.length} dokumen dilampirkan.`, 'success');
                               }
@@ -1384,7 +1385,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                   >
                     {editGroupAvatar ? (
                       <>
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={editGroupAvatar}
                           alt="Grup Avatar"
                           className="w-full h-full object-cover"
@@ -1504,7 +1505,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
               <div className="relative group mb-3">
                 <div className="w-28 h-28 rounded-full bg-[#2C4219] text-white flex items-center justify-center shrink-0 overflow-hidden border-4 border-white shadow-md">
                   {activeThread.groupAvatar ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={getAvatarUrl(activeThread.groupAvatar, activeThread.title)}
                       alt="Group Avatar"
                       onError={(e) => handleAvatarError(e, activeThread.title)}
@@ -1559,7 +1560,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
                 </div>
                 {activeThread.images && activeThread.images.length > 0 && (
                   <div className="mt-3">
-                    <img src={activeThread.images[0]} alt="Grup Foto" className="w-full max-h-48 object-cover rounded-xl border border-[#E6E1D5]" />
+                    <img loading="lazy" decoding="async" src={activeThread.images[0]} alt="Grup Foto" className="w-full max-h-48 object-cover rounded-xl border border-[#E6E1D5]" />
                   </div>
                 )}
               </div>
@@ -1623,7 +1624,7 @@ export const DiskusiView: React.FC<DiskusiViewProps> = ({
             >
               <X className="w-6 h-6" />
             </button>
-            <img 
+            <img loading="lazy" decoding="async" 
               src={zoomedImage} 
               alt="Zoomed" 
               className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"

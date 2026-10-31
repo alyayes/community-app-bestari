@@ -991,7 +991,7 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
                     return (
                       <tr key={member?.id || idx} className="hover:bg-[#FAF6EE]/50 transition-colors">
                         <td className="p-3 font-semibold text-[#2C4219] flex items-center gap-2 whitespace-nowrap">
-                          <img
+                          <img loading="lazy" decoding="async"
                             src={getAvatarUrl(member?.avatar, memberName)}
                             alt={memberName}
                             onError={(e) => handleAvatarError(e, memberName)}

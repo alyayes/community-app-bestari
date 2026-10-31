@@ -8,6 +8,7 @@ import { createThreadSchema, updateThreadSchema, createCommentSchema } from '../
 import { successResponse } from '../../utils/response';
 import { NotFoundError, AppError } from '../../utils/errors';
 import { timeAgo } from '../../utils/format';
+import { saveDataUrl, persistImageList, persistDocList } from '../../utils/dataUrl';
 
 const router = Router();
 
@@ -177,8 +178,8 @@ router.post('/', authenticate, validate(createThreadSchema), async (req: Request
         category,
         content,
         summary: summary || content.slice(0, 120),
-        images: images || [],
-        groupAvatar: groupAvatar || null,
+        images: (persistImageList(images || []) as string[]),
+        groupAvatar: groupAvatar ? (saveDataUrl(groupAvatar) as string) : null,
         allowMemberMessages: allowMemberMessages ?? true,
         authorName: req.user!.name!,
         authorAvatar,
@@ -207,7 +208,11 @@ router.put('/:id', authenticate, validate(updateThreadSchema), async (req: Reque
       throw new AppError('Hanya pembuat topik yang bisa mengedit', 403);
     }
 
-    const t = await prisma.thread.update({ where: { id }, data: req.body });
+    // Foto base64 disimpan sebagai file agar data diskusi tetap ringan
+    const data = { ...req.body };
+    if (data.images !== undefined) data.images = persistImageList(data.images);
+    if (data.groupAvatar !== undefined && data.groupAvatar) data.groupAvatar = saveDataUrl(data.groupAvatar);
+    const t = await prisma.thread.update({ where: { id }, data });
     return successResponse(res, toThread(t, []), 'Topik berhasil diperbarui');
   } catch (err) {
     next(err);
@@ -376,8 +381,8 @@ router.post('/:id/comments', authenticate, validate(createCommentSchema), async 
         content: req.body.content,
         quotedCommentText: req.body.quotedText || null,
         quotedCommentAuthor: req.body.quotedAuthor || null,
-        imageAttachment: Array.isArray(req.body.imageAttachments) ? JSON.stringify(req.body.imageAttachments) : null,
-        documentAttachment: Array.isArray(req.body.documentAttachments) ? JSON.stringify(req.body.documentAttachments) : null,
+        imageAttachment: Array.isArray(req.body.imageAttachments) ? JSON.stringify(persistImageList(req.body.imageAttachments)) : null,
+        documentAttachment: Array.isArray(req.body.documentAttachments) ? JSON.stringify(persistDocList(req.body.documentAttachments)) : null,
         documentName: null,
         likes: 0,
         userLiked: false,
@@ -420,10 +425,10 @@ router.put('/:id/comments/:commentId', authenticate, async (req: Request, res: R
 
     const dataToUpdate: any = { content: String(req.body.content ?? ''), isEdited: true };
     if (req.body.imageAttachments !== undefined) {
-      dataToUpdate.imageAttachment = Array.isArray(req.body.imageAttachments) ? JSON.stringify(req.body.imageAttachments) : null;
+      dataToUpdate.imageAttachment = Array.isArray(req.body.imageAttachments) ? JSON.stringify(persistImageList(req.body.imageAttachments)) : null;
     }
     if (req.body.documentAttachments !== undefined) {
-      dataToUpdate.documentAttachment = Array.isArray(req.body.documentAttachments) ? JSON.stringify(req.body.documentAttachments) : null;
+      dataToUpdate.documentAttachment = Array.isArray(req.body.documentAttachments) ? JSON.stringify(persistDocList(req.body.documentAttachments)) : null;
     }
 
     const comment = await prisma.threadComment.update({

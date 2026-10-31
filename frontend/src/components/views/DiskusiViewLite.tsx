@@ -3,6 +3,7 @@ import { ForumThread, UserProfile, ForumComment } from '../../types';
 import { MessageSquare, ArrowLeft, Send, PlusCircle, Paperclip, Image as ImageIcon, X, Search, Filter, Lock, Trash2, Heart, CornerDownRight, CheckCheck, Edit3, LogOut, Settings, Upload, AlertCircle, ShieldCheck, Users, ChevronDown, Smile } from 'lucide-react';
 import EmojiPicker, { EmojiStyle } from 'emoji-picker-react';
 import { SERVER_BASE, api, getAvatarUrl, handleAvatarError } from '../../api/client';
+import { compressImage } from '../../utils/imageCompress';
 
 const CommentBubble = ({
   comment,
@@ -45,7 +46,7 @@ const CommentBubble = ({
       {!isMe && (
         <div className="shrink-0 mt-1">
           {cAvatar && !imgError && cAvatar.trim() !== '' ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={getAvatarUrl(cAvatar, comment.authorName)}
               alt={comment.authorName}
               className="w-8 h-8 rounded-full object-cover shadow-sm border border-[#E6E1D5]"
@@ -86,7 +87,7 @@ const CommentBubble = ({
             {comment.imageAttachments && comment.imageAttachments.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {comment.imageAttachments.map((img: string, i: number) => (
-                  <img key={i} src={img} alt="Lampiran" onClick={() => onImageClick && onImageClick(img)} className="h-32 rounded-xl object-cover border border-black/5 cursor-pointer" />
+                  <img loading="lazy" decoding="async" key={i} src={img} alt="Lampiran" onClick={() => onImageClick && onImageClick(img)} className="h-32 rounded-xl object-cover border border-black/5 cursor-pointer" />
                 ))}
               </div>
             )}
@@ -154,7 +155,7 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
       <div className="shrink-0">
         {!isMe ? (
           thread.authorAvatar && !imgError && thread.authorAvatar.trim() !== '' ? (
-            <img
+            <img loading="lazy" decoding="async"
               src={getAvatarUrl(thread.authorAvatar, thread.authorName)}
               alt={thread.authorName}
               className="w-10 h-10 rounded-full object-cover shadow-sm border border-[#E6E1D5]"
@@ -179,7 +180,7 @@ const MainTopicBubble = ({ thread, currentUser, onToggleLikeThread, setQuotedCom
         {thread.images && thread.images.length > 0 && (
           <div className={`mt-3 flex flex-wrap gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
             {thread.images.map((img: string, i: number) => (
-              <img key={i} src={img} alt="Lampiran" onClick={() => onImageClick && onImageClick(img)} className="h-32 rounded-xl object-cover border border-[#E6E1D5] cursor-pointer" />
+              <img loading="lazy" decoding="async" key={i} src={img} alt="Lampiran" onClick={() => onImageClick && onImageClick(img)} className="h-32 rounded-xl object-cover border border-[#E6E1D5] cursor-pointer" />
             ))}
           </div>
         )}
@@ -412,7 +413,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
       reader.onloadend = () => {
         setEditGroupAvatar(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      compressImage(file).then(f => reader.readAsDataURL(f));
     }
     if (editAvatarInputRef.current) {
       editAvatarInputRef.current.value = '';
@@ -532,7 +533,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
       reader.onloadend = () => {
         setAttachmentPreviews(prev => [...prev, reader.result as string]);
       };
-      reader.readAsDataURL(file);
+      compressImage(file).then(f => reader.readAsDataURL(f));
     });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -544,7 +545,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
       reader.onloadend = () => {
         setDocumentAttachments(prev => [...prev, { url: reader.result as string, name: file.name }]);
       };
-      reader.readAsDataURL(file);
+      compressImage(file).then(f => reader.readAsDataURL(f));
     });
     if (docInputRef.current) docInputRef.current.value = '';
   };
@@ -562,7 +563,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
               <ArrowLeft className="w-6 h-6 text-[#2C4219]" />
             </button>
             {selectedThread.groupAvatar ? (
-              <img
+              <img loading="lazy" decoding="async"
                 src={getAvatarUrl(selectedThread.groupAvatar, selectedThread.title)}
                 alt={selectedThread.title}
                 onError={(e) => handleAvatarError(e, selectedThread.title)}
@@ -723,7 +724,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                   <div className="flex gap-2 overflow-x-auto pb-2">
                     {attachmentPreviews.map((preview, idx) => (
                       <div key={idx} className="relative shrink-0">
-                        <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-xl border border-[#E6E1D5]" />
+                        <img loading="lazy" decoding="async" src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-xl border border-[#E6E1D5]" />
                         <button
                           onClick={() => setAttachmentPreviews(prev => prev.filter((_, i) => i !== idx))}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
@@ -896,7 +897,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
                     <label className="block font-bold text-[#2C4219] mb-1 text-center">Foto Profil Komunitas</label>
                     <div onClick={() => editAvatarInputRef.current?.click()} className="relative group w-20 h-20 rounded-full border-4 border-[#A8B774] bg-[#FAF6EE] flex items-center justify-center cursor-pointer overflow-hidden shadow-sm">
                       {editGroupAvatar ? (
-                        <img src={editGroupAvatar} alt="Grup Avatar" className="w-full h-full object-cover" />
+                        <img loading="lazy" decoding="async" src={editGroupAvatar} alt="Grup Avatar" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center text-[#2C4219]">
                           <Upload className="w-6 h-6" />
@@ -981,7 +982,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
             >
               <X className="w-6 h-6" />
             </button>
-            <img
+            <img loading="lazy" decoding="async"
               src={zoomedImage}
               alt="Zoomed"
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
@@ -1048,7 +1049,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
             >
               <div className="flex items-center gap-3 mb-2.5">
                 {thread.groupAvatar ? (
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={getAvatarUrl(thread.groupAvatar, thread.title)}
                     alt={thread.title}
                     onError={(e) => handleAvatarError(e, thread.title)}
@@ -1106,7 +1107,7 @@ export const DiskusiViewLite: React.FC<DiskusiViewLiteProps> = ({
           >
             <X className="w-6 h-6" />
           </button>
-          <img
+          <img loading="lazy" decoding="async"
             src={zoomedImage}
             alt="Zoomed"
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"

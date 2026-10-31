@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title="Ke Halaman Utama"
               >
                 {webLogo ? (
-                  <img src={resolveImageUrl(webLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform shrink-0" />
+                  <img loading="lazy" decoding="async" src={resolveImageUrl(webLogo)} alt="Logo" className="w-10 h-10 rounded-full object-contain bg-white shadow-sm border border-[#E6E1D5] group-hover:scale-105 transition-transform shrink-0" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-[#2C4219] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
                     <Sprout className="w-6 h-6 text-[#A8B774]" />

@@ -6,6 +6,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { ToastProvider } from './contexts/ToastContext';
 import { FontSizeProvider } from './contexts/FontSizeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { RetryBanner } from './components/RetryBanner';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <FontSizeProvider>
         <ToastProvider>
           <App />
+          <RetryBanner />
         </ToastProvider>
       </FontSizeProvider>
     </ErrorBoundary>

@@ -67,7 +67,7 @@ export const BerandaViewLite: React.FC<BerandaViewLiteProps> = ({
                     className="bg-white p-4 rounded-2xl border-2 border-[#E6E1D5] shadow-sm cursor-pointer hover:border-[#607829] hover:shadow-md transition-all flex items-center gap-4 group"
                   >
                     {article.image ? (
-                      <img src={resolveImageUrl(article.image)} alt={article.title} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                      <img loading="lazy" decoding="async" src={resolveImageUrl(article.image)} alt={article.title} className="w-20 h-20 rounded-xl object-cover shrink-0" />
                     ) : (
                       <div className="w-20 h-20 rounded-xl bg-[#FAF6EE] flex items-center justify-center text-[#A19D94] shrink-0 border border-[#E6E1D5]">
                         <BookOpen className="w-8 h-8" />

@@ -193,7 +193,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
                 }`}
             >
-              <img
+              <img loading="lazy" decoding="async"
                 src={imgUrl(url)}
                 alt={`Login Background ${idx + 1}`}
                 className="w-full h-full object-cover opacity-85"
@@ -210,7 +210,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             className="flex items-center gap-3 cursor-pointer group text-left"
           >
             {cmsData?.webLogo ? (
-              <img src={imgUrl(cmsData.webLogo)} alt="Logo" className="w-10 h-10 md:w-11 md:h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0" />
+              <img loading="lazy" decoding="async" src={imgUrl(cmsData.webLogo)} alt="Logo" className="w-10 h-10 md:w-11 md:h-11 rounded-full object-contain bg-white shadow-lg group-hover:scale-105 transition-transform shrink-0" />
             ) : (
               <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#A8B774] text-[#2C4219] flex items-center justify-center font-bold shadow-lg group-hover:scale-105 transition-transform shrink-0">
                 <Sprout className="w-5 h-5 md:w-6 md:h-6" />
