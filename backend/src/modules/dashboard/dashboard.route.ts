@@ -12,17 +12,11 @@ router.use((_req, res, next) => {
   next();
 });
 
-// Sumber data SCM: 'real' (default) atau 'demo' (data dummy, dipilih lewat ?source=demo)
-type ScmSource = { base: string; key: string };
-const SCM_REAL: ScmSource = {
+// Sumber data SCM: selalu data asli (real)
+const SCM_REAL = {
   base: process.env.EXTERNAL_SCM_API_BASE || 'https://scm.livinglabs.id/api',
   key: process.env.EXTERNAL_SCM_API_KEY || '',
 };
-const SCM_DEMO: ScmSource = {
-  base: process.env.EXTERNAL_SCM_DEMO_API_BASE || 'https://scm1.livinglabs.id/api',
-  key: process.env.EXTERNAL_SCM_DEMO_API_KEY || '',
-};
-const scmOf = (req: Request): ScmSource => (req.query.source === 'demo' ? SCM_DEMO : SCM_REAL);
 
 // Mapping Lahan (External SCM) -> LandPlot frontend.
 // `pl` = penanaman terbaru di lahan tsb (SCM /plantings) -> sumber varietas, tgl tanam, estimasi panen.
@@ -115,8 +109,8 @@ async function safeFetchJson(url: string, headers: Record<string, string> = {}):
 }
 
 // ── GET /api/lahan ─────────────────────────────────
-router.get('/lahan', async (req: Request, res: Response) => {
-  const scm = scmOf(req);
+router.get('/lahan', async (_req: Request, res: Response) => {
+  const scm = SCM_REAL;
   const headers = { 'x-api-key': scm.key };
   const [result, plantings] = await Promise.all([
     safeFetchJson(`${scm.base}/land?limit=100`, headers),
@@ -137,8 +131,8 @@ router.get('/lahan', async (req: Request, res: Response) => {
 });
 
 // ── GET /api/panen ─────────────────────────────────
-router.get('/panen', async (req: Request, res: Response) => {
-  const scm = scmOf(req);
+router.get('/panen', async (_req: Request, res: Response) => {
+  const scm = SCM_REAL;
   const result = await safeFetchJson(`${scm.base}/harvest?limit=100`, {
     'x-api-key': scm.key
   });
@@ -152,8 +146,8 @@ router.get('/panen', async (req: Request, res: Response) => {
 // ── PROXY ENDPOINTS untuk data SCM tambahan ───────────
 
 // Helper: generic proxy fetch from external SCM API
-async function fetchSCM(req: Request, endpoint: string, limit = 100) {
-  const scm = scmOf(req);
+async function fetchSCM(endpoint: string, limit = 100) {
+  const scm = SCM_REAL;
   const result = await safeFetchJson(`${scm.base}/${endpoint}?limit=${limit}`, {
     'x-api-key': scm.key
   });
@@ -161,65 +155,65 @@ async function fetchSCM(req: Request, endpoint: string, limit = 100) {
 }
 
 // GET /api/dashboard/equipment (Peralatan)
-router.get('/equipment', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/equipment', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'equipment');
+    const data = await fetchSCM('equipment');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/production (Produksi)
-router.get('/production', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/production', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'production');
+    const data = await fetchSCM('production');
     return successResponse(res, data.map(toProduction));
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/certificates (Sertifikat)
-router.get('/certificates', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/certificates', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'certificates');
+    const data = await fetchSCM('certificates');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/packaging (Kemasan)
-router.get('/packaging', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/packaging', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'packaging');
+    const data = await fetchSCM('packaging');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/logistics (Logistik)
-router.get('/logistics', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/logistics', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'logistics');
+    const data = await fetchSCM('logistics');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/varieties (Varietas)
-router.get('/varieties', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/varieties', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'varieties');
+    const data = await fetchSCM('varieties');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/plantings (Penanaman)
-router.get('/plantings', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/plantings', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'plantings');
+    const data = await fetchSCM('plantings');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });
 
 // GET /api/dashboard/warehouse (Gudang)
-router.get('/warehouse', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/warehouse', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await fetchSCM(req, 'warehouse');
+    const data = await fetchSCM('warehouse');
     return successResponse(res, data);
   } catch (err) { next(err); }
 });

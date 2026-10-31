@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import type { ScmSource } from '../../ScmSourceToggle';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -133,8 +132,6 @@ interface AdminPortalViewProps {
   onUpdateArticles: (articles: InfoArticle[]) => void;
   onUpdateAnnouncements: (announcements: Announcement[]) => void;
   onUpdateThreads: (threads: ForumThread[]) => void;
-  scmSource?: ScmSource;
-  onChangeScmSource?: (v: ScmSource) => void;
   onRefreshScm?: () => Promise<void> | void;
   isRefreshingScm?: boolean;
   onUpdateAgendas?: (agendas: AgendaEvent[]) => void;
@@ -239,8 +236,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
   onUpdateArticles,
   onUpdateAnnouncements,
   onUpdateThreads,
-  scmSource,
-  onChangeScmSource,
   onRefreshScm,
   isRefreshingScm,
   onUpdateAgendas,
@@ -2454,8 +2449,6 @@ export const AdminPortalViewLite: React.FC<AdminPortalViewProps> = ({
               onOpenMulaiPanen={() => showToast('Pencatatan panen dapat dilakukan melalui menu pencatatan di dashboard utama.')}
               onRefresh={onRefreshScm}
               isRefreshing={isRefreshingScm}
-              scmSource={scmSource}
-              onChangeScmSource={onChangeScmSource}
             />
           )}
 

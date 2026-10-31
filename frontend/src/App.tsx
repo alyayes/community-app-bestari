@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { ScmSource } from './components/ScmSourceToggle';
 import { Home, BookOpen, Calendar, MessageSquare, LayoutDashboard, ShieldCheck, FileText, MessageCircle, X } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import { NavItem, InfoArticle, Announcement, AgendaEvent, ForumThread, LandPlot, HarvestRecord, ProductionBatch, UserProfile, CmsData } from './types';
@@ -46,9 +45,8 @@ type PageMode = 'landing' | 'login' | 'register' | 'app' | 'admin';
 export function App() {
   const { showToast } = useToast();
   const [isSyncingScm, setIsSyncingScm] = useState(false);
-  // Sumber data SCM: 'real' (asli) atau 'demo' (dummy); disimpan per-browser
-  const [scmSource, setScmSource] = useState<ScmSource>(() => (localStorage.getItem('bestari_scm_source') === 'demo' ? 'demo' : 'real'));
-  useEffect(() => { localStorage.setItem('bestari_scm_source', scmSource); }, [scmSource]);
+  // Pilihan lama Real/Dummy sudah dihapus: bersihkan sisa pengaturan di browser
+  useEffect(() => { localStorage.removeItem('bestari_scm_source'); }, []);
   const [pageMode, setPageMode] = useState<PageMode>(() => {
     return (sessionStorage.getItem('bestari_pagemode') as PageMode) || 'landing';
   });
@@ -207,8 +205,8 @@ export function App() {
           api<Announcement[]>('/pengumuman').catch(() => []),
           api<AgendaEvent[]>('/agenda').catch(() => []),
           api<ForumThread[]>('/thread').catch(() => []),
-          api<LandPlot[]>(`/dashboard/lahan?source=${scmSource}`).catch(() => []),
-          api<HarvestRecord[]>(`/dashboard/panen?source=${scmSource}`).catch(() => []),
+          api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+          api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
           api<{ totalUsers: number, totalRawMaterialKg?: number }>('/dashboard/stats').catch(() => null),
           api<CmsData>('/cms').catch(() => null),
           api<any[]>('/dashboard/members').catch(() => [])
@@ -239,15 +237,15 @@ export function App() {
     if (!silent) setIsSyncingScm(true);
     try {
       const [lahan, panen, produksi] = await Promise.all([
-        api<LandPlot[]>(`/dashboard/lahan?source=${scmSource}`).catch(() => []),
-        api<HarvestRecord[]>(`/dashboard/panen?source=${scmSource}`).catch(() => []),
-        api<ProductionBatch[]>(`/dashboard/production?source=${scmSource}`).catch(() => [])
+        api<LandPlot[]>('/dashboard/lahan').catch(() => []),
+        api<HarvestRecord[]>('/dashboard/panen').catch(() => []),
+        api<ProductionBatch[]>('/dashboard/production').catch(() => [])
       ]);
       if (Array.isArray(lahan)) setLandPlots(lahan);
       if (Array.isArray(panen)) setHarvestRecords(panen);
       if (Array.isArray(produksi)) setProductionBatches(produksi);
       if (!silent) {
-        showToast(scmSource === 'demo' ? 'Data dummy SCM berhasil dimuat.' : 'Data SCM berhasil disinkronkan langsung dari LivingLabs!', 'success');
+        showToast('Data SCM berhasil disinkronkan langsung dari LivingLabs!', 'success');
       }
     } catch (e) {
       console.error('[Bestari] Sinkronisasi SCM gagal:', e);
@@ -257,7 +255,7 @@ export function App() {
     } finally {
       if (!silent) setIsSyncingScm(false);
     }
-  }, [showToast, scmSource]);
+  }, [showToast]);
 
   // 1. Polling interval otomatis (tiap 20 detik)
   useEffect(() => {
@@ -909,8 +907,6 @@ export function App() {
       onUpdateArticles: (list: any[]) => setArticles(list.filter(a => (a as any).status !== 'Draft')),
       onUpdateAnnouncements: setAnnouncements,
       onUpdateThreads: setThreads,
-      scmSource,
-      onChangeScmSource: setScmSource,
       onRefreshScm: () => fetchSorgumData(false),
       isRefreshingScm: isSyncingScm,
       onUpdateAgendas: setEvents,
@@ -1094,8 +1090,6 @@ export function App() {
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
                 onRefresh={() => fetchSorgumData(false)}
                 isRefreshing={isSyncingScm}
-                scmSource={scmSource}
-                onChangeScmSource={setScmSource}
               />
             ) : (
               <DashboardDesaView
@@ -1109,8 +1103,6 @@ export function App() {
                 onOpenMulaiPanen={() => setIsMulaiPanenOpen(true)}
                 onRefresh={() => fetchSorgumData(false)}
                 isRefreshing={isSyncingScm}
-                scmSource={scmSource}
-                onChangeScmSource={setScmSource}
               />
             )
           )}

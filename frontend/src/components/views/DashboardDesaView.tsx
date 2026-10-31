@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { ScmSourceToggle, type ScmSource } from '../ScmSourceToggle';
 import {
   TrendingUp,
   Sprout,
@@ -38,8 +37,6 @@ interface DashboardDesaViewProps {
   onSimpanPanen?: () => void;
   onRefresh?: () => Promise<void> | void;
   isRefreshing?: boolean;
-  scmSource?: ScmSource;
-  onChangeScmSource?: (v: ScmSource) => void;
 }
 
 type MetricCardType = 'ringkasan' | 'panen' | 'lahan' | 'anggota' | 'produksi';
@@ -55,8 +52,6 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
   onOpenMulaiPanen,
   onRefresh,
   isRefreshing = false,
-  scmSource,
-  onChangeScmSource,
 }) => {
   // Pastikan array selalu valid dan aman dari undefined/null
   const safeHarvestRecords = Array.isArray(harvestRecords) ? harvestRecords : [];
@@ -348,18 +343,10 @@ export const DashboardDesaView: React.FC<DashboardDesaViewProps> = ({
             <p className="text-[11px] sm:text-xs font-bold text-[#7A7062] uppercase tracking-wider">
               Pilih Kategori Data:
             </p>
-            {scmSource === 'demo' ? (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Data Dummy
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Real-Time
-              </span>
-            )}
-            {onChangeScmSource && <ScmSourceToggle value={scmSource || 'real'} onChange={onChangeScmSource} />}
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Real-Time
+            </span>
           </div>
           {onRefresh && (
             <button
